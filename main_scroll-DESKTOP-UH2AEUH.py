@@ -776,7 +776,7 @@ def generate_world(worldcode=None, biome=None, screens=5):
             pass
 
 
-def generate_chunk(x, y, biome="swamp"):
+def generate_chunk(x, y, biome="forest"):
     # init NOW
     terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
     lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
@@ -833,14 +833,16 @@ def generate_chunk(x, y, biome="swamp"):
                         name = choice(list(oinfo))
                 else:
                     name = "air"
-            if name:
+            if name not in empty_blocks:
                 chunk_data[target_pos] = Block(name, target_pos, ore_chance)
                 metadata[target_pos]["light"] = 1
     # world mods
     g.w.entities.extend(world_modifications(chunk_data, metadata, biome, chunk_pos, g.w.wgr))
-    # suck the air out
-    chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
     # blitting
+    for pos, block in chunk_data.items():
+        name = block.name
+        if name not in empty_blocks:
+            pass
     light_level = 255
     for rel_y in range(CH):
         for rel_x in range(CW):
@@ -857,7 +859,7 @@ def generate_chunk(x, y, biome="swamp"):
                     terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
     terrain = Texture.from_surface(win.renderer, terrain)
     # final
-    pass
+    #chunk_data = [x for x in chunk_data if x[1] != "air"]
     # return
     return chunk_data, metadata, terrain, lighting
 
@@ -2143,7 +2145,7 @@ class Player(Scrollable, SmartVector):
 
         # y-col
         self.yvel += self.gravity
-        if self.yvel >= 1.4:
+        if self.yvel >= 2:
             self.in_air = True
         if keys[pygame.K_w] and not self.in_air:
             self.yvel = self.def_jump_yvel
@@ -2504,6 +2506,7 @@ class Visual:
             # rotate image if needed
             if g.player.tool_type in rotating_tools:
                 self.image.angle = self.angle
+                print(self.rect, self.image.texture.width, self.image.texture.height)
 
             win.renderer.draw_color = pygame.Color("green")
             win.renderer.draw_rect(self.rect)
@@ -3548,7 +3551,7 @@ last_qwe = perf_counter()
 
 
 # M A I N  L O O P ------------------------------------------------------------------------------------ #
-def main(debug, cprof=False):
+def main(debug):
     with nullcontext() if debug else redirect_stdout(open(os.devnull, "w")):
         # cursors
         # set_cursor_when(pygame.SYSTEM_CURSOR_CROSSHAIR, lambda: g.stage == "play")
@@ -4054,11 +4057,14 @@ def main(debug, cprof=False):
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
                             win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
-                            #continue
+                            # continue
                             for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
                             #     # init
                                 name = block.name
+
                                 nbg = non_bg(name)
+                                continue
+
 
                             #     hitbox = False
                             #     render = True
@@ -4072,7 +4078,9 @@ def main(debug, cprof=False):
                                 # win.renderer.blit(img, rect)
                                 _rect = block._rect
                                 rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
+
                                 num_blocks += 1
+
 
                                 # growing wheat
                                 if nbg in wheats:
@@ -4782,11 +4790,9 @@ def main(debug, cprof=False):
             # refreshing the window
             win.renderer.present()
 
-        # cleanup
-        if cprof:
-            pritn("CAUTION - CPROFILE WAS ACTIVE")
+        # profiler.prinst_stats()
         ExitHandler.save("quit")
 
 if __name__ == "__main__":
-    main(debug=g.debug)
-    # import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")
+    # main(debug=g.debug)
+    import cProfile; cProfile.run("main(debug=True)", sort="cumtime")

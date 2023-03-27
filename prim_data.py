@@ -37,8 +37,9 @@ class CThread(DThread):
 
 
 class Block:
-    def __init__(self, name, ore_chance=-1):
+    def __init__(self, name, pos, ore_chance=-1):
         self.name = name
+        self._rect = pygame.Rect((pos[0] * BS, pos[1] * BS), (BS, BS))
         self.ore_chance = ore_chance
         self.angle = 0
         self.sin = rand(0, 500)
@@ -688,14 +689,17 @@ def load_blocks():
     _bsprs = imgload3("Images", "Spritesheets", "blocks.png")
     block_list = [
         ["air",         "bucket",           "apple",     "bamboo",        "cactus",        "watermelon",       "rock",       "chicken",   "leaf_f",                   ],
-        ["chest",       "snow",             "coconut",   "coconut-piece", "command-block", "wood",             "bed",        "bed-right", "wood_f_vrLTR"              ],
-        ["base-pipe",   "",                 "dynamite",  "fire",          "magic-brick",   "watermelon-piece", "grass1",     "bush",      "wood_f_vrLR"               ],
-        ["hay",         "base-curved-pipe", "",          "grave",         "sand",          "workbench",        "grass2",     "",          "wood_f_vrR"                ],
-        ["snow-stone",  "soil",             "stone",     "vine",          "wooden-planks", "wooden-planks_a",  "stick",      "stone",     "wood_f_vrL",               ],
-        ["anvil",       "furnace",          "soil_p",    "blue_barrel",   "red_barrel",    "gun-crafter",      "base-ore",   "bread",     "wood_f_vrN",  "wood_sv_vrN"],
-        ["blackstone",  "closed-core",      "base-core", "lava",          "base-orb",      "magic-table",      "base-armor", "altar",     "grass_f",                  ],
-        ["closed-door", "wheat_st1",        "wheat_st2", "wheat_st3",     "wheat_st4",     "stone-bricks",     "",           "arrow",     "soil_f",      "soil_t"     ],
-        ["open-door",   "",                 "daivinus",  "dirt_f_depr",   "grass3",        "",                 "bricks",     "",          "dirt_f",      "dirt_t"     ],
+        ["chest",       "snow",             "coconut",   "coconut-piece", "command-block", "wood",             "bed",        "bed-right", "wood_f_vrLRT"              ],
+        ["base-pipe",   "",                 "dynamite",  "fire",          "magic-brick",   "watermelon-piece", "grass1",     "bush",      "wood_f_vrRT"               ],
+        ["hay",         "base-curved-pipe", "",          "grave",         "sand",          "workbench",        "grass2",     "",          "wood_f_vrLT"               ],
+        ["snow-stone",  "soil",             "stone",     "vine",          "wooden-planks", "wooden-planks_a",  "stick",      "stone",     "wood_f_vrT",               ],
+        ["anvil",       "furnace",          "soil_p",    "blue_barrel",   "red_barrel",    "gun-crafter",      "base-ore",   "bread",     "wood_f_vrLR", "wood_sv_vrN"],
+        ["blackstone",  "closed-core",      "base-core", "lava",          "base-orb",      "magic-table",      "base-armor", "altar",     "wood_f_vrR",               ],
+        ["closed-door", "wheat_st1",        "wheat_st2", "wheat_st3",     "wheat_st4",     "stone-bricks",     "",           "arrow",     "wood_f_vrL",  "soil_t"     ],
+        ["open-door",   "",                 "daivinus",  "dirt_f_depr",   "grass3",        "",                 "bricks",     "",          "wood_f_vrN",  "dirt_t"     ],
+        ["",            "",                 "",          "",              "",              "",                 "",           "",          "grass_f",      ""          ],
+        ["",            "",                 "",          "",              "",              "",                 "",           "",          "soil_f",      ""           ],
+        ["",            "",                 "",          "",              "",              "",                 "",           "",          "dirt_f",      ""           ],
     ]
     for y, layer in enumerate(block_list):
         for x, block in enumerate(layer):
@@ -704,7 +708,7 @@ def load_blocks():
     for block in placeholder_blocks:
         surf = pygame.Surface((30, 30), pygame.SRCALPHA)
         surf.fill(LIGHT_GRAY)
-        write(surf, "center", block, orbit_fonts[10], BLACK, *[s / 2 for s in surf.get_size()])
+        # write(surf, "center", block, orbit_fonts[10], BLACK, *[s / 2 for s in surf.get_size()])
         a.blocks[block] = surf
     # special one-line blocks
     # a.blocks["soil_f"] = a.blocks["soil"].copy()

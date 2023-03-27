@@ -421,7 +421,7 @@ def world_modifications(chunk: (int, int), metadata: DictWithoutException, biome
                             set(wood_pos, f"wood_f_vr{suffix}_bg")
                             if tree_yo == tree_height - 1:
                                 set((wood_x, wood_y - 1), "leaf_f_bg")
-                                set(wood_pos, "wood_f_vrLTR_bg")
+                                set(wood_pos, "wood_f_vrLRT_bg")
 
                 if chance(1 / Entity.attrs["chicken"]["chance"]):
                     e = Entity("chicken", ["chicken", "mob", "moving"], metadata["index"], rel_xy)
@@ -455,16 +455,24 @@ def world_modifications(chunk: (int, int), metadata: DictWithoutException, biome
 
 
 # chunk-based v2
+# real (final version, at least for now)
 def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
     # funcs
+    def _rand(x, y):
+        return r.randint(x, y)
+
+    def _chance(x):
+        return r.random() < x
+
     def get(block_x, block_y):
         try:
             return chunk_data[(block_x, block_y)].name
         except KeyError:
-            return None
+            rel_x, rel_y = block_x % CW, block_y % CH
 
     def set(name, block_x, block_y):
-        chunk_data[(block_x, block_y)] = Block(name)
+        ap = (chunk_pos[0] + block_x, chunk_pos[1] + block_y)
+        chunk_data[(block_x, block_y)] = Block(name, ap)
 
     def struct(struct_name, block_x, block_y):
         for (xo, yo), block_name in structures[struct_name].items():
@@ -494,14 +502,37 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
         if name == prim:
             # forest
             if biome == "forest":
-                if chance(1 / 1):
-                    entity(["chicken", "mob", "s"])
+                # chicken
+                if _chance(1 / 10):
+                    entity(["chicken", "mob", "movingSIKE"])
+                # tree
+                if _chance(1 / 10):
+                    if get(x, y - 1) == "air":
+                        tree_height = _rand(4, 9)
+                        for tree_yo in range(tree_height):
+                            wood_x, wood_y = x, y - tree_yo - 1
+                            wood_suffix = ""
+                            leaf_name = "leaf_f_bg"
+                            leaf_chance = 1 / 2.4
+                            if tree_yo > 0:
+                                if _chance(leaf_chance):
+                                    wood_suffix += "L"
+                                    set(leaf_name, wood_x - 1, wood_y)
+                                if _chance(leaf_chance):
+                                    wood_suffix += "R"
+                                    set(leaf_name, wood_x + 1, wood_y)
+                                if tree_yo == tree_height - 1:
+                                    wood_suffix += "T"
+                                    set(leaf_name, wood_x, wood_y - 1)
+                            wood_suffix = "N" if not wood_suffix else wood_suffix
+                            wood_name = f"wood_f_vr{wood_suffix}_bg"
+                            set(wood_name, wood_x, wood_y)
+
             # desert
             if biome == "desert":
-                if chance(1 / 10):
-                    if get(x, y - 1) in empty_blocks:
+                if _chance(1 / 10):
+                    if get(x, y - 1) == "air":
                         struct("pyramid", x, y - 1)
-                        # set("vine", x, y - 1)
 
     return entities
 
