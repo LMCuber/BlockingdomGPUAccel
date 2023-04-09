@@ -4,7 +4,6 @@ from pyengine.basics import *
 from pyengine.pgbasics import *
 from settings import *
 
-
 # imporant primitive objects and constants
 black_filter = pygame.Surface((30, 30)); black_filter.set_alpha(200)
 avatar_map = dict.fromkeys(((2, 3), (2, 4), (7, 3), (7, 4)), WHITE) | dict.fromkeys(((3, 3), (3, 4), (6, 3), (6, 4)), BLACK)
@@ -38,7 +37,9 @@ class CThread(DThread):
 
 class Block:
     def __init__(self, name, pos, ore_chance=-1):
+        # default
         self.name = name
+        self.pos = pos
         self._rect = pygame.Rect((pos[0] * BS, pos[1] * BS), (BS, BS))
         self.ore_chance = ore_chance
         self.angle = 0
@@ -46,6 +47,9 @@ class Block:
         self.waters = []
         self.collided = False
         self.broken = 0
+        self.righted = False
+        self.light = 0
+        # special
         self.craftings = {}
         self.reductant = [None, None]  # [name, amount]
         self.oxidant = [None, None]  #         ^
@@ -62,8 +66,10 @@ class Block:
 
 
 class VoidBlock:
-    def __init__(self):
-        self.name = ""
+    def __init__(self, name="", ore_chance=0):
+        self.name = name
+        self.ore_chance = ore_chance
+        self.light = 15
 
 
 void_block = VoidBlock()
@@ -87,7 +93,7 @@ class Scrollable:
         return pygame.Rect([r * 3 for r in self.rect])
 
 
-class Entity(Scrollable, SmartVector):
+class Entity(SmartVector):  # removed Scrollable inheritance
     imgs = {
         "portal": timgload3("Images", "Spritesheets", "portal.png", frames=7),
         "camel": img_mult(timgload3("Images", "Mobs", "camel.png"), randf(0.8, 1.2)),
@@ -118,6 +124,8 @@ class Entity(Scrollable, SmartVector):
         self.x = chunk_index[0] * CW * BS + rel_pos[0] * BS
         self.y = chunk_index[1] * CH * BS + rel_pos[1] * BS
         self.pos = self.x, self.y
+        self._rect = self.image.get_rect()
+        self.rect = self._rect.copy()
         self.smart_vector = smart_vector
         self.traits = traits
         self.species = self.traits[0]
@@ -164,42 +172,13 @@ class Entity(Scrollable, SmartVector):
         self.initted_images = False
 
     @property
-    def _rect(self):
-        if self.smart_vector:
-            return self.image.get_rect(topleft=(self.x, self.y))
-        else:
-            return self.og_rect
-
-    @property
     def sign(self):
         return sign(self.xvel)
 
     def update(self, dt):  # entity update
-        # if "moving" in self.traits and not self.paused:
-        #     self.x += self.xvel
-        #     cols = self.get_cols()
-        #     for col in cols:
-        #         if self.xvel > 0:
-        #             self.right = col.left
-        #         if self.xvel < 0:
-        #             self.left = col.right
-        #
-        #     # y-col
-        #     self.yvel += self.gravity
-        #     # self.yvel = min(self.yvel, 8)
-        #     self.bottom += self.yvel
-        #     cols = self.get_cols()
-        #     for col in cols:
-        #         if self.yvel > 0:
-        #             self.bottom = col.top
-        #         elif self.yvel < 0:
-        #             self.top = col.bottom
-        #         self.yvel = 0
-        #
-        #     # moved out of the chunk?
-        #     self.chunk_index[0] = self.og_chunk_index[0] + self.x_taken / BS // CW
-        #     self.chunk_index[1] = self.og_chunk_index[1] + self.y_taken / BS // CH
-
+        # self.x += 1
+        self._rect.topleft = (int(self.x), int(self.y))
+        self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
         # bok-bok
         # if self.species == "bok-bok":
         #     # direction change
@@ -379,6 +358,14 @@ class Simp(pygame.sprite.Sprite):
 
 
 # F U N C T I O N S ------------------------------------------------------------------------------------ #
+def fill(color, rect, fill=True):
+    win.renderer.draw_color = color
+    if fill:
+        win.renderer.fill_rect(rect)
+    else:
+        win.renderer.draw_rect(rect)
+
+
 def pos_to_tile(pos):
     x, y = pos
     # x and y must be unscaled & unscrolled; returns chunk and abs_pos ([chunk][pos] notation for accessation :D :P :/ :] Ü)
@@ -429,7 +416,7 @@ def bshow(str_):
         ret = ret.removesuffix("_en")
     if "_deg" in str_:  # rotated by n degrees
         spl = str_.split("_")
-        deg = int(spl[1].removeprefix("deg"))
+        deg = int(spl[-1].removeprefix("deg"))
         ret = f"{deg}{DEG} {bshow(spl[0])}"
     if "_st" in str_:  # stage of block
         spl = str_.split("_st")
@@ -688,18 +675,18 @@ def load_blocks():
     # general
     _bsprs = imgload3("Images", "Spritesheets", "blocks.png")
     block_list = [
-        ["air",         "bucket",           "apple",     "bamboo",        "cactus",        "watermelon",       "rock",       "chicken",   "leaf_f",                   ],
-        ["chest",       "snow",             "coconut",   "coconut-piece", "command-block", "wood",             "bed",        "bed-right", "wood_f_vrLRT"              ],
-        ["base-pipe",   "",                 "dynamite",  "fire",          "magic-brick",   "watermelon-piece", "grass1",     "bush",      "wood_f_vrRT"               ],
-        ["hay",         "base-curved-pipe", "",          "grave",         "sand",          "workbench",        "grass2",     "",          "wood_f_vrLT"               ],
-        ["snow-stone",  "soil",             "stone",     "vine",          "wooden-planks", "wooden-planks_a",  "stick",      "stone",     "wood_f_vrT",               ],
-        ["anvil",       "furnace",          "soil_p",    "blue_barrel",   "red_barrel",    "gun-crafter",      "base-ore",   "bread",     "wood_f_vrLR", "wood_sv_vrN"],
-        ["blackstone",  "closed-core",      "base-core", "lava",          "base-orb",      "magic-table",      "base-armor", "altar",     "wood_f_vrR",               ],
-        ["closed-door", "wheat_st1",        "wheat_st2", "wheat_st3",     "wheat_st4",     "stone-bricks",     "",           "arrow",     "wood_f_vrL",  "soil_t"     ],
-        ["open-door",   "",                 "daivinus",  "dirt_f_depr",   "grass3",        "",                 "bricks",     "",          "wood_f_vrN",  "dirt_t"     ],
-        ["",            "",                 "",          "",              "",              "",                 "",           "",          "grass_f",      ""          ],
-        ["",            "",                 "",          "",              "",              "",                 "",           "",          "soil_f",      ""           ],
-        ["",            "",                 "",          "",              "",              "",                 "",           "",          "dirt_f",      ""           ],
+        ["air",         "bucket",           "apple",     "bamboo",        "cactus",        "watermelon",       "rock",       "chicken",     "leaf_f",                   ],
+        ["chest",       "snow",             "coconut",   "coconut-piece", "command-block", "wood",             "bed",        "bed-right",   "wood_f_vrLRT"              ],
+        ["base-pipe",   "",                 "dynamite",  "fire",          "magic-brick",   "watermelon-piece", "grass1",     "bush",        "wood_f_vrRT"               ],
+        ["hay",         "base-curved-pipe", "glass",     "grave",         "sand",          "workbench",        "grass2",     "depr_leaf_f", "wood_f_vrLT"               ],
+        ["snow-stone",  "soil",             "stone",     "vine",          "wooden-planks", "wooden-planks_a",  "stick",      "stone",       "wood_f_vrT",               ],
+        ["anvil",       "furnace",          "soil_p",    "blue_barrel",   "red_barrel",    "gun-crafter",      "base-ore",   "bread",       "wood_f_vrLR", "wood_sv_vrN"],
+        ["blackstone",  "closed-core",      "base-core", "lava",          "base-orb",      "magic-table",      "base-armor", "altar",       "wood_f_vrR",               ],
+        ["closed-door", "wheat_st1",        "wheat_st2", "wheat_st3",     "wheat_st4",     "stone-bricks",     "",           "arrow",       "wood_f_vrL",  "soil_t"     ],
+        ["open-door",   "",                 "daivinus",  "dirt_f_depr",   "grass3",        "",                 "bricks",     "solar-panel", "wood_f_vrN",  "dirt_t"     ],
+        ["cable_vrF",   "cable_vrH",        "",          "",              "",              "",                 "",           "",            "grass_f",      ""          ],
+        ["",            "",                 "",          "",              "",              "",                 "",           "",            "soil_f",      ""           ],
+        ["",            "",                 "",          "",              "",              "",                 "",           "",            "dirt_f",      ""           ],
     ]
     for y, layer in enumerate(block_list):
         for x, block in enumerate(layer):
@@ -718,7 +705,6 @@ def load_blocks():
     a.blocks["leaf_sw"] = cfilter(a.blocks["leaf_f"].copy(), 150, (30, 30))
     a.blocks["leaf_sk"] = cfilter(a.blocks["leaf_f"].copy(), 150, (30, 30), PINK)
     a.blocks["water"] = pygame.Surface((10, 10), pygame.SRCALPHA); a.blocks["water"].fill((17, 130, 177)); a.blocks["water"].set_alpha(180)
-    a.blocks["glass"] = pygame.Surface((10, 10), pygame.SRCALPHA); pygame.draw.rect(a.blocks["glass"], WHITE, (0, 0, 10, 10), 2)
     # spike plant
     a.blocks["spike-plant"] = pygame.Surface((30, 30), pygame.SRCALPHA)
     for i in range(3):
@@ -826,6 +812,7 @@ def load_tools():
                     fin_name = f"{name}_{tool_name}"
                     if name != "coal":
                         a.tools[fin_name] = swap_palette(tool_img, STONE_GRAY if tool_name not in whole_tools else WOOD_BROWN, color)
+
                     #a.tools[fin_name] = borderize(tool_img, color)
             else:
                 a.tools[bpure(tool_name)] = tool_img
@@ -862,6 +849,7 @@ def load_sizes():
                     a.sizes[name] = img.get_size()
 
 
+max_light = 15
 # B L O C K  D A T A ----------------------------------------------------------------------------------- #
 # info's
 oinfo = {
@@ -1068,10 +1056,12 @@ fueinfo = {
 }
 
 # B L O C K  C L A S S I F I C A T I O N S ------------------------------------------------------------- #
+cables = {name for name in a.blocks.keys() if bpure(name) == "cable"}
 walk_through_blocks = {"air", "fire", "lava", "water", "spike-plant", "grass1", "grass2", "grass_f",
                        "workbench", "anvil", "furnace", "gun-crafter", "altar", "magic-table", "vine",
-                       "open-door", "arrow", "grass3", "chest", "bed", "bed-right",
-                       *wheats}
+                       "open-door", "arrow", "grass3", "chest", "bed", "bed-right", "solar-panel",
+                       *wheats, *cables}
+feature_blocks = {"solar-panel"}
 unbreakable_blocks = {"air", "fire", "water"}
 item_blocks = {"dynamite"}
 unbreakable_blocks = {"air", "water"}
@@ -1088,7 +1078,6 @@ block_breaking_effects = {
 }
 ramp_blocks = []
 empty_blocks = {None, "air"}
-
 
 # food info
 finfo = {
@@ -1258,6 +1247,8 @@ color_base("orb", orb_colors, unplaceable=True)
 rotate_base("pipe", rotations2)
 rotate_base("curved-pipe", rotations4)
 rotate_base("ramp", rotations4, ramp=True)
+rotate_base("cable_vrF", rotations2, prefix="")
+rotate_base("cable_vrH", rotations4, prefix="")
 
 # visual orbs
 visual_orbs_sprs = timgload3("Images", "Spritesheets", "visual_orbs.png")
@@ -1303,8 +1294,8 @@ oinfo["stone"] = {"mohs": 3}
 #     a.blocks[name] = surf
 # 30 = 16
 
-a.tex_assets = {k: {name: Texture.from_surface(win.renderer, img) for name, img in v.items()} if k != "sprss" else {sprs: [Texture.from_surface(win.renderer, frame) for frame in images] for sprs, images in v.items()} for k, v in a.surf_assets.items()}
-# important: load all blocks and modifications before loading sizes
+a.tex_assets = {k: {name: CImage(Texture.from_surface(win.renderer, img)) for name, img in v.items()} if k != "sprss" else {sprs: [CImage(Texture.from_surface(win.renderer, frame)) for frame in images] for sprs, images in v.items()} for k, v in a.surf_assets.items()}
+# wichtig: load all blocks and modifications before loading sizes
 load_sizes()
 
 # color palette for the game (theme)

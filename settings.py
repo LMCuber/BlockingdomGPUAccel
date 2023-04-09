@@ -59,12 +59,12 @@ class WindowHandler:
         # self.icon = imgload("Images", "Visuals", f"{Platform.os}_icon.png")
         # self.window.set_icon(self.icon)
         self.window.resizable = True
-        self.renderer = Renderer(self.window)
+        self.renderer = Renderer(self.window, vsync=0)
         self.size = size
         self.width, self.height = self.size
         self.center = [s // 2 for s in size]
         self.space = pymunk.Space()
-        self.space.gravity = (0, -3_000)
+        self.space.gravity = (0, -900)
 
     def update_caption(self):
         """pygame.display.set_caption("\u15FF"   # because
@@ -134,10 +134,16 @@ def iimgload(*path, frames=1, **kwargs):
 def timgload3(*path, frames=1, **kwargs):
     img = pygame.image.load(os.path.join(*path))
     img = scalex(img, 3)
-    tex = Texture.from_surface(win.renderer, img)
     if frames > 1:
-        tex = [tex]
-    return tex
+        imgs = []
+        frame_width = img.get_width() / frames
+        frame_height = img.get_height()
+        imgs = [img.subsurface(x * frame_width, 0, frame_width, frame_height) for x in range(frames)]
+        texs = [Texture.from_surface(win.renderer, img) for img in imgs]
+        return texs
+    else:
+        tex = Texture.from_surface(win.renderer, img)
+        return tex
 
 
 def iimgload3(*path, frames=1, **kwargs):
@@ -162,24 +168,29 @@ def scalex(img, scale):
     return pygame.transform.scale(img, [s * scale for s in img.get_size()])
 
 
-def swap_palette(a, b, c):
-    return a
-
-
 def img_mult(a, b):
     return a
 
 
-# backgrounds
+# hotbar blits
+yo = 10
+xo = 85
 inventory_img = timgload3("Images", "Background", "inventory.png", tex=True)
-inventory_width = inventory_img.width
+inventory_width, inventory_height = inventory_img.width, inventory_img.height
+inventory_rect = inventory_img.get_rect(midtop=(win.width / 2 + xo, yo))
 extended_inventory_img = timgload3("Images", "Background", "extended_inventory.png", tex=True)
-extended_inventory_rect = extended_inventory_img.get_rect(topleft=(0, 138))
+extended_inventory_width, extended_inventory_height = extended_inventory_img.width, extended_inventory_img.height
+extended_inventory_rect = extended_inventory_img.get_rect(midtop=(0, 138))
 tool_holders_img = timgload3("Images", "Background", "tool_holders.png", tex=True)
-tool_holders_width = tool_holders_img.width
+tool_holders_width, tool_holders_height = tool_holders_img.width, tool_holders_img.height
+tool_holders_rect = tool_holders_img.get_rect(midtop=(win.width / 2 - xo, yo))
 pouch_img = timgload3("Images", "Background", "pouch.png")
 pouch_icon = timgload3("Images", "Background", "pouch_icon.png")
 pouch_width = pouch_img.width
+square_border_img = timgload3("Images", "Visuals", "square_border.png")
+square_border_rect = square_border_img.get_rect()
+
+# backgrounds
 player_hit_chart = timgload3("Images", "Background", "player_hit_chart.png")
 lock = timgload3("Images", "Player_Skins", "lock.png")
 frame_img = scale3x(timgload3("Images", "Background", "frame.png"))
@@ -197,7 +208,6 @@ cursor_img.fill(WHITE, (0, 4, 10, 2))
 black_square = pygame.Surface((BS, BS), pygame.SRCALPHA)
 
 # visuals
-square_border_img = timgload3("Images", "Visuals", "square_border.png")
 arrow_sprs = [scalex(img, R) for img in imgload("Images", "Spritesheets", "arrow.png", frames=11)]
 shower_sprs = [scalex(img, R) for img in imgload("Images", "Spritesheets", "shower.png", frames=9)]
 shower_sprs = [scalex(img, R) for img in imgload("Images", "Spritesheets", "fuel.png", frames=9)]
@@ -209,11 +219,13 @@ death_screen = pygame.Surface(win.size); death_screen.fill(RED); death_screen.se
 cartridge_img = pygame.Surface((10, 3))
 cartridge_img.fill((255, 184, 28))
 sky_bg = pygame.transform.rotozoom(pygame.transform.scale(lerp_img(SKY_BLUE, WHITE, win.height, win.height), win.size), 90, 1)
+fog_light = imgload("Images", "Visuals", "fog.png")
+fog_w, fog_h = fog_light.get_size()
 #pygame.display.set_icon(timgload3("Images", "Visuals", f"{Platform.os.lower()}_icon.png"))
 
 # surfaces
 workbench_img = iimgload("Images", "Surfaces", "workbench.png")
-workbench_img = imgload("Images", "Midblits", "workbench.png")
+workbench_img = timgload("Images", "Midblits", "workbench.png")
 _wbi = get_icon("arrow")
 workbench_icon = pygame.transform.scale(_wbi, [s // 2 for s in _wbi.get_size()])
 furnace_img = timgload3("Images", "Surfaces", "furnace.png")
@@ -462,8 +474,6 @@ class Game:
         except Exception:
             self.home_bg_img = timgload3("Images", "Background", "def_home_bg.png")
         self.home_bg_size = (self.home_bg_img.width, self.home_bg_img.height)
-        self.fog_img = pygame.Surface(win.size)
-        self.fog_light = scale2x(timgload3("Images", "Background", "fog.png"))
         self.loading_world = False
         self.loading_world_perc = 0
         self.loading_world_text = None

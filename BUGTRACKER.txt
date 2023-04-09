@@ -9,8 +9,8 @@ not have any metadata equivalent
     Reproduced: when the mobs are too deep underground
     Reason: the mobs belong to a chunk, so when the chunk doesn't update anymore,
 the mobs don't either
-    Solution: save mobs in a globa list rather than in a list per chunk
-  
+    Solution: save mobs in a global list rather than in a list per chunk (?)
+
   You cannot break some blocks
 	Reproduced: the blocks have to be extending out of a chunk border
 	Reason: because of the way world generation works, the blocks can be placed outside a chunk.

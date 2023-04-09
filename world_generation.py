@@ -471,8 +471,17 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
             rel_x, rel_y = block_x % CW, block_y % CH
 
     def set(name, block_x, block_y):
-        ap = (chunk_pos[0] + block_x, chunk_pos[1] + block_y)
-        chunk_data[(block_x, block_y)] = Block(name, ap)
+        rel_x, rel_y = block_x - chunk_x, block_y - chunk_y
+        if 0 <= rel_x <= CW - 1 and 0 <= rel_y <= CH - 1:
+            ap = (block_x, block_y)
+            chunk_data[ap] = Block(name, ap)
+        else:
+            xo, yo = block_x - x, block_y - y
+            new_chunk, new_pos = correct_tile(chunk_index, (x, y), xo, yo)
+            if new_chunk in late_chunk_data:
+                late_chunk_data[new_chunk][new_pos] = name
+            else:
+                late_chunk_data[new_chunk] = {new_pos: name}
 
     def struct(struct_name, block_x, block_y):
         for (xo, yo), block_name in structures[struct_name].items():
@@ -485,6 +494,9 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
     # misc. init
     entities = []
     chunk_x, chunk_y = chunk_pos
+    chunk_index = metadata["index"]
+    chunk_xi, chunk_yi = chunk_index
+    late_chunk_data = {}
     # biome init
     prim, sec = bio.blocks[biome]
     # loop
@@ -493,21 +505,31 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
         rel_xy = (rel_x, rel_y)
         name = block.name
         x, y = pos
-        # misc 1
+
+        # water level
         if chunk_y == 0:
             if name == "air":
                 # forest water
                 if rel_y >= 8:
                     set("water", x, y)
+        if name == "stone":
+            if chance(1 / 100):
+                set("dynamite", x, y)
+                # set("dynamite", x + 1, y)
+                set("dynamite", x + 1, y+1)
+
         if name == prim:
             # forest
             if biome == "forest":
                 # chicken
-                if _chance(1 / 10):
-                    entity(["chicken", "mob", "movingSIKE"])
-                # tree
-                if _chance(1 / 10):
-                    if get(x, y - 1) == "air":
+                if _chance(1 / 11):
+                    for _ in range(1):
+                        entity(["chicken", "mob", "moving"])
+
+                # top is free
+                if get(x, y - 1) == "air":
+                    # tree
+                    if _chance(1 / 10):
                         tree_height = _rand(4, 9)
                         for tree_yo in range(tree_height):
                             wood_x, wood_y = x, y - tree_yo - 1
@@ -528,13 +550,38 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                             wood_name = f"wood_f_vr{wood_suffix}_bg"
                             set(wood_name, wood_x, wood_y)
 
+                    elif _chance(1 / 10):
+                        tree_height = _rand(3, 6)
+                        for yo in range(tree_height):
+                            set("wood_f_vrN_bg", x, y - yo - 1)
+                        struct("treetop", x, y - yo - 1)
+
             # desert
             if biome == "desert":
-                if _chance(1 / 10):
-                    if get(x, y - 1) == "air":
+                if get(x, y - 1) == "air":
+                    # pyramid
+                    if _chance(1 / 50):
                         struct("pyramid", x, y - 1)
 
-    return entities
+                    # cactuses (yes I know the plural is also cacti dumbass)
+                    elif _chance(1 / 7):
+                        cactus_height = _rand(2, 6)
+                        for cactus_yo in range(cactus_height):
+                            set("cactus_bg", x, y - cactus_yo - 1)
+
+                    elif _chance(1 / 7):
+                        water_depth = _rand(1, 5)
+                        struct("desert-well", x, y)
+
+    return entities, late_chunk_data
+
+
+# def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
+#     for pos, block in chunk_data.copy().items():
+#         if block.name == "soil_f":
+#             if r.random() <= 0.1:
+#                 chunk_data[pos] = Block("dynamite", block.pos)
+#     return []
 
 
 pyramid = dict.fromkeys([(-2, 0), (-1, -1), (0, -2), (1, -1), (2, 0), (1, 0), (0, 0), (-1, 0)], "sand") \

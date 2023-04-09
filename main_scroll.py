@@ -776,7 +776,7 @@ def generate_world(worldcode=None, biome=None, screens=5):
             pass
 
 
-def generate_chunk(x, y, biome="swamp"):
+def generate_chunk(x, y, biome="desert"):
     # init NOW
     terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
     lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
@@ -1199,7 +1199,7 @@ class World:
             img = self.surf_assets["blocks"][non_bg(name)]
         if name == "water":
             img = pygame.Surface((BS, BS), pygame.SRCALPHA)
-            img.fill(list(WATER_BLUE) + [127])
+            #img.fill(list(WATER_BLUE) + [127])
         if is_bg(name):
             #img = darken(img)
             img = img
@@ -1256,6 +1256,7 @@ class World:
             # place
             if nbg == "bed":
                 g.w.modify("bed-right", *correct_tile(target_chunk, abs_pos, 1, 0))
+
             # break
             if nbg == "air":
                 if current == "bed":
@@ -1694,6 +1695,7 @@ class Player(Scrollable, SmartVector):
         self.left_images = [Texture.from_surface(win.renderer, x) for x in self.left_images]
         self.right_images = [Texture.from_surface(win.renderer, x) for x in self.right_images]
         self.animate()
+        self._rect = self.image.get_rect()
         # rest
         self.x = 0
         self.y = 0
@@ -2113,6 +2115,7 @@ class Player(Scrollable, SmartVector):
         keys = pygame.key.get_pressed()
 
         # x-col
+        self._rect.topleft = (int(self.x), int(self.y))
         if not self.flinching:
             xacc = 2
             xdacc = 1
