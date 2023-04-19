@@ -776,7 +776,7 @@ def generate_world(worldcode=None, biome=None, screens=5):
             pass
 
 
-def generate_chunk(x, y, biome="desert"):
+def generate_chunk(x, y, biome="forest"):
     # init NOW
     terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
     lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
@@ -1067,7 +1067,7 @@ class World:
         self.name = None
         self.linked = False
         self.boss_scene = False
-        self.wgr = random.Random(777)
+        self.wgr = random.Random(132)
         self.noise = Noise(self.wgr)
         # game settings
         self.language = "english"
@@ -1199,7 +1199,7 @@ class World:
             img = self.surf_assets["blocks"][non_bg(name)]
         if name == "water":
             img = pygame.Surface((BS, BS), pygame.SRCALPHA)
-            img.fill(list(WATER_BLUE) + [127])
+            img.fill(list(WATER_BLUE))
         if is_bg(name):
             #img = darken(img)
             img = img
@@ -1747,6 +1747,10 @@ class Player(Scrollable, SmartVector):
         self.broken_blocks = dd(int)
         self.main = "block"
         self.moved_x = 0
+
+    @property
+    def _rect(self):
+        return pygame.Rect(self.x, self.y, self.width, self.height)
 
     def update(self):  # player update
         self.animate()
@@ -4058,6 +4062,7 @@ def main(debug, cprof=False):
                             #continue
                             for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
                             #     # init
+                                num_blocks += 1
                                 name = block.name
                                 nbg = non_bg(name)
 
@@ -4073,7 +4078,6 @@ def main(debug, cprof=False):
                                 # win.renderer.blit(img, rect)
                                 _rect = block._rect
                                 rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
-                                num_blocks += 1
 
                                 # growing wheat
                                 if nbg in wheats:
@@ -4141,6 +4145,7 @@ def main(debug, cprof=False):
                             if pw.show_chunk_borders:
                                 chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
                                 chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
+
                     # mouse shit with chunks
                     if not g.menu:
                         if g.player.main == "block":
@@ -4175,7 +4180,7 @@ def main(debug, cprof=False):
                                                 g.w.metadata[target_chunk][abs_pos]["yvel"] = 0
                                     elif g.first_affection == "break":
                                         if name not in empty_blocks:
-                                            block.broken += 0.01 * g.dt
+                                            block.broken += 10 * g.dt
                                             '''
                                             if abs_pos in g.w.data[target_chunk]:
                                                 del g.w.data[target_chunk][abs_pos]
@@ -4242,12 +4247,12 @@ def main(debug, cprof=False):
                 # all_foreground_sprites.update()
                 #
                 # # mobs
-                for i, entity in enumerate(g.w.entities):
-                    # if i < pw.max_entities.value:
-                    #     if tuple(entity.chunk_index) in updated_chunks:
-                    # update_entity(entity)
-                    # entity.update(g.dt)
-                    win.renderer.blit(entity.image, entity.rect)
+                # for i, entity in enumerate(g.w.entities):
+                #     # if i < pw.max_entities.value:
+                #     #     if tuple(entity.chunk_index) in updated_chunks:
+                #     # update_entity(entity)
+                #     # entity.update(g.dt)
+                #     win.renderer.blit(entity.image, entity.rect)
 
                 # # death screen
                 # if g.player.dead:
@@ -4782,7 +4787,6 @@ def main(debug, cprof=False):
 
             # refreshing the window
             win.renderer.present()
- 
 
         # cleanup
         if cprof:

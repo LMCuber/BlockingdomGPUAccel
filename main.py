@@ -7,6 +7,7 @@ import json
 import threading
 import tkinter.filedialog
 import noise
+import asyncio
 from copy import deepcopy
 from colorsys import rgb_to_hls, hls_to_rgb
 import fantasynames as fnames
@@ -473,9 +474,9 @@ def is_clickable(block):
 
 
 def set_midblit(block):
-    g.mb = g.w.data[target_chunk][abs_pos]
-    g.midblit = midblit
-    g.midblit_rect = lambda: tile_to_rect(abs_pos, True)
+    g.mb = block
+    g.midblit = non_bg(block.name)
+    g.midblit_rect = lambda img: pygame.Rect(block._rect.x - g.scroll[0], block._rect.y - g.scroll[1], img.width, img.height)
 
 
 def stop_midblit(args=""):
@@ -701,7 +702,7 @@ def init_world(type_):
     if type_ == "new":
         g.player = Player()
         if g.w.mode == "adventure":
-            g.player.inventory = ["workbench", "furnace", "coal", "solar-panel", "cable_vrF_deg0"]
+            g.player.inventory = ["workbench", "furnace", "coal", "solar-panel", "tool-crafter"]
             g.player.inventory_amounts = [100, 100, 100, 100, 100]
             g.player.stats = {
                 "lives": {"amount": rand(10, 100), "color": RED, "pos": (32, 20), "last_regen": ticks(), "regen_time": def_regen_time, "icon": "lives"},
@@ -839,15 +840,15 @@ def generate_chunk(chunk_index, biome="forest"):
     g.w.late_chunk_data |= late_chunk_data
 
     # lighting
-    for rel_y in range(CH):
-        for rel_x in range(CW):
-            og_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
-            if og_pos in chunk_data:
-                og_block = chunk_data[og_pos]
-                og_name = og_block.name
-                if og_name in ("dynamite", "air"):
-                    # found light source
-                    diffuse_light(og_block, chunk_data)
+    # for rel_y in range(CH):
+    #     for rel_x in range(CW):
+    #         og_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
+    #         if og_pos in chunk_data:
+    #             og_block = chunk_data[og_pos]
+    #             og_name = og_block.name
+    #             if og_name in ("dynamite", "air"):
+    #                 # found light source
+    #                 diffuse_light(og_block, chunk_data)
 
     # blitting
     for rel_y in range(CH):
@@ -869,6 +870,7 @@ def generate_chunk(chunk_index, biome="forest"):
     # suck the air out
     chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
     # converting the surface to textures
+    lighting = pygame.transform.box_blur(lighting, 30)
     lighting = Texture.from_surface(win.renderer, lighting)
     terrain = Texture.from_surface(win.renderer, terrain)
     # set final values
@@ -1345,8 +1347,11 @@ class World:
                                 g.w.modify("air", new_chunk, new_pos)
             delay(explode, wait)
         # workbench
-        elif nbg in ("workbench", "furnace"):
-            set_midblit(block)
+        elif nbg in ("workbench", "furnace", "tool-crafter"):
+            if g.midblit == nbg:
+                stop_midblit()
+            else:
+                set_midblit(block)
 
 
 class Play:
@@ -1472,7 +1477,7 @@ class PlayWidgets:
     @staticmethod
     def show_fps_command():
         if g.stage == "play":
-            write(win.renderer, "topright", str(int(g.clock.get_fps())), orbit_fonts[20], g.w.text_color, win.width - 10, 8)
+            write(win.renderer, "topright", "F" + str(int(g.clock.get_fps())), orbit_fonts[20], g.w.text_color, win.width - 10, 8)
             # write(win.renderer, "topright", int(g.clock.get_fps()), orbit_fonts[20], BLACK, win.width - 10, 40)
 
     @staticmethod
@@ -2203,10 +2208,18 @@ class Player(Scrollable, SmartVector):
         self.gravity_active = True
         cols = self.get_cols(rects_only=False)
         if "water" in [col[0].name for col in cols]:
+            if not self.entered_water:
+                self.last_entered_water = ticks()
+                self.entered_water = True
             # if "air" in [data[0].name for data in self.block_data]:
-            if keys[pygame.K_w]:
+            if ticks() - self.last_entered_water >= 50 and keys[pygame.K_w]:
                 self.y -= 1
                 self.gravity_active = False
+            for pos, terrain in g.w.terrains.items():
+                # terrain.color = (0, 120, 255
+                pass
+        else:
+            self.entered_water = False
 
         if self.gravity_active:
             self.yvel += self.gravity
@@ -3636,7 +3649,7 @@ last_qwe = perf_counter()
 
 
 # M A I N  L O O P ------------------------------------------------------------------------------------ #
-def main(debug, cprof=False):
+async def main(debug, cprof=False):
     with nullcontext() if debug else redirect_stdout(open(os.devnull, "w")):
         # cursors
         # set_cursor_when(pygame.SYSTEM_CURSOR_CROSSHAIR, lambda: g.stage == "play")
@@ -3722,8 +3735,8 @@ def main(debug, cprof=False):
             shown_fps = str(int(g.clock.get_fps()))
 
             # fps regulating
-            # g.dt = g.clock.tick(pw.fps_cap.value) / (1000 / g.def_fps_cap)  # = 120
             g.dt = g.clock.tick(pw.fps_cap.value) / (1000 / g.def_fps_cap)
+            # g.dt = g.clock.tick() / (1000 / g.def_fps_cap)
             win.space.step(1 / pw.fps_cap.value)
             #t.init(g.w.language)
 
@@ -3763,13 +3776,18 @@ def main(debug, cprof=False):
                             pass
 
                         if event.key == K_q:
-                            group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
+                            # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
+                            pass
 
                         # actual gameplay events
                         if g.stage == "play":
                             if no_widgets(Entry):
                                 if event.key == pygame.K_TAB:
                                     toggle_main()
+
+                                elif event.key == pygame.K_q:
+                                    m = 50
+                                    g.player.x += sign(g.player.xvel) * m
 
                                 if g.midblit == "workbench":
                                     if event.key == K_SPACE:
@@ -4129,107 +4147,101 @@ def main(debug, cprof=False):
                             updated_chunks.append(target_chunk)
                             # create chunk if not existing yet
                             if target_chunk not in g.w.data:
-                                Process(target=generate_chunk, args=(target_chunk,)).start()
-                                # generate_chunk(target_chunk)
+                                generate_chunk(target_chunk)
+                            # init chunk render
+                            _cpos = g.w.metadata[target_chunk]["pos"]
+                            chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
+                            terrain_tex = g.w.terrains[target_chunk]
+                            chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
+                            # render chunk
+                            win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
+                            #continue
+                            for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
+                            #     # init
+                                num_blocks += 1
+                                name = block.name
+                                nbg = non_bg(name)
 
-                            with suppress(KeyError):
-                                # init late chunk data
-                                if target_chunk in g.w.late_chunk_data:
-                                    for pos, name in g.w.late_chunk_data[target_chunk].copy().items():
-                                        g.w.modify(name, target_chunk, pos)
-                                        del g.w.late_chunk_data[target_chunk][pos]
-                                        if not g.w.late_chunk_data[target_chunk]:
-                                            del g.w.late_chunk_data[target_chunk]
-                                # init chunk render
-                                _cpos = g.w.metadata[target_chunk]["pos"]
-                                chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
-                                terrain_tex = g.w.terrains[target_chunk]
-                                chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
-                                # render chunk
-                                win.renderer.blit(terrain_tex, chunk_rect)
-                                win.renderer.blit(g.w.lightings[target_chunk], chunk_rect)
-                                # continue
-                                # infamous ^^
-                                for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
-                                    # init
-                                    name = block.name
-                                    nbg = non_bg(name)
+                            #     hitbox = False
+                            #     render = True
+                            #     # rendering the block
+                                (bx, by) = abs_pos
 
-                                #     hitbox = False
-                                #     render = True
-                                #     rendering the block
-                                    (bx, by) = abs_pos
+                                # _rect = pygame.Rect(bx * BS, by * BS, BS, BS)
+                                # rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
+                                # scroll_pos = (bx * BS - g.scroll[0], by * BS - g.scroll[1])
+                                # img = g.w.blocks[nbg]
+                                # win.renderer.blit(img, rect)
+                                _rect = block._rect
+                                rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
 
-                                    # _rect = pygame.Rect(bx * BS, by * BS, BS, BS)
-                                    # scroll_pos = (bx * BS - g.scroll[0], by * BS - g.scroll[1])
+                                # growing wheat
+                                if nbg in wheats:
+                                    if nbg != "wheat_st4":
+                                        if not hasattr(block, "last_wheat_growth"):
+                                            block.last_wheat_growth = epoch()
+                                        if epoch() - block.last_wheat_growth >= 5:
+                                            g.w.modify(f"wheat_st{int(nbg[-1]) + 1}", target_chunk, abs_pos)
 
-                                    _rect = block._rect
-                                    rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
-                                    # img = g.w.blocks[nbg]
-                                    # win.renderer.blit(img, rect)
-                                    if block.name == "dynamite" or 0 < block.light < 15:
-                                        pass
-                                    num_blocks += 1
-                                    # growing wheat
-                                    if nbg in wheats:
-                                        if nbg != "wheat_st4":
-                                            if not hasattr(block, "last_wheat_growth"):
-                                                block.last_wheat_growth = epoch()
-                                            if epoch() - block.last_wheat_growth >= 5:
-                                                g.w.modify(f"wheat_st{int(nbg[-1]) + 1}", target_chunk, abs_pos)
+                                # flowing lava
+                                if nbg == "lava":
+                                    if ticks() - block.last_flow >= 200:
+                                        flowns = []
+                                        bottom_chunk, bottom_pos = correct_tile(target_chunk, abs_pos, 0, 1)
+                                        if bottom_chunk in g.w.data:
+                                            if g.w.data[bottom_chunk].get(bottom_pos, void_block).name != "lava":
+                                                if g.w.data[bottom_chunk].get(bottom_pos, void_block).name in empty_blocks:
+                                                    flowns.append([bottom_chunk, bottom_pos])
+                                            else:
+                                                flowns = True
+                                        if not flowns:
+                                            yo = 0
+                                            for xo in (-1, 1):
+                                                side_chunk, side_pos = correct_tile(target_chunk, abs_pos, xo, yo)
+                                                check_chunk, check_pos = correct_tile(target_chunk, abs_pos, 0, -1)
+                                                if g.w.data[check_chunk].get(check_pos, void_block).name == "lava":
+                                                    if side_chunk in g.w.data:
+                                                        if g.w.data[side_chunk].get(side_pos, void_block).name in empty_blocks:
+                                                            flowns.append([side_chunk, side_pos])
+                                        if isinstance(flowns, list):
+                                            for flown in flowns:
+                                                g.w.modify("lava", *flown)
+                                                block.last_flow = ticks()
+                                # slime perlin noise
+                                if nbg == "slime":
+                                    for slime_y in range(BS):
+                                        for slime_x in range(BS):
+                                            slime_mult = 1
+                                            slime_speed = 0.0005
+                                            slime_n = noise.pnoise3(slime_x / BS * slime_mult + bx * slime_mult, slime_y / BS * slime_mult + by * slime_mult, ticks() * slime_speed)
+                                            slime_range = 70
+                                            slime_gray = (slime_n + 0.5) * slime_range + (255 - slime_range)
+                                            slime_color = [0, slime_gray, 0]
+                                            # slime_color = [slime_gray] * 3
+                                            slime_color = [min(max(c, 0), 255) for c in slime_color]
+                                            (win.renderer, slime_color, (rect.x + slime_x, rect.y + slime_y, 1, 1))
+                                # broken
+                                if block.broken > 0:
+                                    try:
+                                        win.renderer.blit(breaking_sprs[int(block.broken)], rect)
+                                    except:
+                                        for drop, amount in dif_drop_blocks.get(nbg, {nbg: 1}).items():
+                                            # group(Drop(drop, _rect, extra=amount), all_drops)
+                                            g.w.modify("air", target_chunk, abs_pos)
 
-                                    # flowing lava
-                                    if nbg == "lava":
-                                        if ticks() - block.last_flow >= 200:
-                                            flowns = []
-                                            bottom_chunk, bottom_pos = correct_tile(target_chunk, abs_pos, 0, 1)
-                                            if bottom_chunk in g.w.data:
-                                                if g.w.data[bottom_chunk].get(bottom_pos, void_block).name != "lava":
-                                                    if g.w.data[bottom_chunk].get(bottom_pos, void_block).name in empty_blocks:
-                                                        flowns.append([bottom_chunk, bottom_pos])
-                                                else:
-                                                    flowns = True
-                                            if not flowns:
-                                                yo = 0
-                                                for xo in (-1, 1):
-                                                    side_chunk, side_pos = correct_tile(target_chunk, abs_pos, xo, yo)
-                                                    check_chunk, check_pos = correct_tile(target_chunk, abs_pos, 0, -1)
-                                                    if g.w.data[check_chunk].get(check_pos, void_block).name == "lava":
-                                                        if side_chunk in g.w.data:
-                                                            if g.w.data[side_chunk].get(side_pos, void_block).name in empty_blocks:
-                                                                flowns.append([side_chunk, side_pos])
-                                            if isinstance(flowns, list):
-                                                for flown in flowns:
-                                                    g.w.modify("lava", *flown)
-                                                    block.last_flow = ticks()
-                                    # slime perlin noise
-                                    if nbg == "slime":
-                                        for slime_y in range(BS):
-                                            for slime_x in range(BS):
-                                                slime_mult = 1
-                                                slime_speed = 0.0005
-                                                slime_n = noise.pnoise3(slime_x / BS * slime_mult + bx * slime_mult, slime_y / BS * slime_mult + by * slime_mult, ticks() * slime_speed)
-                                                slime_range = 70
-                                                slime_gray = (slime_n + 0.5) * slime_range + (255 - slime_range)
-                                                slime_color = [0, slime_gray, 0]
-                                                # slime_color = [slime_gray] * 3
-                                                slime_color = [min(max(c, 0), 255) for c in slime_color]
-                                                (win.renderer, slime_color, (rect.x + slime_x, rect.y + slime_y, 1, 1))
-                                    # broken
-                                    if block.broken > 0:
-                                        try:
-                                            win.renderer.blit(breaking_sprs[int(block.broken)], rect)
-                                        except:
-                                            for drop, amount in dif_drop_blocks.get(nbg, {nbg: 1}).items():
-                                                # group(Drop(drop, _rect, extra=amount), all_drops)
-                                                g.w.modify("air", target_chunk, abs_pos)
+                            if target_chunk not in g.w.chunk_colors:
+                                chunk_color = [rand(0, 255) for _ in range(3)]
+                                g.w.chunk_colors[target_chunk] = chunk_color
+                            else:
+                                chunk_color = g.w.chunk_colors[target_chunk]
 
-                                if target_chunk not in g.w.chunk_colors:
-                                    g.w.chunk_colors[target_chunk] = [rand(0, 255) for _ in range(3)] + [255]
-                                win.renderer.draw_color = g.w.chunk_colors[target_chunk]
-                                if pw.show_chunk_borders:
-                                    win.renderer.draw_rect(chunk_rect)
-                                    chunk_texts.append([(target_chunk, [x, y]), (chunk_rect.x + 130, chunk_rect.y + 100)])
+                            rect = pygame.Rect(*g.w.metadata[target_chunk]["pos"], BS, BS)
+                            rect.x = rect.x * BS - g.scroll[0]
+                            rect.y = rect.y * BS - g.scroll[1]
+                            if pw.show_chunk_borders:
+                                chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
+                                chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
+
                     # mouse shit with chunks
                     if not g.menu:
                         if g.player.main == "block":
@@ -4245,7 +4257,6 @@ def main(debug, cprof=False):
                             hovering_rect = [r * S for r in rect]
                             if mouses:
                                 pass
-                            write(win.renderer, "topleft", abs_pos, orbit_fonts[12], WHITE, *rect.topleft, tex=True)
                             # left mouse
                             if mouses[0]:
                                 setto = None
@@ -4265,12 +4276,13 @@ def main(debug, cprof=False):
                                                 g.w.metadata[target_chunk][abs_pos]["yvel"] = 0
                                     elif g.first_affection == "break":
                                         if name not in empty_blocks:
-                                            block.broken += 2 * g.dt
+                                            block.broken += 10 * g.dt
                                             '''
                                             if abs_pos in g.w.data[target_chunk]:
                                                 del g.w.data[target_chunk][abs_pos]
                                             '''
                                     if setto is not None:
+                                        # g.w.data[target_chunk][abs_pos] = Block(setto)
                                         if mod == 1:
                                             setto += "_bg"
                                         g.w.modify(setto, target_chunk, abs_pos)
@@ -4278,22 +4290,20 @@ def main(debug, cprof=False):
                                 g.player.eating = False
                             # right mouse
                             if mouses[2]:
-                                if block is not None:
-                                    if not block.righted:
-                                        if name is not None:
-                                            # rotations
-                                            if bpure(name) == "ramp":
-                                                rotated = rotate_name(name, rotations4)
-                                                g.w.modify(rotated, target_chunk, abs_pos, righted=True)
-                                            elif bpure(name) == "cable":
-                                                rotated = rotate_name(name, rotations2)
-                                                g.w.modify(rotated, target_chunk, abs_pos, righted=True)
-                                            elif bpure(name) == "curved-cable":
-                                                rotated = rotate_name(name, rotations4)
-                                                g.w.modify(rotated, target_chunk, abs_pos, righted=True)
-                            else:
-                                if block is not None:
-                                    block.righted = False
+                                if name is not None:
+                                    # rightings
+                                    # crafting stuff
+                                    if non_bg(name) in ("workbench", "furnace", "gun-crafter", "magic-table", "altar"):
+                                        if k in g.w.metadata[target_chunk]:
+                                            g.w.metadata[target_chunk][abs_pos] = {}
+                                        if non_bg(name) == "workbench":
+                                            pass
+                                    # rotations
+                                    elif bpure(name) == "ramp":
+                                        g.w.data[target_chunk][abs_pos] = rotate_name(name, rotations4)
+                                    else:
+                                        if g.player.block == "fire":
+                                            g.w.data[target_chunk][abs_pos] = [g.w.data[target_chunk][abs_pos], "fire"]
 
                     # player collision with blocks
                     for yo in range(-2, 3):
@@ -4307,23 +4317,24 @@ def main(debug, cprof=False):
                             # processing the data
                             if target_chunk in g.w.data:
                                 if abs_pos in g.w.data[target_chunk]:
-                                    block = g.w.data[target_chunk][abs_pos]
-                                else:
-                                    block = VoidBlock("air")
-                                name = block.name
-                                _rect = pygame.Rect([x * BS for x in abs_pos], (BS, BS))
-                                rect = pygame.Rect((_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS))
-                                if pw.show_hitboxes:
-                                    if xo == yo == 0:
-                                        win.renderer.draw_color = GREEN
+                                    try:
+                                        block = g.w.data[target_chunk][abs_pos]
+                                    except KeyError:
+                                        continue
                                     else:
-                                        win.renderer.draw_color = RED
-                                    if name == "air":
-                                        win.renderer.draw_color = ORANGE
-                                    win.renderer.draw_rect(rect)
-                                g.player.block_data.append([block, _rect])
-                                if xo == yo == 0:
-                                    metal_detector = block.ore_chance
+                                        name = block.name
+                                        _rect = pygame.Rect([x * BS for x in abs_pos], (BS, BS))
+                                        rect = pygame.Rect((_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS))
+                                        if pw.show_hitboxes:
+                                            if xo == yo == 0:
+                                                (win.renderer, GREEN, rect, 1)
+                                            else:
+                                                (win.renderer, RED, rect, 1)
+                                        g.player.block_data.append([block, _rect])
+                                        if xo == yo == 0:
+                                            metal_detector = block.ore_chance
+
+                    # breaking blocks spritesheet rendering (if you see this fuck you)
 
                 # foregorund sprites (includes the player)
                 g.player.update()
@@ -4532,8 +4543,8 @@ def main(debug, cprof=False):
                 # workbench
                 co = 10
                 if g.midblit == "workbench":
-                    mbr = g.midblit_rect()
-                    mbr.x -= workbench_rect.width / 2 - BS * S / 2
+                    mbr = g.midblit_rect(workbench_img)
+                    mbr.x -= workbench_rect.width / 2
                     mbr.y -= workbench_rect.height + co
                     win.renderer.blit(workbench_img, mbr)
                     x = workbench_rect.x + 30 / 2 + 25
@@ -4591,7 +4602,7 @@ def main(debug, cprof=False):
 
                 # furnace
                 elif g.midblit == "furnace":
-                    mbr = g.midblit_rect()
+                    mbr = g.midblit_rect(furnace_img)
                     mbr.x -= furnace_rect.width / 2 - BS * S / 2
                     mbr.y -= furnace_rect.height + co
                     win.renderer.blit(furnace_img, mbr)
@@ -4763,6 +4774,15 @@ def main(debug, cprof=False):
                             with suppress(IndexError, AttributeError):
                                 write(win.renderer, "center", bshow(g.chest[chest_indexes[rect.topleft]][0]), orbit_fonts[15], g.w.text_color, workbench_rect.centerx, 150)
 
+                # tool crafter
+                elif g.midblit == "tool-crafter":
+                    mbr = g.midblit_rect(tool_crafter_img)
+                    mbr.x -= tool_crafter_rect.width / 2
+                    mbr.y -= tool_crafter_rect.height + co
+                    win.renderer.blit(tool_crafter_img, mbr)
+                    g.sword.ox, g.sword.oy = mbr.topleft
+                    g.sword.update()
+
                 # show background selector
                 if g.mod == 1:
                     if no_widgets(Entry):
@@ -4876,11 +4896,15 @@ def main(debug, cprof=False):
             # refreshing the window
             win.renderer.present()
 
+            # pybag
+            await asyncio.sleep(0)
+
         # cleanup
         if cprof:
             pritn("CAUTION - CPROFILE WAS ACTIVE")
         ExitHandler.save("quit")
 
 if __name__ == "__main__":
-    # main(debug=g.debug)
-    import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")
+    main(debug=g.debug)
+    asyncio.run(main(debug=g.debug))
+    # import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")

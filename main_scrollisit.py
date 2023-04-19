@@ -1199,7 +1199,7 @@ class World:
             img = self.surf_assets["blocks"][non_bg(name)]
         if name == "water":
             img = pygame.Surface((BS, BS), pygame.SRCALPHA)
-            img.fill(list(WATER_BLUE) + [127])
+            img.fill(list(WATER_BLUE))
         if is_bg(name):
             #img = darken(img)
             img = img
@@ -1746,6 +1746,10 @@ class Player(Scrollable, SmartVector):
         self.broken_blocks = dd(int)
         self.main = "block"
         self.moved_x = 0
+
+    @property
+    def _rect(self):
+        return pygame.Rect(self.x, self.y, self.width, self.height)
 
     def update(self):  # player update
         self.animate()
@@ -4240,12 +4244,12 @@ def main(debug, cprof=False):
                 # all_foreground_sprites.update()
                 #
                 # # mobs
-                for i, entity in enumerate(g.w.entities):
-                    # if i < pw.max_entities.value:
-                    #     if tuple(entity.chunk_index) in updated_chunks:
-                    # update_entity(entity)
-                    # entity.update(g.dt)
-                    win.renderer.blit(entity.image, entity.rect)
+                # for i, entity in enumerate(g.w.entities):
+                #     # if i < pw.max_entities.value:
+                #     #     if tuple(entity.chunk_index) in updated_chunks:
+                #     # update_entity(entity)
+                #     # entity.update(g.dt)
+                #     win.renderer.blit(entity.image, entity.rect)
 
                 # # death screen
                 # if g.player.dead:
@@ -4266,39 +4270,39 @@ def main(debug, cprof=False):
 
                 # P L A Y  B L I T S -------------------------------------------------------------------------- #
                 # blitting background
-                win.renderer.blit(tool_holders_img, tool_holders_rect)
-                win.renderer.blit(inventory_img, inventory_rect)
-
-                # blitting tools
-                x = tool_holders_x + 1
-                y = tool_holders_y + 1
-                for index, tool in enumerate(g.player.tools):
-                    if tool is not None:
-                        tool_img = g.w.tools[tool]
-                        xo, yo = [(BS - s) / 2 for s in (tool_img.width, tool_img.height)]
-                        win.renderer.blit(tool_img, (x + xo, y + yo))
-                        pass
-                    # border if selected
-                    if g.player.main == "tool":
-                        if index == g.player.tooli:
-                            #win.renderer.blit(square_border_img, (x - 1, y - 1))
-                            pass
-                    x += 11 * R
-
-                # blitting blocks
-                x = inventory_x + 1
-                y = inventory_y + 1
-                for index, block in enumerate(g.player.inventory):
-                    if block is not None:
-                        block_img = g.w.blocks[block]
-                        win.renderer.blit(block_img, (x, y))
-                        pass
-                    # border if selected
-                    if g.player.main == "block":
-                        if index == g.player.blocki:
-                            win.renderer.blit(square_border_img, pygame.Rect(x - 3, y - 3))
-                            pass
-                    x += 11 * R
+                # win.renderer.blit(tool_holders_img, tool_holders_rect)
+                # win.renderer.blit(inventory_img, inventory_rect)
+                #
+                # # blitting tools
+                # x = tool_holders_x + 1
+                # y = tool_holders_y + 1
+                # for index, tool in enumerate(g.player.tools):
+                #     if tool is not None:
+                #         tool_img = g.w.tools[tool]
+                #         xo, yo = [(BS - s) / 2 for s in (tool_img.width, tool_img.height)]
+                #         win.renderer.blit(tool_img, (x + xo, y + yo))
+                #         pass
+                #     # border if selected
+                #     if g.player.main == "tool":
+                #         if index == g.player.tooli:
+                #             #win.renderer.blit(square_border_img, (x - 1, y - 1))
+                #             pass
+                #     x += 11 * R
+                #
+                # # blitting blocks
+                # x = inventory_x + 1
+                # y = inventory_y + 1
+                # for index, block in enumerate(g.player.inventory):
+                #     if block is not None:
+                #         block_img = g.w.blocks[block]
+                #         win.renderer.blit(block_img, (x, y))
+                #         pass
+                #     # border if selected
+                #     if g.player.main == "block":
+                #         if index == g.player.blocki:
+                #             win.renderer.blit(square_border_img, pygame.Rect(x - 3, y - 3))
+                #             pass
+                #     x += 11 * R
 
             # pre-scale home
             elif g.stage == "home":

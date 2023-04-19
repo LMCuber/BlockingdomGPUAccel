@@ -35,8 +35,9 @@ class CThread(DThread):
     pass
 
 
+max_light = 15
 class Block:
-    def __init__(self, name, pos, ore_chance=-1):
+    def __init__(self, name, pos, ore_chance=-1, light=max_light):
         # default
         self.name = name
         self.pos = pos
@@ -48,7 +49,7 @@ class Block:
         self.collided = False
         self.broken = 0
         self.righted = False
-        self.light = 0
+        self.light = max_light
         # special
         self.craftings = {}
         self.reductant = [None, None]  # [name, amount]
@@ -691,7 +692,7 @@ def load_blocks():
     for y, layer in enumerate(block_list):
         for x, block in enumerate(layer):
             a.blocks[block] = _bsprs.subsurface(x * 10 * R, y * 10 * R, 10 * R, 10 * R)
-    placeholder_blocks = {"broken-penguin-beak", "jump-pad", "fall-pad"}
+    placeholder_blocks = {"broken-penguin-beak", "jump-pad", "fall-pad", "tool-crafter"}
     for block in placeholder_blocks:
         surf = pygame.Surface((30, 30), pygame.SRCALPHA)
         surf.fill(LIGHT_GRAY)
@@ -727,6 +728,9 @@ def load_blocks():
             color = [rand(0, 255) for _ in range(3)]
             rect = (x * 3, y * 3, 3, 3)
             pygame.draw.rect(surf, color, rect)
+    # gray
+    a.blocks["wall"] = pygame.Surface((30, 30))
+    a.blocks["wall"].fill((100, 100, 100))
     # bedrock
     b = pygame.Surface((10, 10))
     for y in range(10):
@@ -849,11 +853,10 @@ def load_sizes():
                     a.sizes[name] = img.get_size()
 
 
-max_light = 15
 # B L O C K  D A T A ----------------------------------------------------------------------------------- #
 # info's
 oinfo = {
-    # name        | mohs |    | fracture toughness  price in $ |          | ppm in crust |      | mined at depth |            | rgb color |
+    # name        | mohs |    | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km|      | color in rgb|
     # metal atoms
     "diamond":    {"mohs": 10, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
     "molybdenum": {"mohs":  6, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1 ,                 "color": SILVER},
@@ -861,10 +864,11 @@ oinfo = {
     "gold":       {"mohs":  3, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
     "copper":     {"mohs":  3, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
     "palladium":  {"mohs":  5, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
-    "iron":       {"mohs":  4, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
-    "tungsten":   {"mohs":  9, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
     "nickel":     {"mohs":  4, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
     "uranium":    {"mohs":  6, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
+    "iron":       {"mohs":  4, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
+    "tungsten":   {"mohs":  9, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
+    "manganese":  {"mohs":  6, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
     "chromium":   {"mohs":  8, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
     # gemstones
     "coal":       {"mohs": 3, "price": 0.39,   "ppm": 000,    "depth": [0, 300],                      "color": BLACK},

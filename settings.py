@@ -224,8 +224,7 @@ fog_w, fog_h = fog_light.get_size()
 #pygame.display.set_icon(timgload3("Images", "Visuals", f"{Platform.os.lower()}_icon.png"))
 
 # surfaces
-workbench_img = iimgload("Images", "Surfaces", "workbench.png")
-workbench_img = timgload("Images", "Midblits", "workbench.png")
+workbench_img = timgload3("Images", "Midblits", "workbench.png")
 _wbi = get_icon("arrow")
 workbench_icon = pygame.transform.scale(_wbi, [s // 2 for s in _wbi.get_size()])
 furnace_img = timgload3("Images", "Surfaces", "furnace.png")
@@ -234,6 +233,8 @@ anvil_img = timgload3("Images", "Surfaces", "anvil.png")
 gun_crafter_img = timgload3("Images", "Surfaces", "gun_crafter.png")
 gun_crafter_base = pygame.Surface((gun_crafter_img.width, gun_crafter_img.height))
 magic_table_img = timgload3("Images", "Surfaces", "magic-table.png")
+tool_crafter_img = timgload3("Images", "Midblits", "tool-crafter.png")
+tool_crafter_rect = tool_crafter_img.get_rect()
 # crafting and midblit constants
 workbench_rect = workbench_img.get_rect(center=win.center)
 furnace_rect = furnace_img.get_rect(center=workbench_rect.center)
@@ -429,6 +430,35 @@ class Game:
                     del self.skins[bt][index]["name"]
                 else:
                     self.skins[bt][index]["sprs"] = []
+        # sword model
+        w, l, h = 3, 1, 24
+        self.sword = Crystal(
+            win.renderer, [
+                [-5, -5, -5],
+                [-5, 5, -5],
+                [5, 5, -5],
+                [5, -5, -5],
+                [20, -5, -5],
+                [20, 5, -5],
+                [15, 5, -5],
+                [15, -5, -5],
+            ], [
+                RED,
+                RED,
+                RED,
+                RED,
+                RED,
+                RED,
+                RED,
+                RED,
+            ], [
+
+            ], [
+                [(240, 240, 240, 255), 0, 1, 2, 3],
+                [(210, 210, 210, 255), 4, 5, 6, 7],
+            ],
+            (300, 300), 5, 4, 0, 0, 0, 0.01*0.15, 0.01*0.15, 0.01*0.15
+        )
         # spritesheets
         self.portal_sprs = timgload3("Images", path("Spritesheets", "portal.png"), frames=7)
         # rendering
