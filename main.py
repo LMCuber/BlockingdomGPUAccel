@@ -3786,8 +3786,9 @@ async def main(debug, cprof=False):
                                     toggle_main()
 
                                 elif event.key == pygame.K_q:
-                                    m = 50
-                                    g.player.x += sign(g.player.xvel) * m
+                                    # m = 50
+                                    # g.player.x += sign(g.player.xvel) * m
+                                    pprint(g.sword.fill_vertices)
 
                                 if g.midblit == "workbench":
                                     if event.key == K_SPACE:
@@ -4074,6 +4075,13 @@ async def main(debug, cprof=False):
                         wr, wh = w / win.width, h / win.height
                         win.renderer.scale = (wr, wh)
 
+                    elif event.type == pygame.MOUSEMOTION:
+                        if g.mouses[0]:
+                            dx, dy = event.rel
+                            m = 0.015
+                            g.sword.ya -= dx * 0.01
+                            g.sword.xa += dy * 0.01
+
                     if g.stage == "home":
                         for spr in all_main_widgets():
                             if hasattr(spr, "process_event") and callable(spr.process_event):
@@ -4154,10 +4162,11 @@ async def main(debug, cprof=False):
                             terrain_tex = g.w.terrains[target_chunk]
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
-                            win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
+                            # win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
+                            # infamous
                             #continue
                             for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
-                            #     # init
+                            #   init
                                 num_blocks += 1
                                 name = block.name
                                 nbg = non_bg(name)
@@ -4167,13 +4176,11 @@ async def main(debug, cprof=False):
                             #     # rendering the block
                                 (bx, by) = abs_pos
 
-                                # _rect = pygame.Rect(bx * BS, by * BS, BS, BS)
-                                # rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
-                                # scroll_pos = (bx * BS - g.scroll[0], by * BS - g.scroll[1])
-                                # img = g.w.blocks[nbg]
-                                # win.renderer.blit(img, rect)
                                 _rect = block._rect
                                 rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
+                                # scroll_pos = (bx * BS - g.scroll[0], by * BS - g.scroll[1])
+                                img = g.w.blocks[nbg]
+                                win.renderer.blit(img, rect)
 
                                 # growing wheat
                                 if nbg in wheats:
@@ -4243,7 +4250,7 @@ async def main(debug, cprof=False):
                                 chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
 
                     # mouse shit with chunks
-                    if not g.menu:
+                    if not g.menu and g.midblit is None:
                         if g.player.main == "block":
                             # init
                             target_chunk, abs_pos = pos_to_tile(g.mouse)

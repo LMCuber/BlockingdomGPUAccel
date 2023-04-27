@@ -431,33 +431,117 @@ class Game:
                 else:
                     self.skins[bt][index]["sprs"] = []
         # sword model
-        w, l, h = 3, 1, 24
+
+        """
+        vertices = []
+        lines = []
+        with open("test.obj", "r") as f:
+            for line in f.readlines():
+                line = line.removesuffix("\n")
+                if not line:
+                    continue
+                if line.startswith("#"):
+                    continue
+                spl = line.split(" ")
+                if spl[0] == "v":
+                    vertex = [float(x) for x in spl[1:]]
+                    vertex[0] += 1
+                    vertices.append(vertex)
+                elif spl[0] == "f":
+                    spl = spl[1:]
+                    line = [int(x.split("/")[0]) - 1 for x in spl][:2]
+                    line.insert(0, GREEN)
+                    lines.append(line)
+        """
+        with open(path("Images", "Vertices", "test.json"), "r") as f:
+            self.crystal_data = json.load(f)
+        self.bcc = Crystal(
+            win.renderer,
+            self.crystal_data["vertices"],
+            self.crystal_data["point_colors"],
+            self.crystal_data["connections"],
+            [],
+            (300, 300), 25, 5, 0, 0, 0, 0.001, 0.001, 0.001
+        )
+        w, l, h = 0.12, 0.8, 0.03
+        tl = 0.3
+        gw, gl, gh = 0.24, 0.1, 0.1
+        gxo = l
+        uw, ul, uh = 0.05, 0.4, 0.05
+        uxo = gxo
         self.sword = Crystal(
             win.renderer, [
-                [-5, -5, -5],
-                [-5, 5, -5],
-                [5, 5, -5],
-                [5, -5, -5],
-                [20, -5, -5],
-                [20, 5, -5],
-                [15, 5, -5],
-                [15, -5, -5],
-            ], [
-                RED,
-                RED,
-                RED,
-                RED,
-                RED,
-                RED,
-                RED,
-                RED,
-            ], [
+                # base
+                [-w, -l, h],
+                [w, -l, h],
+                [w, l, h],
+                [-w, l, h],
+                [-w, -l, -h],
+                [w, -l, -h],
+                [w, l, -h],
+                [-w, l, -h],
 
+                # tip
+                [-w, -l - tl, h],
+                [w, -l, h],
+                [-w, -l, h],
+                [-w, -l - tl, -h],
+                [w, -l, -h],
+                [-w, -l, -h],
+
+                # guard
+                [-gw, gxo, gh],
+                [gw, gxo, gh],
+                [gw, gxo + gl, gh],
+                [-gw, gxo + gl, gh],
+                [-gw, gxo, -gh],
+                [gw, gxo, -gh],
+                [gw, gxo + gl, -gh],
+                [-gw, gxo + gl, -gh],
+
+                # grip
+                [-uw, uxo, uh],
+                [uw, uxo, uh],
+                [uw, uxo + ul, uh],
+                [-uw, uxo + ul, uh],
+                [-uw, uxo, -uh],
+                [uw, uxo, -uh],
+                [uw, uxo + ul, -uh],
+                [-uw, uxo + ul, -uh],
             ], [
-                [(240, 240, 240, 255), 0, 1, 2, 3],
-                [(210, 210, 210, 255), 4, 5, 6, 7],
+                # point colors
+            ], [
+                # lines
+            ], [
+                # fills
+                [(220, 220, 220, 255), 0, 1, 2, 3],
+                [(210, 210, 210, 255), 4, 5, 1, 0],
+                [(200, 200, 200, 255), 4, 5, 6, 7],
+                [(190, 190, 190, 255), 7, 6, 2, 3],
+                [(180, 180, 180, 255), 4, 0, 3, 7],
+                [(170, 170, 170, 255), 1, 5, 6, 2],
+
+                [(200, 200, 200, 255), 0 + 8, 1 + 8, 2 + 8],
+                [(200, 200, 200, 255), 3 + 8, 4 + 8, 5 + 8],
+                [(200, 200, 200, 255), 3 + 8, 0 + 8, 2 + 8, 5 + 8],
+                [(200, 200, 200, 255), 0 + 8, 3 + 8, 4 + 8, 1 + 8],
+                [(200, 200, 200, 255), 5 + 8, 4 + 8, 1 + 8, 2 + 8],
+
+                [DARK_BROWN, 0 + 14, 1 + 14, 2 + 14, 3 + 14],
+                [DARK_BROWN, 4 + 14, 5 + 14, 1 + 14, 0 + 14],
+                [DARK_BROWN, 4 + 14, 5 + 14, 6 + 14, 7 + 14],
+                [DARK_BROWN, 7 + 14, 6 + 14, 2 + 14, 3 + 14],
+                [DARK_BROWN, 4 + 14, 0 + 14, 3 + 14, 7 + 14],
+                [DARK_BROWN, 1 + 14, 5 + 14, 6 + 14, 2 + 14],
+
+                [BROWN, 0 + 22, 1 + 22, 2 + 22, 3 + 22],
+                [BROWN, 4 + 22, 5 + 22, 1 + 22, 0 + 22],
+                [BROWN, 4 + 22, 5 + 22, 6 + 22, 7 + 22],
+                [BROWN, 7 + 22, 6 + 22, 2 + 22, 3 + 22],
+                [BROWN, 4 + 22, 0 + 22, 3 + 22, 7 + 22],
+                [BROWN, 1 + 22, 5 + 22, 6 + 22, 2 + 22],
             ],
-            (300, 300), 5, 4, 0, 0, 0, 0.01*0.15, 0.01*0.15, 0.01*0.15
+            (300, 300), 140, 2, 0, 0, 0, 0, 0.001, 0
         )
         # spritesheets
         self.portal_sprs = timgload3("Images", path("Spritesheets", "portal.png"), frames=7)

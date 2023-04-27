@@ -857,7 +857,7 @@ def load_sizes():
 # info's
 oinfo = {
     # name        | mohs |    | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km|      | color in rgb|
-    # metal atoms
+    # metals
     "diamond":    {"mohs": 10, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
     "molybdenum": {"mohs":  6, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1 ,                 "color": SILVER},
     "titanium":   {"mohs":  6, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
@@ -881,7 +881,9 @@ oinfo = {
     "granite":    {"mohs": 6, "price": None,   "ppm": 800000, "depth": [1.5, 50],                     "color": (244, 174, 114)}
 }
 
-
+trinfo = {       # force in N
+    "live oak": {"Janka": 11_900}
+}
 
 alloys = {
     "Austenitic Stainless Steel": {
