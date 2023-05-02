@@ -18,6 +18,7 @@ from settings import *
 from prim_data import *
 from sounds import *
 from world_generation import *
+from all_rounders import *
 
 
 class SmartSurface(pygame.Surface):
@@ -146,15 +147,17 @@ def save_structure(name):
 def mousebuttondown_event(button):
     if button == 1:
         g.clicked_when = g.stage
+        g.mouse_init = g.mouse
         if g.stage == "play":
             if g.player.main == "tool":
                 if "_sword" in g.player.tool and visual.sword_swing <= 0:
-                    if orb_names["purple"] in g.player.tool:
-                        visual.sword_swing = float("inf")
-                        visual.sword_log = [sl for sl in visual.sword_log for _ in range(2)]
-                    else:
-                        visual.to_swing = 220
-                    visual.angle = -90
+                    # if orb_names["purple"] in g.player.tool:
+                    #     visual.sword_swing = float("inf")
+                    #     visual.sword_log = [sl for sl in visual.sword_log for _ in range(2)]
+                    # else:
+                    #     visual.to_swing = 220
+                    # visual.angle = -90
+                    pass
                 elif bpure(g.player.tool) == "bat":
                     visual.anticipate = True
                     visual.anim = 1
@@ -207,8 +210,9 @@ def mousebuttondown_event(button):
                         for rect in chest_rects:
                             if rect.collidepoint(g.mouse):
                                 g.chest_pos = [p - 3 for p in rect.topleft]
-                elif not workbench_rect.collidepoint(g.mouse):
-                        stop_midblit()
+                elif not g.midblit_rect().collidepoint(g.mouse):
+                    print(g.midblit_rect(), g.mouse)
+                    stop_midblit()
 
             if not g.skin_menu_rect.collidepoint(g.mouse):
                 g.skin_menu = False
@@ -251,6 +255,38 @@ def mousebuttondown_event(button):
             target_chunk, abs_pos = pos_to_tile(g.mouse)
             if abs_pos in g.w.data[target_chunk]:
                 g.w.trigger(target_chunk, abs_pos, wait=1)
+
+
+def mousebuttonup_event(button):
+    if button == 1:
+        g.first_affection = None
+        g.mouse_quit = g.mouse
+        visual.swing_sword(diff(g.mouse_init, g.mouse_quit))
+        g.clicked_when = None
+        for block in all_blocks:
+            block.broken = 0
+        fps_resetted = False
+
+        if g.stage == "play":
+            # nonmenu
+            if not g.menu:
+                # misc
+                g.player.food_pie = g.player.def_food_pie.copy()
+                # tools
+                if g.player.main == "tool":
+                    # shoot arrow
+                    if "bow" in g.player.tool:
+                        arrow_index = first(g.player.inventory, lambda x: x is not None and "arrow" in x)
+                        if arrow_index is not None:
+                            if g.player.inventory_amounts[arrow_index] > 0:
+                                arrow_name = g.player.inventory[arrow_index]
+                                all_projectiles.add(Projectile(visual.rect.center, g.mouse, g.player._rect.center, 4, 0.1, g.w.blocks[arrow_name], arrow_name, traits=["dui"]))
+                                g.player.use_up_inv(arrow_index)
+                        visual.bow_index = 0
+
+    elif button == 3:
+        if g.stage == "play":
+            g.extra_scroll = [0, 0]
 
 
 def rotate_name(name, rotations):
@@ -474,9 +510,25 @@ def is_clickable(block):
 
 
 def set_midblit(block):
+    def midblit_rect():
+        rect = pygame.Rect(block._rect.x - g.scroll[0], block._rect.y - g.scroll[1], img.width, img.height)
+        if g.midblit_name == "tool-crafter":
+            rect.x -= rect.width / 2 - BS / 2
+            rect.y -= rect.height / 2 - BS / 2
+        return rect
     g.mb = block
     g.midblit = non_bg(block.name)
-    g.midblit_rect = lambda img: pygame.Rect(block._rect.x - g.scroll[0], block._rect.y - g.scroll[1], img.width, img.height)
+    nbg = block.name
+    if nbg == "tool-crafter":
+        img = tool_crafter_img
+        g.midblit_name = "tool-crafter"
+        g.mb.sword_color = (0, 0, 0, 255)
+        g.mb.sword = get_sword(g.mb.sword_color)
+        g.mb.bcc = get_bcc()
+    elif nbg == "furnace":
+        img = furnace_img
+        g.midblit_name = "furnace"
+    g.midblit_rect = midblit_rect
 
 
 def stop_midblit(args=""):
@@ -1549,9 +1601,9 @@ class PlayWidgets:
             for bt in g.skins:
                 if g.skin_data(bt).get("name", True) is not None:
                     try:
-                        skin_img = scalex(g.skin_data(bt)["sprs"][anim], 1 / g.skin_scale_mult)
+                        skin_img = pygame.transform.scale_by(g.skin_data(bt)["sprs"][anim], 1 / g.skin_scale_mult)
                     except IndexError:
-                        skin_img = scalex(g.skin_data(bt)["sprs"][anim % 4], 1 / g.skin_scale_mult)
+                        skin_img = pygame.transform.scale_by(g.skin_data(bt)["sprs"][anim % 4], 1 / g.skin_scale_mult)
                     finally:
                         _sp = g.skin_data(bt)["offset"]
                         skin_pos = [s / 2 for s in win.size]
@@ -2389,7 +2441,7 @@ class Visual:
     def mask(self):
         return pygame.mask.from_surface(self.image)
 
-    def update(self):  # visual update
+    def update(self):
         if g.stage == "play":
             self.render = True
             if g.player.main == "block":
@@ -2574,9 +2626,9 @@ class Visual:
                 else:
                     self.rect.centery = max(g.player.rect.centery - o, g.mouse[1])
                 # flip image if necessarry
-                if self.facing_right:
-                    self.image.flip_x = True
-                    self.rect.x += BS
+                # if self.facing_right:
+                #     self.image.flip_x = True
+                #     self.rect.x += BS
                 if g.mouses[0]:
                     # change tool angle
                     self.angle += av * self.sign
@@ -2629,6 +2681,9 @@ class Visual:
     def swing_sword(self, amount):
         self.sword_swing -= amount
         self.angle += amount
+
+    def swing_sword(self, delta):
+        dx, dy = delta
 
     def start_reloading(self):
         self.stop_reloading()
@@ -3719,6 +3774,12 @@ async def main(debug, cprof=False):
         fps_resetted = False
         started = ticks()
         while running:
+            # init dynamic constants
+            mouse = pygame.mouse.get_pos()
+            mouses = pygame.mouse.get_pressed()
+            keys = pygame.key.get_pressed()
+            mod = pygame.key.get_mods()
+
             # prepare renderer for ... rendering
             win.renderer.clear()
 
@@ -3788,7 +3849,7 @@ async def main(debug, cprof=False):
                                 elif event.key == pygame.K_q:
                                     # m = 50
                                     # g.player.x += sign(g.player.xvel) * m
-                                    pprint(g.sword.fill_vertices)
+                                    pprint(g.mb.sword.fill_vertices)
 
                                 if g.midblit == "workbench":
                                     if event.key == K_SPACE:
@@ -3909,7 +3970,7 @@ async def main(debug, cprof=False):
                                             g.mb.gun_img = win.renderer.subsurface(*crafting_abs_pos, *crafting_eff_size)
                                             g.mb.gun_img = real_colorkey(g.mb.gun_img, LIGHT_GRAY)
                                             g.mb.gun_img = crop_transparent(g.mb.gun_img)
-                                            g.mb.gun_img = scalex(g.mb.gun_img, 0.7)
+                                            g.mb.gun_img = pygame.transform.scale_by(g.mb.gun_img, 0.7)
                                             g.mb.gun_img = gun_crafter_base
                                             """
                                             g.mb.gun_img = pygame.Surface((20, 20))
@@ -4022,33 +4083,7 @@ async def main(debug, cprof=False):
                         mousebuttondown_event(event.button)
 
                     elif event.type == pygame.MOUSEBUTTONUP:
-                        if event.button == 1:
-                            g.first_affection = None
-                            g.clicked_when = None
-                            for block in all_blocks:
-                                block.broken = 0
-                            fps_resetted = False
-
-                            if g.stage == "play":
-                                # nonmenu
-                                if not g.menu:
-                                    # misc
-                                    g.player.food_pie = g.player.def_food_pie.copy()
-                                    # tools
-                                    if g.player.main == "tool":
-                                        # shoot arrow
-                                        if "bow" in g.player.tool:
-                                            arrow_index = first(g.player.inventory, lambda x: x is not None and "arrow" in x)
-                                            if arrow_index is not None:
-                                                if g.player.inventory_amounts[arrow_index] > 0:
-                                                    arrow_name = g.player.inventory[arrow_index]
-                                                    all_projectiles.add(Projectile(visual.rect.center, g.mouse, g.player._rect.center, 4, 0.1, g.w.blocks[arrow_name], arrow_name, traits=["dui"]))
-                                                    g.player.use_up_inv(arrow_index)
-                                            visual.bow_index = 0
-
-                        elif event.button == 3:
-                            if g.stage == "play":
-                                g.extra_scroll = [0, 0]
+                        mousebuttonup_event(event.button)
 
                     elif event.type == pygame.MOUSEWHEEL:
                         if g.stage == "play":
@@ -4076,11 +4111,12 @@ async def main(debug, cprof=False):
                         win.renderer.scale = (wr, wh)
 
                     elif event.type == pygame.MOUSEMOTION:
-                        if g.mouses[0]:
-                            dx, dy = event.rel
-                            m = 0.015
-                            g.sword.ya -= dx * 0.01
-                            g.sword.xa += dy * 0.01
+                        if g.midblit == "tool-crafter":
+                            if mouses[0]:
+                                dx, dy = event.rel
+                                m = 0.015
+                                g.mb.sword.ya -= dx * 0.01
+                                g.mb.sword.xa += dy * 0.01
 
                     if g.stage == "home":
                         for spr in all_main_widgets():
@@ -4112,10 +4148,6 @@ async def main(debug, cprof=False):
             # post-scale renders
             grasses = []
             waters = []
-            # constants
-            mouses = g.mouses
-            mouse = g.mouse
-            mod = g.mod
             # hotbar
             hotbar_xo = -3
             tool_holders_x, tool_holders_y = (win.width / 2 - 35 + hotbar_xo, 7)
@@ -4265,7 +4297,7 @@ async def main(debug, cprof=False):
                             if mouses:
                                 pass
                             # left mouse
-                            if mouses[0]:
+                            if g.mouses[0]:
                                 setto = None
                                 if g.player.block in finfo:
                                     g.player.eat()
@@ -4550,9 +4582,7 @@ async def main(debug, cprof=False):
                 # workbench
                 co = 10
                 if g.midblit == "workbench":
-                    mbr = g.midblit_rect(workbench_img)
-                    mbr.x -= workbench_rect.width / 2
-                    mbr.y -= workbench_rect.height + co
+                    mbr = g.midblit_rect()
                     win.renderer.blit(workbench_img, mbr)
                     x = workbench_rect.x + 30 / 2 + 25
                     y = workbench_rect.y + 30 + 30 / 2 + 10
@@ -4609,9 +4639,7 @@ async def main(debug, cprof=False):
 
                 # furnace
                 elif g.midblit == "furnace":
-                    mbr = g.midblit_rect(furnace_img)
-                    mbr.x -= furnace_rect.width / 2 - BS * S / 2
-                    mbr.y -= furnace_rect.height + co
+                    mbr = g.midblit_rect()
                     win.renderer.blit(furnace_img, mbr)
                     x = mbr.x
                     y = mbr.y
@@ -4619,21 +4647,30 @@ async def main(debug, cprof=False):
                     ox = g.mb.oxidant
 
                     if all(ox):
+                        # info
                         ox_info = fueinfo[ox[0]]
-                        ox_img = scalex(g.w.blocks[ox[0]], S)
-                        w, h = ox_img.get_size()
-                        win.renderer.blit(shower_sprs[int(g.mb.oxidant_remnant)], (x + 24 * S, y + 9 * S + 1))
-                        win.renderer.blit(arrow_sprs[int(g.mb.oxidation_index)], (x + 54 * S, y + 9 * S + 1))
+                        ox_img = g.w.blocks[ox[0]]
+                        w, h = ox_img.width, ox_img.height
+                        # images and rects
+                        rem_img = shower_sprs[int(g.mb.oxidant_remnant)]
+                        rem_rect = rem_img.get_rect(topleft=(x + 24 * S, y + 9 * S + 1))
+                        arr_img = arrow_sprs[int(g.mb.oxidation_index)]
+                        arr_rect = arr_img.get_rect(topleft=(x + 54 * S, y + 9 * S + 1))
+                        # rendering step; finally
+                        win.renderer.blit(rem_img, rem_rect)
+                        win.renderer.blit(arr_img, arr_rect)
 
                     if ox[-1] is not None and ox[-1] > 1:
-                        win.renderer.blit(ox_img, (x + 32 * S, y + 8 * S))
-                        write(win.renderer, "center", ox[1] - 1, orbit_fonts[12], BLACK, x + w / 2 + 32 * S - 1, y + 19 * S + 4 * S)
+                        ox_rect = ox_img.get_rect(topleft=(x + 32 * S, y + 8 * S))
+                        win.renderer.blit(ox_img, ox_rect)
+                        write(win.renderer, "center", ox[1] - 1, orbit_fonts[12], BLACK, x + w / 2 + 32 * S - 1, y + 19 * S + 4 * S, tex=True)
 
                     if all(red):
-                        red_img = scalex(g.w.blocks[red[0]], S)
-                        w, h = red_img.get_size()
-                        win.renderer.blit(red_img, (x + 11 * S, y + 8 * S))
-                        write(win.renderer, "center", red[1], orbit_fonts[12], BLACK, x + w / 2 + 11 * S - 1, y + 19 * S + 4 * S)
+                        red_img = g.w.blocks[red[0]]
+                        w, h = red_img.width, red_img.height
+                        red_rect = red_img.get_rect(topleft=(x + 11 * S, y + 8 * S))
+                        win.renderer.blit(red_img, red_rect)
+                        write(win.renderer, "center", red[1], orbit_fonts[12], BLACK, x + w / 2 + 11 * S - 1, y + 19 * S + 4 * S, tex=True)
                         if all(ox):
                             g.mb.oxidant_remnant += ox_info["sub"]
                             if g.mb.oxidant_remnant >= len(shower_sprs):
@@ -4652,10 +4689,11 @@ async def main(debug, cprof=False):
                                 ck = g.mb.cooked
 
                     if all(g.mb.cooked):
-                        ck_img = scalex(g.w.blocks[ck[0]], S)
-                        w, h = ck_img.get_size()
-                        win.renderer.blit(ck_img, (x + 70 * S, y + 8 * S))
-                        write(win.renderer, "center", ck[1], orbit_fonts[12], BLACK, x + w / 2 + 70 * S - 1, y + 19 * S + 4 * S)
+                        ck_img = g.w.blocks[ck[0]]
+                        ck_rect = ck_img.get_rect(topleft=(x + 70 * S, y + 8 * S))
+                        w, h = ck_img.width, ck_img.height
+                        win.renderer.blit(ck_img, ck_rect)
+                        write(win.renderer, "center", ck[1], orbit_fonts[12], BLACK, x + w / 2 + 70 * S - 1, y + 19 * S + 4 * S, tex=True)
 
 
                 # anvil
@@ -4783,12 +4821,20 @@ async def main(debug, cprof=False):
 
                 # tool crafter
                 elif g.midblit == "tool-crafter":
-                    mbr = g.midblit_rect(tool_crafter_img)
-                    mbr.x -= tool_crafter_rect.width / 2
-                    mbr.y -= tool_crafter_rect.height + co
+                    mbr = g.midblit_rect()
                     win.renderer.blit(tool_crafter_img, mbr)
-                    g.sword.ox, g.sword.oy = mbr.topleft
-                    g.sword.update()
+                    # draw the connections
+                    draw_line(win.renderer, (g.mb.sword.ox, g.mb.sword.oy), (g.mb.bcc.ox, g.mb.bcc.oy), BLACK)
+                    # render the sword
+                    g.mb.sword.ox, g.mb.sword.oy = mbr.topleft
+                    g.mb.sword.ox += 60
+                    g.mb.sword.oy += 170
+                    g.mb.sword.update(not mouses[0])
+                    # render the lattice structures
+                    g.mb.bcc.ox, g.mb.bcc.oy = mbr.topleft
+                    g.mb.bcc.ox += 180
+                    g.mb.bcc.oy += 55
+                    g.mb.bcc.update()
 
                 # show background selector
                 if g.mod == 1:

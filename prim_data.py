@@ -64,6 +64,8 @@ class Block:
         # self.gun_parts = {k: None for k in self.gun_parts}
         self.gun_log = []
         self.last_flow = ticks()
+        # tool-crafter stuff
+        self.sword = None
 
 
 class VoidBlock:
@@ -854,22 +856,24 @@ def load_sizes():
 
 
 # B L O C K  D A T A ----------------------------------------------------------------------------------- #
-# info's
+# ore info
 oinfo = {
-    # name        | mohs |    | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km|      | color in rgb|
+    # name        | crystal |       | mohs |    | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km|      | color in rgb|
     # metals
-    "diamond":    {"mohs": 10, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
-    "molybdenum": {"mohs":  6, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1 ,                 "color": SILVER},
-    "titanium":   {"mohs":  6, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
-    "gold":       {"mohs":  3, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
-    "copper":     {"mohs":  3, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
-    "palladium":  {"mohs":  5, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
-    "nickel":     {"mohs":  4, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
-    "uranium":    {"mohs":  6, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
-    "iron":       {"mohs":  4, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
-    "tungsten":   {"mohs":  9, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
-    "manganese":  {"mohs":  6, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
-    "chromium":   {"mohs":  8, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
+    "diamond":    {"crystal": "FCC", "mohs": 10, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
+    "molybdenum": {"crystal": "BCC", "mohs":  6, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1 ,                 "color": SILVER},
+    "aluminium":  {"crystal": "FCC", "mohs":  3, "toughenss":  33,   "price":         18,    "ppm":    82_300,     "depth": 0,                  "color": SILVER},
+    "titanium":   {"crystal": "HCP", "mohs":  6, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
+    "gold":       {"crystal": "FCC", "mohs":  3, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
+    "copper":     {"crystal": "FCC", "mohs":  3, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
+    "palladium":  {"crystal": "FCC", "mohs":  5, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
+    "vanadium":   {"crystal": "BCC", "mohs":  7, "toughness": 110,   "price":      2_000,    "ppm":    100,        "depth": 0,                  "color": SILVER},
+    "nickel":     {"crystal": "FCC", "mohs":  4, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
+    "uranium":    {"crystal": "FCC", "mohs":  6, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
+    "iron":       {"crystal": "BCC", "mohs":  4, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
+    "tungsten":   {"crystal": "BCC", "mohs":  9, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
+    "manganese":  {"crystal": "BCC", "mohs":  6, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
+    "chromium":   {"crystal": "BCC", "mohs":  8, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
     # gemstones
     "coal":       {"mohs": 3, "price": 0.39,   "ppm": 000,    "depth": [0, 300],                      "color": BLACK},
     "orthoclase": {"mohs": 6, "price": 93,     "ppm": None,   "depth": None,                          "color": (255, 197, 148)},
@@ -880,12 +884,20 @@ oinfo = {
     "corundum":   {"mohs": 9, "price": 000,    "ppm": 000,    "depth": [3.85, 10],                    "color": (168, 50, 107)},
     "granite":    {"mohs": 6, "price": None,   "ppm": 800000, "depth": [1.5, 50],                     "color": (244, 174, 114)}
 }
+c = 2
+for ore in oinfo:
+    # generation chance
+    oinfo[ore]["chance"] = c
+    c /= 1.4
+    oinfo
 
-trinfo = {       # force in N
+# tree info
+trinfo = {       # force in N (Janka scale)
     "live oak": {"Janka": 11_900}
 }
 
-alloys = {
+# alloy info
+alinfo = {
     "Austenitic Stainless Steel": {
         "atoms": {
             "Fe": 70,
@@ -959,46 +971,19 @@ alloys = {
         "tensile": (400 + 550) / 2
     },
 }
-for name, data in alloys.items():
+for name, data in alinfo.items():
     perc = data["atoms"]
-    alloys[name]["atoms"]["Fe"] += 100 - sum(perc.values())
-
-c = 2
-for ore in oinfo:
-    # generation chance
-    oinfo[ore]["chance"] = c
-    c /= 1.4
-    oinfo
+    alinfo[name]["atoms"]["Fe"] += 100 - sum(perc.values())
 
 ore_blocks = set(oinfo.keys())
-ore_colors = {ore: data["color"] for ore, data in oinfo.items()}
 
 tool_rarity_colors = {k: v["color"] for k, v in oinfo.items()}
-
-
-base_armor = imgload("Images", "Visuals", "base_armor.png")
-bases = {
-    "helmet": base_armor.subsurface(1, 0, 9, 3),
-    "chestplate": base_armor.subsurface(0, 3, 11, 4),
-    "leggings": base_armor.subsurface(1, 7, 9, 2)
-}
-a.blocks |= {f"base-{k}": v for k, v in bases.items()}
-
-for base_name, base_img in bases.items():
-    for tool_name, data in oinfo.items():
-        color = data["color"]
-        name = f"{tool_name}_{base_name}"
-        bg_img = pygame.Surface(base_armor.get_size(), pygame.SRCALPHA)
-        blit_img = swap_palette(base_img, WHITE, color)
-        bg_img.blit(blit_img, (bg_img.get_width() / 2 - blit_img.get_width() / 2, bg_img.get_height() / 2 - blit_img.get_height() / 2))
-        # bg_img = pygame.transform.scale(bg_img, (30, 30))
-        # a.blocks[name] = bg_img
-        a.blocks[name] = blit_img
-        unplaceable_blocks.append(name)
 
 wheats = [f"wheat_st{i}" for i in range(1, 5)]
 block_breaking_times = {"stone": 1000, "sand": 200, "hay": 150, "soil": 200, "dirt": 200, "watermelon": 500}
 block_breaking_amounts = {"stone": 0.01, "sand": 0.01, "hay": 0.07, "soil": 0.05, "dirt": 0.05, "watermelon": 0.01}
+
+# tool info
 tinfo = {
     "axe":
         {"blocks": {"wood": 0.03, "bamboo": 0.024, "coconut": 0.035, "cactus": 0.04, "barrel": 0.01, "workbench": 0.02, "wooden-planks": 0.035}},
@@ -1031,8 +1016,6 @@ tinfo = {
         {"blocks": {}},
 }
 tinfo["sickle"]["blocks"] |= {wheat: 0.12 for wheat in wheats}
-swinging_tools = {"axe", "pickaxe", "shovel", "sickle"}
-rotating_tools = swinging_tools
 
 sinfo = {
     "iron": {
@@ -1057,7 +1040,7 @@ fuinfo = {
 }
 for ore in oinfo:
     fuinfo[ore] = f"{ore}-ingot"
-fueinfo = {
+fueinfo = {  # combustion energy in MJ | subtraction in amount p/f
     "coal": {"mj": 33, "sub": 0.007},
 }
 
@@ -1130,40 +1113,27 @@ for food in finfo:
 meat_blocks = {"chicken"}
 for food in furnaceable_blocks:
     if food in finfo:
+        name = food + "_ck"
         finfo[food + "_ck"] = {"amounts": {k: v * 2 for k, v in finfo[food]["amounts"].items()}, "speed": finfo[food]["speed"]}
 
 # crafting info
 cinfo = {
     # blocks
-    "wooden-planks": {"recipe": {"wood": 1}, "amount": 3, "energy": 5},
-    "sand-brick": {"recipe": {"sand": 1}, "amount": 3, "energy": 7},
-    "anvil": {"recipe": {"stone": 1}, "energy": 10},
+    "wooden-planks":    {"recipe": {"wood": 1}, "amount": 3, "energy": 5},
+    "sand-brick":       {"recipe": {"sand": 1}, "amount": 3, "energy": 7},
+    "anvil":            {"recipe": {"stone": 1}, "energy": 10},
     "portal-generator": {"recipe": {"water": 1}, "energy": 20},
-    "furnace": {"recipe": {"stone": 9}, "energy": 12},
+    "furnace":          {"recipe": {"stone": 9}, "energy": 12},
     # food
-    "bread": {"recipe": {"wheat_st4": 3}, "energy": 2},
-    "wheat_st4": {"recipe": {"hay": 1}, "amount": 2, "energy": 1, "reverse": True}
+    "bread":            {"recipe": {"wheat_st4": 3}, "energy": 2},
+    "wheat_st4":        {"recipe": {"hay": 1}, "amount": 2, "energy": 1, "reverse": True}
 }
 for k, v in cinfo.copy().items():
     if v.get("reverse", False):
         key = next(iter(v["recipe"]))
         cinfo[key] = {"recipe": {k: v["amount"]}, "amount": v["recipe"][key], "energy": v["energy"]}
 
-# mob and demon info
-minfo = dd(lambda: {True: {}, False: {}}, {
-    "penguin": {"hp": 100, "demon": "hallowskull", True: {}, False: {"chicken": 3}, },
-    "fluff-camel": {"hp": 110, True: {}, False: {}},
-    "camel": {"hp": 80, True: {}, False: {}},
-    "keno": {"hp": 250},
-    "bok-bok": {"hp": 60},
-})
-dinfo = {
-    "hallowskull": {"summon": {"broken-penguin-beak": 7},
-                    "traits": ["aggressive"],
-                    "hp": 450}
-}
-
-# [0] = color, [1] = scope
+# gun info
 ginfo = \
 {
     "scope":
@@ -1186,12 +1156,6 @@ ginfo = \
 
 
 ainfo = {}
-
-offering_blocks = []
-for oftype in dinfo:
-    for ofblock in dinfo[oftype]["summon"]:
-        offering_blocks.append(ofblock)
-
 block_info = {
 }
 
@@ -1207,6 +1171,7 @@ load_tools()
 load_guns()
 load_icons()
 
+chest_blocks = [block for block in a.blocks if block is not None and block not in ("air",)]
 soils = {block for block in a.blocks if bpure(block) == "soil"}
 dirts = {block for block in a.blocks if bpure(block) == "dirt"}
 tinfo["shovel"]["blocks"] |= {soil: 0.1 for soil in soils} | {dirt: 0.1 for dirt in dirts}
@@ -1261,9 +1226,13 @@ visual_orbs_sprs = timgload3("Images", "Spritesheets", "visual_orbs.png")
 visual_orbs = {}
 
 # miscellaneous
-chest_blocks = [block for block in a.blocks if block is not None and block not in ("air",)]
-bow_reloads = dd(lambda: 350, green=200)
 
+# L A S T  S E C O N D  I N I T I A L I Z A T I O N S
+oinfo["stone"] = {"mohs": 3}
+swinging_tools = {"axe", "pickaxe", "shovel", "sickle"}
+rotating_tools = swinging_tools
+
+# O T H E R  I M A G E S
 # mini orb blocks
 for block in a.blocks.copy():
     if block.endswith("-orb"):
@@ -1284,53 +1253,32 @@ for block in a.blocks.copy():
         b = pygame.transform.scale(b, (12, 12))
         a.blocks[f"mini-{block}"] = b
 
-# last second initializations
-oinfo["stone"] = {"mohs": 3}
-# a.blocks |= {f"{k}_ck": pil_to_pg(pil_contrast(pg_to_pil(v))) for k, v in a.blocks.items() if k in furnaceable_blocks}
-#a.surf_assets = {ak: {name: pygame.transform.scale(img, [s * 3 for s in img.get_size()]) for name, img in av.items()} for ak, av in a.surf_assets.items()}
-# resizing
-# a.surf_assets = {k: {name: scale(img, [s * (30 / 10 / 3) for s in img.get_size()]) for name, img in v.items()} if isinstance(v, dict) else [scale(x, [_s * (30 / 10 / 3) for _s in x.get_size()]) for x in v] for k, v in a.surf_assets.items()}
-# for name, img in a.blocks.items():
-#     surf = img.copy()
-#     surf = pygame.transform.scale(surf, (32, 32))
-#     surf = pil_to_pg(pil_pixelate(pg_to_pil(surf), (16, 16)))
-#     surf = pygame.transform.scale(surf, (16, 16))
-#     surf = pil_contrast(pg_to_pil(surf), 1.5)
-#     surf = pil_to_pg(surf)
-#     a.blocks[name] = surf
-# 30 = 16
+# armor
+base_armor = imgload("Images", "Visuals", "base_armor.png")
+bases = {
+    "helmet": base_armor.subsurface(1, 0, 9, 3),
+    "chestplate": base_armor.subsurface(0, 3, 11, 4),
+    "leggings": base_armor.subsurface(1, 7, 9, 2)
+}
 
+a.blocks |= {f"{k}_ck": pil_to_pg(pil_contrast(pg_to_pil(v))) for k, v in a.blocks.items() if k in furnaceable_blocks}
+
+# a.blocks |= {f"base-{k}": v for k, v in bases.items()}
+# for base_name, base_img in bases.items():
+#     for tool_name, data in oinfo.items():
+#         color = data["color"]
+#         name = f"{tool_name}_{base_name}"
+#         bg_img = pygame.Surface(base_armor.get_size(), pygame.SRCALPHA)
+#         blit_img = swap_palette(base_img, WHITE, color)
+#         bg_img.blit(blit_img, (bg_img.get_width() / 2 - blit_img.get_width() / 2, bg_img.get_height() / 2 - blit_img.get_height() / 2))
+#         # bg_img = pygame.transform.scale(bg_img, (30, 30))
+#         # a.blocks[name] = bg_img
+#         a.blocks[name] = blit_img
+#         unplaceable_blocks.append(name)
+# ore_colors = {ore: data["color"] for ore, data in oinfo.items()}
+
+# generating textures from surfaces
 a.tex_assets = {k: {name: CImage(Texture.from_surface(win.renderer, img)) for name, img in v.items()} if k != "sprss" else {sprs: [CImage(Texture.from_surface(win.renderer, frame)) for frame in images] for sprs, images in v.items()} for k, v in a.surf_assets.items()}
+
 # wichtig: load all blocks and modifications before loading sizes
 load_sizes()
-
-# color palette for the game (theme)
-
-'''
-palette_img = imgload("Images", "Visuals", "palette.png")
-for name, img in a.blocks.items():
-    a.blocks[name] = palettize_image(img, palette_img, R)
-for name, img in a.tools.items():
-    a.tools[name] = palettize_image(img, palette_img, R)
-for name, img in a.icons.items():
-    a.icons[name] = palettize_image(img, palette_img, R)
-'''
-# get_isometric(pg_to_pil(scalex(a.blocks["soil_f"], 10)))
-# screenshot_img = imgload("screenshot.png")
-# p = palettize_image(screenshot_img, palette_img)
-# pg_to_pil(p).show()
-# # rgb map
-# rgb_map = imgload("Images", "Visuals", "rgb_map.png")
-# rgb_map.set_colorkey((238, 238, 238, 255))
-# rgb_map.set_colorkey((255, 255, 255, 255))
-# """
-# for y in range(rgb_map.get_height()):
-#     for x in range(rgb_map.get_width()):
-#         pprint(rgb_map.get_at((x, y)))
-# """
-# postp_map = rgb_map.copy()
-# postp_img = imgload("Images", "Visuals", "postp.png")
-# for y in range(postp_map.get_height()):
-#     for x in range(postp_map.get_width()):
-#         r, g, b, _ = postp_map.get_at((x, y))
-#         pprint(r, g, b)

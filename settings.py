@@ -108,7 +108,7 @@ def imgload(*path, frames=1, **kwargs):
 
 
 def imgload3(*path, frames=1, **kwargs):
-    img = scalex(pygame.image.load(os.path.join(*path)), 3)
+    img = pygame.transform.scale_by(pygame.image.load(os.path.join(*path)), 3)
     if frames > 1:
         img = [img]
     return img
@@ -133,7 +133,7 @@ def iimgload(*path, frames=1, **kwargs):
 
 def timgload3(*path, frames=1, **kwargs):
     img = pygame.image.load(os.path.join(*path))
-    img = scalex(img, 3)
+    img = pygame.transform.scale_by(img, 3)
     if frames > 1:
         imgs = []
         frame_width = img.get_width() / frames
@@ -148,7 +148,7 @@ def timgload3(*path, frames=1, **kwargs):
 
 def iimgload3(*path, frames=1, **kwargs):
     img = pygame.image.load(os.path.join(*path))
-    img = scalex(img, 3)
+    img = pygame.transform.scale_by(img, 3)
     tex = Texture.from_surface(win.renderer, img)
     img = Image(tex)
     if frames > 1:
@@ -164,8 +164,8 @@ def scale3x(img):
     return img
 
 
-def scalex(img, scale):
-    return pygame.transform.scale(img, [s * scale for s in img.get_size()])
+def iscale_by(image, mult):
+    return Image(Texture.from_surface(win.renderer, pygame.transform.scale_by(image, mult)))
 
 
 def img_mult(a, b):
@@ -208,9 +208,9 @@ cursor_img.fill(WHITE, (0, 4, 10, 2))
 black_square = pygame.Surface((BS, BS), pygame.SRCALPHA)
 
 # visuals
-arrow_sprs = [scalex(img, R) for img in imgload("Images", "Spritesheets", "arrow.png", frames=11)]
-shower_sprs = [scalex(img, R) for img in imgload("Images", "Spritesheets", "shower.png", frames=9)]
-shower_sprs = [scalex(img, R) for img in imgload("Images", "Spritesheets", "fuel.png", frames=9)]
+arrow_sprs = timgload3("Images", "Spritesheets", "arrow.png", frames=11)
+shower_sprs = timgload3("Images", "Spritesheets", "shower.png", frames=9)
+shower_sprs = timgload3("Images", "Spritesheets", "fuel.png", frames=9)
 chest_template = timgload3("Images", "Visuals", "chest_template.png")
 leaf_img = timgload3("Images", "Visuals", "leaf.png")
 breaking_sprs = timgload3("Images", "Visuals", "breaking.png", frames=4)
@@ -234,6 +234,12 @@ gun_crafter_img = timgload3("Images", "Surfaces", "gun_crafter.png")
 gun_crafter_base = pygame.Surface((gun_crafter_img.width, gun_crafter_img.height))
 magic_table_img = timgload3("Images", "Surfaces", "magic-table.png")
 tool_crafter_img = timgload3("Images", "Midblits", "tool-crafter.png")
+w, h = 550, 350
+tool_crafter_img = pygame.Surface((w, h), pygame.SRCALPHA)
+pygame.draw.rect(tool_crafter_img, (0, 0, 0, 120), (0, 0, w, h))
+pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, w, h), 3)
+pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, 124, h), 3)
+tool_crafter_img = Texture.from_surface(win.renderer, tool_crafter_img)
 tool_crafter_rect = tool_crafter_img.get_rect()
 # crafting and midblit constants
 workbench_rect = workbench_img.get_rect(center=win.center)
@@ -361,6 +367,8 @@ class Game:
         self.pending_entries = []
         self.show_info = False
         self.show_info_index = 0
+        self.mouse_init = (0, 0)
+        self.mouse_quit = (0, 0)
         # surfaces
         self.night_sky = pygame.Surface(win.size)
         self.menu_surf = pygame.Surface(win.size); self.menu_surf.set_alpha(100)
@@ -426,7 +434,7 @@ class Game:
         for bt in self.skins:
             for index, data in enumerate(self.skins[bt]):
                 if data["name"] is not None:
-                    self.skins[bt][index]["sprs"] = [scalex(img, self.skin_scale_mult) for img in imgload3("Images", "Player_Skins", data["name"] + ".png", frames=data["frames"], frame_pause=data.get("frame_pause", 0))]
+                    self.skins[bt][index]["sprs"] = [pygame.transform.scale_by(img, self.skin_scale_mult) for img in imgload3("Images", "Player_Skins", data["name"] + ".png", frames=data["frames"], frame_pause=data.get("frame_pause", 0))]
                     del self.skins[bt][index]["name"]
                 else:
                     self.skins[bt][index]["sprs"] = []
@@ -453,96 +461,6 @@ class Game:
                     line.insert(0, GREEN)
                     lines.append(line)
         """
-        with open(path("Images", "Vertices", "test.json"), "r") as f:
-            self.crystal_data = json.load(f)
-        self.bcc = Crystal(
-            win.renderer,
-            self.crystal_data["vertices"],
-            self.crystal_data["point_colors"],
-            self.crystal_data["connections"],
-            [],
-            (300, 300), 25, 5, 0, 0, 0, 0.001, 0.001, 0.001
-        )
-        w, l, h = 0.12, 0.8, 0.03
-        tl = 0.3
-        gw, gl, gh = 0.24, 0.1, 0.1
-        gxo = l
-        uw, ul, uh = 0.05, 0.4, 0.05
-        uxo = gxo
-        self.sword = Crystal(
-            win.renderer, [
-                # base
-                [-w, -l, h],
-                [w, -l, h],
-                [w, l, h],
-                [-w, l, h],
-                [-w, -l, -h],
-                [w, -l, -h],
-                [w, l, -h],
-                [-w, l, -h],
-
-                # tip
-                [-w, -l - tl, h],
-                [w, -l, h],
-                [-w, -l, h],
-                [-w, -l - tl, -h],
-                [w, -l, -h],
-                [-w, -l, -h],
-
-                # guard
-                [-gw, gxo, gh],
-                [gw, gxo, gh],
-                [gw, gxo + gl, gh],
-                [-gw, gxo + gl, gh],
-                [-gw, gxo, -gh],
-                [gw, gxo, -gh],
-                [gw, gxo + gl, -gh],
-                [-gw, gxo + gl, -gh],
-
-                # grip
-                [-uw, uxo, uh],
-                [uw, uxo, uh],
-                [uw, uxo + ul, uh],
-                [-uw, uxo + ul, uh],
-                [-uw, uxo, -uh],
-                [uw, uxo, -uh],
-                [uw, uxo + ul, -uh],
-                [-uw, uxo + ul, -uh],
-            ], [
-                # point colors
-            ], [
-                # lines
-            ], [
-                # fills
-                [(220, 220, 220, 255), 0, 1, 2, 3],
-                [(210, 210, 210, 255), 4, 5, 1, 0],
-                [(200, 200, 200, 255), 4, 5, 6, 7],
-                [(190, 190, 190, 255), 7, 6, 2, 3],
-                [(180, 180, 180, 255), 4, 0, 3, 7],
-                [(170, 170, 170, 255), 1, 5, 6, 2],
-
-                [(200, 200, 200, 255), 0 + 8, 1 + 8, 2 + 8],
-                [(200, 200, 200, 255), 3 + 8, 4 + 8, 5 + 8],
-                [(200, 200, 200, 255), 3 + 8, 0 + 8, 2 + 8, 5 + 8],
-                [(200, 200, 200, 255), 0 + 8, 3 + 8, 4 + 8, 1 + 8],
-                [(200, 200, 200, 255), 5 + 8, 4 + 8, 1 + 8, 2 + 8],
-
-                [DARK_BROWN, 0 + 14, 1 + 14, 2 + 14, 3 + 14],
-                [DARK_BROWN, 4 + 14, 5 + 14, 1 + 14, 0 + 14],
-                [DARK_BROWN, 4 + 14, 5 + 14, 6 + 14, 7 + 14],
-                [DARK_BROWN, 7 + 14, 6 + 14, 2 + 14, 3 + 14],
-                [DARK_BROWN, 4 + 14, 0 + 14, 3 + 14, 7 + 14],
-                [DARK_BROWN, 1 + 14, 5 + 14, 6 + 14, 2 + 14],
-
-                [BROWN, 0 + 22, 1 + 22, 2 + 22, 3 + 22],
-                [BROWN, 4 + 22, 5 + 22, 1 + 22, 0 + 22],
-                [BROWN, 4 + 22, 5 + 22, 6 + 22, 7 + 22],
-                [BROWN, 7 + 22, 6 + 22, 2 + 22, 3 + 22],
-                [BROWN, 4 + 22, 0 + 22, 3 + 22, 7 + 22],
-                [BROWN, 1 + 22, 5 + 22, 6 + 22, 2 + 22],
-            ],
-            (300, 300), 140, 2, 0, 0, 0, 0, 0.001, 0
-        )
         # spritesheets
         self.portal_sprs = timgload3("Images", path("Spritesheets", "portal.png"), frames=7)
         # rendering
