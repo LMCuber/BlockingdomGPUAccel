@@ -42,6 +42,7 @@ class Block:
         self.name = name
         self.pos = pos
         self._rect = pygame.Rect((pos[0] * BS, pos[1] * BS), (BS, BS))
+        self.rect = self._rect.copy()
         self.ore_chance = ore_chance
         self.angle = 0
         self.sin = rand(0, 500)
@@ -66,6 +67,7 @@ class Block:
         self.last_flow = ticks()
         # tool-crafter stuff
         self.sword = None
+        self.crystals = {}
 
 
 class VoidBlock:
@@ -94,6 +96,9 @@ class Scrollable:
     @property
     def rrect(self):
         return pygame.Rect([r * 3 for r in self.rect])
+    # def update_scrollable(self):
+    #     self._rect.topleft = (floor(self.x), floor(self.y))
+    #     self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
 
 
 class Entity(SmartVector):  # removed Scrollable inheritance
@@ -114,7 +119,7 @@ class Entity(SmartVector):  # removed Scrollable inheritance
              "fluff-camel":  {"hp": 110},
              "camel":        {"hp":  80},
              "chicken":      {"hp":  40, "xvel": 0.3, "gravity": 0.1, "chance": 100, "drops": {"chicken": 1}},
-             "keno":         {"hp": 250},
+             "keno":         {"hp": 250       },
              "bok-bok":      {"hp":  60, "xvel": 2.2},
              "hallowskull":  {"hp": 250, "xvel": 0},
     }
@@ -680,7 +685,7 @@ def load_blocks():
     block_list = [
         ["air",         "bucket",           "apple",     "bamboo",        "cactus",        "watermelon",       "rock",       "chicken",     "leaf_f",                   ],
         ["chest",       "snow",             "coconut",   "coconut-piece", "command-block", "wood",             "bed",        "bed-right",   "wood_f_vrLRT"              ],
-        ["base-pipe",   "",                 "dynamite",  "fire",          "magic-brick",   "watermelon-piece", "grass1",     "bush",        "wood_f_vrRT"               ],
+        ["base-pipe",   "blast-furnace",    "dynamite",  "fire",          "magic-brick",   "watermelon-piece", "grass1",     "bush",        "wood_f_vrRT"               ],
         ["hay",         "base-curved-pipe", "glass",     "grave",         "sand",          "workbench",        "grass2",     "depr_leaf_f", "wood_f_vrLT"               ],
         ["snow-stone",  "soil",             "stone",     "vine",          "wooden-planks", "wooden-planks_a",  "stick",      "stone",       "wood_f_vrT",               ],
         ["anvil",       "furnace",          "soil_p",    "blue_barrel",   "red_barrel",    "gun-crafter",      "base-ore",   "bread",       "wood_f_vrLR", "wood_sv_vrN"],
@@ -858,22 +863,24 @@ def load_sizes():
 # B L O C K  D A T A ----------------------------------------------------------------------------------- #
 # ore info
 oinfo = {
-    # name        | crystal |       | mohs |    | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km|      | color in rgb|
+    # name        | crystal |          | mohs |   radius in pm | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km|      | color in rgb|
     # metals
-    "diamond":    {"crystal": "FCC", "mohs": 10, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
-    "molybdenum": {"crystal": "BCC", "mohs":  6, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1 ,                 "color": SILVER},
-    "aluminium":  {"crystal": "FCC", "mohs":  3, "toughenss":  33,   "price":         18,    "ppm":    82_300,     "depth": 0,                  "color": SILVER},
-    "titanium":   {"crystal": "HCP", "mohs":  6, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
-    "gold":       {"crystal": "FCC", "mohs":  3, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
-    "copper":     {"crystal": "FCC", "mohs":  3, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
-    "palladium":  {"crystal": "FCC", "mohs":  5, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
-    "vanadium":   {"crystal": "BCC", "mohs":  7, "toughness": 110,   "price":      2_000,    "ppm":    100,        "depth": 0,                  "color": SILVER},
-    "nickel":     {"crystal": "FCC", "mohs":  4, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
-    "uranium":    {"crystal": "FCC", "mohs":  6, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
-    "iron":       {"crystal": "BCC", "mohs":  4, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
-    "tungsten":   {"crystal": "BCC", "mohs":  9, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
-    "manganese":  {"crystal": "BCC", "mohs":  6, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
-    "chromium":   {"crystal": "BCC", "mohs":  8, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
+    "diamond":    {"atom":  "C", "crystal": "FCC", "radius":  70, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
+    "silver":     {"atom": "Ag", "crystal": "FCC", "radius": 144, "toughness":  73,   "price":        580,    "ppm": 0.08,          "depth": 427,                "color": SILVER},
+    "molybdenum": {"atom": "Mo", "crystal": "BCC", "radius": 139, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1,                  "color": SILVER},
+    "aluminium":  {"atom": "Al", "crystal": "FCC", "radius": 143, "toughenss":  33,   "price":         18,    "ppm":    82_300,     "depth": 0,                  "color": SILVER},
+    "titanium":   {"atom": "Ti", "crystal": "HCP", "radius": 147, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
+    "gold":       {"atom": "Au", "crystal": "FCC", "radius": 144, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
+    "copper":     {"atom": "Cu", "crystal": "FCC", "radius": 128, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
+    "palladium":  {"atom": "Pd", "crystal": "FCC", "radius": 137, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
+    "vanadium":   {"atom":  "V", "crystal": "BCC", "radius": 134, "toughness": 110,   "price":      2_000,    "ppm":    100,        "depth": 0,                  "color": SILVER},
+    "nickel":     {"atom": "Ni", "crystal": "FCC", "radius": 124, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
+    "uranium":    {"atom":  "U", "crystal": "FCC", "radius": 156, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
+    "cobalt":     {"atom": "Co", "crystal": "HCP", "radius": 125, "toughness": 135,   "price":        210,    "ppm":     27.5,      "depth": 150,                "color": pygame.Color("#3d59ab")},
+    "iron":       {"atom": "Fe", "crystal": "BCC", "radius": 126, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
+    "tungsten":   {"atom":  "W", "crystal": "BCC", "radius": 139, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
+    "manganese":  {"atom": "Mn", "crystal": "BCC", "radius": 127, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
+    "chromium":   {"atom": "Cr", "crystal": "BCC", "radius": 128, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
     # gemstones
     "coal":       {"mohs": 3, "price": 0.39,   "ppm": 000,    "depth": [0, 300],                      "color": BLACK},
     "orthoclase": {"mohs": 6, "price": 93,     "ppm": None,   "depth": None,                          "color": (255, 197, 148)},
@@ -1031,7 +1038,8 @@ unflipping_tools = {"grappling-hook"}
 non_ored_tools = {"bat", "monocular"}
 fin_mult = 1 / 0.015873
 for mult, ore in enumerate(oinfo, 50):
-    tinfo["pickaxe"]["blocks"][ore] = (11 - oinfo[ore]["mohs"]) * 0.003 * (1 - (1 / mult * fin_mult - 1) * 2.3)
+    # tinfo["pickaxe"]["blocks"][ore] = (11 - oinfo[ore]["mohs"]) * 0.003 * (1 - (1 / mult * fin_mult - 1) * 2.3)
+    pass
 tool_blocks = set(itertools.chain.from_iterable([list(tinfo[tool]["blocks"].keys()) for tool in tinfo]))
 
 # furnace
@@ -1049,6 +1057,7 @@ cables = {name for name in a.blocks.keys() if bpure(name) == "cable"}
 walk_through_blocks = {"air", "fire", "lava", "water", "spike-plant", "grass1", "grass2", "grass_f",
                        "workbench", "anvil", "furnace", "gun-crafter", "altar", "magic-table", "vine",
                        "open-door", "arrow", "grass3", "chest", "bed", "bed-right", "solar-panel",
+                       "blast-furnace",
                        *wheats, *cables}
 feature_blocks = {"solar-panel"}
 unbreakable_blocks = {"air", "fire", "water"}

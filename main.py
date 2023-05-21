@@ -18,7 +18,7 @@ from settings import *
 from prim_data import *
 from sounds import *
 from world_generation import *
-from all_rounders import *
+from shapes.tools import *
 
 
 class SmartSurface(pygame.Surface):
@@ -150,14 +150,14 @@ def mousebuttondown_event(button):
         g.mouse_init = g.mouse
         if g.stage == "play":
             if g.player.main == "tool":
-                if "_sword" in g.player.tool and visual.sword_swing <= 0:
+                if "_sword" in g.player.tool:
                     # if orb_names["purple"] in g.player.tool:
                     #     visual.sword_swing = float("inf")
                     #     visual.sword_log = [sl for sl in visual.sword_log for _ in range(2)]
                     # else:
                     #     visual.to_swing = 220
                     # visual.angle = -90
-                    pass
+                    visual.to_swing = 7
                 elif bpure(g.player.tool) == "bat":
                     visual.anticipate = True
                     visual.anim = 1
@@ -211,7 +211,6 @@ def mousebuttondown_event(button):
                             if rect.collidepoint(g.mouse):
                                 g.chest_pos = [p - 3 for p in rect.topleft]
                 elif not g.midblit_rect().collidepoint(g.mouse):
-                    print(g.midblit_rect(), g.mouse)
                     stop_midblit()
 
             if not g.skin_menu_rect.collidepoint(g.mouse):
@@ -512,7 +511,7 @@ def is_clickable(block):
 def set_midblit(block):
     def midblit_rect():
         rect = pygame.Rect(block._rect.x - g.scroll[0], block._rect.y - g.scroll[1], img.width, img.height)
-        if g.midblit_name == "tool-crafter":
+        if g.midblit == "tool-crafter":
             rect.x -= rect.width / 2 - BS / 2
             rect.y -= rect.height / 2 - BS / 2
         return rect
@@ -521,13 +520,10 @@ def set_midblit(block):
     nbg = block.name
     if nbg == "tool-crafter":
         img = tool_crafter_img
-        g.midblit_name = "tool-crafter"
         g.mb.sword_color = (0, 0, 0, 255)
-        g.mb.sword = get_sword(g.mb.sword_color)
-        g.mb.bcc = get_bcc()
+        g.mb.sword = get_axe(g.mb.sword_color)
     elif nbg == "furnace":
         img = furnace_img
-        g.midblit_name = "furnace"
     g.midblit_rect = midblit_rect
 
 
@@ -754,7 +750,7 @@ def init_world(type_):
     if type_ == "new":
         g.player = Player()
         if g.w.mode == "adventure":
-            g.player.inventory = ["workbench", "furnace", "coal", "solar-panel", "tool-crafter"]
+            g.player.inventory = ["tool-crafter", "molybdenum", "iron", "copper", "titanium"]
             g.player.inventory_amounts = [100, 100, 100, 100, 100]
             g.player.stats = {
                 "lives": {"amount": rand(10, 100), "color": RED, "pos": (32, 20), "last_regen": ticks(), "regen_time": def_regen_time, "icon": "lives"},
@@ -890,8 +886,8 @@ def generate_chunk(chunk_index, biome="forest"):
     entities, late_chunk_data = world_modifications(chunk_data, metadata, biome, chunk_pos, g.w.wgr)
     g.w.entities.extend(entities)
     g.w.late_chunk_data |= late_chunk_data
-
-    # lighting
+    #
+    # # lighting
     # for rel_y in range(CH):
     #     for rel_x in range(CW):
     #         og_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
@@ -1179,7 +1175,7 @@ class World:
 
     @property
     def player_model(self):
-        ret = pygame.Surface([s * g.skin_scale_mult for s in g.player_size])
+        ret = pygame.Surface([s * g.skin_scale_mult for s in g.player.size])
         ret.fill(self.player_model_color)
         return ret
 
@@ -1529,7 +1525,7 @@ class PlayWidgets:
     @staticmethod
     def show_fps_command():
         if g.stage == "play":
-            write(win.renderer, "topright", "F" + str(int(g.clock.get_fps())), orbit_fonts[20], g.w.text_color, win.width - 10, 8)
+            write(win.renderer, "topright", f"f{int(g.clock.get_fps())}", orbit_fonts[20], g.w.text_color, win.width - 10, 8, tex=True)
             # write(win.renderer, "topright", int(g.clock.get_fps()), orbit_fonts[20], BLACK, win.width - 10, 40)
 
     @staticmethod
@@ -1592,11 +1588,11 @@ class PlayWidgets:
         # finalizing skin
         longest_sprs_len = max([len(g.skin_data(bt)["sprs"]) for bt in g.skins])
         g.player.images = [SmartSurface((win.size), pygame.SRCALPHA) for _ in range(longest_sprs_len if longest_sprs_len > 0 else 1)]
-        _bg = SmartSurface(g.player_size); _bg.fill(g.w.player_model_color)
+        _bg = SmartSurface(g.player.size); _bg.fill(g.w.player_model_color)
         for image in g.player.images:
             image.blit(_bg, [s / 2 for s in image.get_size()])
         if not g.player.images:
-            g.player.images = [SmartSurface(g.player_size)]; g.player.images[0].fill(GRAY)
+            g.player.images = [SmartSurface(g.player.size)]; g.player.images[0].fill(GRAY)
         for anim in range(longest_sprs_len):
             for bt in g.skins:
                 if g.skin_data(bt).get("name", True) is not None:
@@ -1607,8 +1603,8 @@ class PlayWidgets:
                     finally:
                         _sp = g.skin_data(bt)["offset"]
                         skin_pos = [s / 2 for s in win.size]
-                        skin_pos[0] -= g.player_size[0] / 2
-                        skin_pos[1] -= g.player_size[1] / 2
+                        skin_pos[0] -= g.player.size[0] / 2
+                        skin_pos[1] -= g.player.size[1] / 2
                         skin_pos[0] += _sp[0] * g.fppp + 1
                         skin_pos[1] += _sp[1] * g.fppp + 1
                         g.player.images[anim].blit(skin_img, skin_pos)
@@ -1790,9 +1786,11 @@ pw = PlayWidgets()
 # G R A P H I C A L  C L A S S E S S ------------------------------------------------------------------ #
 class Player(Scrollable, SmartVector):
     def __init__(self):
-        self.images = [pygame.Surface(g.player_size) for _ in range(4)]
+        self.size = (27, 27)
+        self.images = [pygame.Surface(self.size) for _ in range(4)]
         for image in self.images:
             image.fill(GRAY)
+        # self._rect = self.images[0].get_rect()
         # image initialization
         self.direc = "left"
         self.anim = 0
@@ -1804,7 +1802,7 @@ class Player(Scrollable, SmartVector):
         # rest
         self.x = 0
         self.y = 0
-        self.size = self.width, self.height = g.player_size
+        self.width, self.height = self.size
         # self._rect = self.image.get_rect(center=win.center)
         self.fre_vel = 3
         self.adv_xvel = 2
@@ -2148,9 +2146,9 @@ class Player(Scrollable, SmartVector):
         pil_img = PIL.Image.new("RGBA", [s * 4 for s in pie_size])
         pil_draw = PIL.ImageDraw.Draw(pil_img)
         pil_draw.pieslice((0, 0, *[ps * 4 - 1 for ps in pie_size]), -90, degrees, fill=g.w.player_model_color[:3])
-        pil_img = pil_img.resize(pie_size, PIL.Image.ANTIALIAS)
+        pil_img = pil_img.resize(pie_size, PIL.Image.Resampling.LANCZOS)
         pg_img = pil_to_pg(pil_img)
-        self.food_pie["image"] = pg_img
+        self.food_pie["image"] = Texture.from_surface(win.renderer, pg_img)
         self.food_pie["rect"] = self.food_pie["image"].get_rect()
         if self.food_pie["counter"] >= 270:
             for attr in finfo[food]["amounts"]:
@@ -2206,9 +2204,9 @@ class Player(Scrollable, SmartVector):
 
     def get_cols(self, rects_only=True):
         if rects_only:
-            return [data[1] for data in self.block_data if self._rect.colliderect(data[1]) and is_hard(data[0].name)]
+            return [data[1] for data in self.block_data if pygame.Rect(self.x, self.y, *self.size).colliderect(data[1]) and is_hard(data[0].name)]
         else:
-            return [data for data in self.block_data if self._rect.colliderect(data[1])]
+            return [data for data in self.block_data if pygame.Rect(self.x, self.y, *self.size).colliderect(data[1])]
 
     def scroll(self):
         g.fake_scroll[0] += (self._rect.x - g.fake_scroll[0] - win.width // 2 + self.width // 2 + g.extra_scroll[0]) / pw.lag.value
@@ -2366,7 +2364,6 @@ class Visual:
         self.moused = True
         # sword
         self.angle = 0
-        self.sword_swing = 0
         self.to_swing = 0
         # domineering sword
         self.ns_last = perf_counter()
@@ -2657,8 +2654,11 @@ class Visual:
             # sword
             if g.player.tool_type == "sword":
                 if self.to_swing > 0:
-                    self.to_swing -= 5
-                    self.image.angle = self.to_swing + 45
+                    self.to_swing -= 1
+                    if self.to_swing > 0:
+                        anim_img = test_sprs[int(7 - self.to_swing)]
+                        anim_rect = anim_img.get_rect(bottomleft=self.rect.center)
+                        win.renderer.blit(anim_img, anim_rect)
 
             win.renderer.draw_color = pygame.Color("green")
             win.renderer.draw_rect(self.rect)
@@ -3849,7 +3849,8 @@ async def main(debug, cprof=False):
                                 elif event.key == pygame.K_q:
                                     # m = 50
                                     # g.player.x += sign(g.player.xvel) * m
-                                    pprint(g.mb.sword.fill_vertices)
+                                    # pprint(g.mb.sword.fill_vertices)
+                                    pass
 
                                 if g.midblit == "workbench":
                                     if event.key == K_SPACE:
@@ -4035,6 +4036,13 @@ async def main(debug, cprof=False):
                                                     g.cur_chest_item[1] += 1
                                                     g.player.use_up_inv()
 
+                                elif g.midblit == "tool-crafter":
+                                    if event.key == K_SPACE:
+                                        g.mb.sword.rotate = not g.mb.sword.rotate
+                                        if g.player.block in oinfo:
+                                            ore = oinfo[g.player.block]
+                                            g.mb.crystals[g.player.block] = get_crystal(ore["crystal"], ore["color"])
+
                                 elif event.key in (K_SPACE, K_TAB):
                                     toggle_main()
 
@@ -4178,6 +4186,12 @@ async def main(debug, cprof=False):
                     # processing chunks
                     updated_chunks = []
                     num_blocks = 0
+                    # late chunk data
+                    for chunk in g.w.late_chunk_data:
+                        if chunk in g.w.data:
+                            for pos, name in g.w.late_chunk_data[chunk].copy().items():
+                                g.w.modify(name, chunk, pos)
+                                del g.w.late_chunk_data[chunk][pos]
                     for y in range(V_CHUNKS):
                         for x in range(H_CHUNKS):
                             # init chunk data like pos and other metadata
@@ -4192,9 +4206,11 @@ async def main(debug, cprof=False):
                             _cpos = g.w.metadata[target_chunk]["pos"]
                             chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
                             terrain_tex = g.w.terrains[target_chunk]
+                            lighting_tex = g.w.lightings[target_chunk]
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
-                            # win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
+                            win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
+                            win.renderer.blit(g.w.lightings[target_chunk], chunk_rect)
                             # infamous
                             #continue
                             for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
@@ -4209,10 +4225,11 @@ async def main(debug, cprof=False):
                                 (bx, by) = abs_pos
 
                                 _rect = block._rect
-                                rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
-                                # scroll_pos = (bx * BS - g.scroll[0], by * BS - g.scroll[1])
-                                img = g.w.blocks[nbg]
-                                win.renderer.blit(img, rect)
+                                block.rect.topleft = block._rect.topleft
+                                block.rect.x -= g.scroll[0]
+                                block.rect.y -= g.scroll[1]
+                                # img = g.w.blocks[nbg]
+                                # win.renderer.blit(img, block.rect)
 
                                 # growing wheat
                                 if nbg in wheats:
@@ -4269,7 +4286,7 @@ async def main(debug, cprof=False):
                                             g.w.modify("air", target_chunk, abs_pos)
 
                             if target_chunk not in g.w.chunk_colors:
-                                chunk_color = [rand(0, 255) for _ in range(3)]
+                                chunk_color = [rand(0, 255) for _ in range(3)] + [255]
                                 g.w.chunk_colors[target_chunk] = chunk_color
                             else:
                                 chunk_color = g.w.chunk_colors[target_chunk]
@@ -4280,7 +4297,6 @@ async def main(debug, cprof=False):
                             if pw.show_chunk_borders:
                                 chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
                                 chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
-
                     # mouse shit with chunks
                     if not g.menu and g.midblit is None:
                         if g.player.main == "block":
@@ -4449,20 +4465,21 @@ async def main(debug, cprof=False):
             elif g.stage == "home":
                 pass
 
-            anim_index += 0.04
-            if anim_index >= 1:
+            anim_index += 0.4
+            if anim_index >= 7:
                 anim_index = 0
             # win.renderer.scale = (3, 3)
             # win.renderer.blit(Entity.imgs["hallowskull"][int(anim_index)], (0, 30))
             # win.renderer.blit(Entity.imgs["keno"][int(anim_index)], (0, 40))
             # win.renderer.blit(g.w.blocks["soil_f"], (100, 100))
+            # win.renderer.blit(test_sprs[int(anim_index)], pygame.Rect(200, 200, test_sprs[int(anim_index)].width, test_sprs[int(anim_index)].height))
 
             # post-scale play
             if g.stage == "play":
                 # saved rendering in order to fix overlapping
                 for data in chunk_rects:
                     cr, color = data
-                    (win.renderer, color, [x * S for x in cr], 3)
+                    draw_rect(win.renderer, cr, color)
                 for data in chunk_texts:
                     (t1, t2), pos = data
                     write(win.renderer, "center", t1, orbit_fonts[12], WHITE, *pos, tex=True)
@@ -4535,13 +4552,13 @@ async def main(debug, cprof=False):
                 y = inventory_y
                 yo = 69
                 if g.player.main == "block" and g.player.block:
-                    x = inventory_x * S + inventory_width * S / 2
+                    x = inventory_x
                     yo += 15
                     if g.player.block in gun_blocks:
                         block = gpure(g.player.block).upper()
                     else:
                         block = bshow(g.player.block).upper()
-                    write(win.renderer, "center", t | block, orbit_fonts[15], g.w.text_color, x, y + yo, tex=True)
+                    write(win.renderer, "topleft", t | block, orbit_fonts[15], g.w.text_color, x, y + yo, tex=True)
 
                 elif g.player.main == "tool" and g.player.tool:
                     # write tool name
@@ -4569,7 +4586,7 @@ async def main(debug, cprof=False):
                             win.renderer.blit(damage_output_surf, damage_output_rect)
 
                 # selected block
-                x = inventory_x * S + inventory_width * S / 10 + 1
+                x = inventory_x + inventory_width * S / 10 + 1
                 y = inventory_y + 32
                 for index, block in enumerate(g.player.inventory):
                     if block is not None:
@@ -4821,20 +4838,29 @@ async def main(debug, cprof=False):
 
                 # tool crafter
                 elif g.midblit == "tool-crafter":
+                    # main
                     mbr = g.midblit_rect()
+                    centerx = mbr.x + tool_crafter_sword_width + tool_crafter_metals_width / 2
                     win.renderer.blit(tool_crafter_img, mbr)
-                    # draw the connections
-                    draw_line(win.renderer, (g.mb.sword.ox, g.mb.sword.oy), (g.mb.bcc.ox, g.mb.bcc.oy), BLACK)
                     # render the sword
                     g.mb.sword.ox, g.mb.sword.oy = mbr.topleft
                     g.mb.sword.ox += 60
                     g.mb.sword.oy += 170
-                    g.mb.sword.update(not mouses[0])
-                    # render the lattice structures
-                    g.mb.bcc.ox, g.mb.bcc.oy = mbr.topleft
-                    g.mb.bcc.ox += 180
-                    g.mb.bcc.oy += 55
-                    g.mb.bcc.update()
+                    g.mb.sword.update()
+                    # draw the connections
+                    for xo, (name, crystal) in enumerate(g.mb.crystals.items()):
+                        # draw_line(win.renderer, (g.mb.sword.ox, g.mb.sword.oy), (crystal.ox, crystal.oy), BLACK)
+                        # render the lattice structures
+                        crystal.ox, crystal.oy = mbr.topleft
+                        crystal.ox = centerx + (xo - 1) * 130
+                        crystal.oy += 130
+                        x, y = crystal.ox, crystal.oy
+                        write(win.renderer, "midtop", name, orbit_fonts[15], WHITE, x, y + 50, tex=True)
+                        crystal.update()
+                    if g.mb.crystals:
+                        write(win.renderer, "midtop", "".join(oinfo[name]["atom"] for name in sorted(g.mb.crystals)), orbit_fonts[15], WHITE, centerx, y - 110, tex=True)
+                        s_conf = round(log(len(g.mb.crystals)), 2)
+                        write(win.renderer, "midtop", f"S = {s_conf}R", stixgen_fonts[15], WHITE, centerx, y - 80 , tex=True)
 
                 # show background selector
                 if g.mod == 1:
@@ -4958,6 +4984,7 @@ async def main(debug, cprof=False):
         ExitHandler.save("quit")
 
 if __name__ == "__main__":
-    main(debug=g.debug)
+    # main(debug=g.debug)
     asyncio.run(main(debug=g.debug))
+    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug))", sort="cumtime")
     # import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")

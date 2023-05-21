@@ -54,12 +54,12 @@ class CRenderer(Renderer):  # DEPRECATED DO NOT USE PLZ
 
 
 class WindowHandler:
-    def __init__(self, size, debug=False, *args, **kwargs):
+    def __init__(self, size, *args, debug=False, vsync=0, **kwargs):
         self.window = Window(title="Blockingdom", size=size)
         # self.icon = imgload("Images", "Visuals", f"{Platform.os}_icon.png")
         # self.window.set_icon(self.icon)
         self.window.resizable = True
-        self.renderer = Renderer(self.window, vsync=0)
+        self.renderer = Renderer(self.window, vsync=vsync)
         self.size = size
         self.width, self.height = self.size
         self.center = [s // 2 for s in size]
@@ -94,10 +94,11 @@ MVL = VL * BS / R
 wb_icon_size = 132, 90
 # win = WindowHandler((1200, 800))
 # win = WindowHandler((pygame.display.Info().current_w, pygame.display.Info().current_h))
-# win = WindowHandler((1200, 800))
-win = WindowHandler((810, 600))
+win = WindowHandler((1200, 800))
+# win = WindowHandler((810, 600))
 H_CHUNKS = ceil(win.width / (CW * BS)) + 2
 V_CHUNKS = ceil(win.height / (CH * BS)) + 2
+# V_CHUNKS, H_CHUNKS = 2, 2
 
 # V I S U A L  &  B G  I M A G E S --------------------------------------------------------------------- #
 def imgload(*path, frames=1, **kwargs):
@@ -221,6 +222,7 @@ cartridge_img.fill((255, 184, 28))
 sky_bg = pygame.transform.rotozoom(pygame.transform.scale(lerp_img(SKY_BLUE, WHITE, win.height, win.height), win.size), 90, 1)
 fog_light = imgload("Images", "Visuals", "fog.png")
 fog_w, fog_h = fog_light.get_size()
+test_sprs = timgload3("Images", "Spritesheets", "test.png", frames=7)
 #pygame.display.set_icon(timgload3("Images", "Visuals", f"{Platform.os.lower()}_icon.png"))
 
 # surfaces
@@ -233,14 +235,10 @@ anvil_img = timgload3("Images", "Surfaces", "anvil.png")
 gun_crafter_img = timgload3("Images", "Surfaces", "gun_crafter.png")
 gun_crafter_base = pygame.Surface((gun_crafter_img.width, gun_crafter_img.height))
 magic_table_img = timgload3("Images", "Surfaces", "magic-table.png")
-tool_crafter_img = timgload3("Images", "Midblits", "tool-crafter.png")
-w, h = 550, 350
-tool_crafter_img = pygame.Surface((w, h), pygame.SRCALPHA)
-pygame.draw.rect(tool_crafter_img, (0, 0, 0, 120), (0, 0, w, h))
-pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, w, h), 3)
-pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, 124, h), 3)
-tool_crafter_img = Texture.from_surface(win.renderer, tool_crafter_img)
+tool_crafter_img = timgload("Images", "Surfaces", "tool-crafter.png")
 tool_crafter_rect = tool_crafter_img.get_rect()
+tool_crafter_sword_width = 124
+tool_crafter_metals_width = tool_crafter_rect.width - tool_crafter_sword_width
 # crafting and midblit constants
 workbench_rect = workbench_img.get_rect(center=win.center)
 furnace_rect = furnace_img.get_rect(center=workbench_rect.center)
@@ -347,7 +345,6 @@ class Game:
         self.debug = True
         # constants
         self.fppp = 3
-        self.player_size = [9 * R, 9 * R]
         self.skin_scale_mult = 5
         self.skin_fppp = 15
         self.player_model_pos = (338, 233)
