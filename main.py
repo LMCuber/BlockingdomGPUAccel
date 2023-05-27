@@ -163,6 +163,9 @@ def mousebuttondown_event(button):
                     visual.anim = 1
                 visual.ds_last = perf_counter()
 
+            if g.midblit == "tool-crafter":
+                pass
+
         for widget in iter_widgets():
             if widget.visible_when is None:
                 if widget.disable_type != "static":
@@ -515,13 +518,15 @@ def set_midblit(block):
             rect.x -= rect.width / 2 - BS / 2
             rect.y -= rect.height / 2 - BS / 2
         return rect
+
     g.mb = block
     g.midblit = non_bg(block.name)
     nbg = block.name
     if nbg == "tool-crafter":
         img = tool_crafter_img
         g.mb.sword_color = (0, 0, 0, 255)
-        g.mb.sword = get_axe(g.mb.sword_color)
+        g.mb.sword = get_sword(g.mb.sword_color)
+        pw.tool_crafter_selector.enable()
     elif nbg == "furnace":
         img = furnace_img
     g.midblit_rect = midblit_rect
@@ -1172,6 +1177,8 @@ class World:
                 pygame.image.save(v, path(".game_data", "texture_packs", ".default", d, k + ".png"))
         """
         self.last_epoch = epoch()
+        # other variables
+        pass
 
     @property
     def player_model(self):
@@ -1431,7 +1438,7 @@ class PlayWidgets:
         _menu_widget_kwargs = {"anchor": "center", "width": 130, "template": "menu widget", "font": orbit_fonts[15]}
         _menu_button_kwargs = _menu_widget_kwargs | {"height": 32}
         _menu_togglebutton_kwargs = _menu_button_kwargs
-        _menu_checkbred_kwargs = _menu_widget_kwargs | {"height": 32}
+        _menu_checkbutton_kwargs = _menu_widget_kwargs | {"height": 32}
         _menu_slider_kwargs = _menu_widget_kwargs | {"width": 200, "height": 60}
         self.menu_widgets = {
             "buttons": SmartList([
@@ -1446,15 +1453,15 @@ class PlayWidgets:
                 ToggleButton(win.renderer, ("Instant", "Generative"), tooltip="Toggles the visual generation of chunks", **_menu_togglebutton_kwargs),
             ]),
             "checkboxes": SmartList([
-                Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "Time",          self.show_time_command,        tooltip="Shows the in-world time",                                        **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "FPS",           self.show_fps_command,         tooltip="Shows the amount of frames per second",                          **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "VSync",         self.show_vsync_command,       tooltip="Enables VSync; may or may not work", check_command=self.check_vsync_command, uncheck_command=self.uncheck_vsync_command, **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "Coordinates",   self.show_coordinates_command, tooltip="Shows the player's coordinates as (x, y)",                       **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",             **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "Fog",           self.fog_command,              tooltip="Fog effect for no reason at all",                                **_menu_checkbred_kwargs),
-                Checkbox(win.renderer, "Clouds",        lambda_none,                   tooltip="Clouds lel what did you expect",                                 **_menu_checkbred_kwargs),
+                Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Time",          self.show_time_command,        tooltip="Shows the in-world time",                                        **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "FPS",           self.show_fps_command,         tooltip="Shows the amount of frames per second",                          **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "VSync",         self.show_vsync_command,       tooltip="Enables VSync; may or may not work", check_command=self.check_vsync_command, uncheck_command=self.uncheck_vsync_command, **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Coordinates",   self.show_coordinates_command, tooltip="Shows the player's coordinates as (x, y)",                       **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",                 **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Fog",           self.fog_command,              tooltip="Fog effect for no reason at all",                                **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Clouds",        lambda_none,                   tooltip="Clouds lel what did you expect",                                 **_menu_checkbutton_kwargs),
             ]),
             "sliders": SmartList([
                 Slider(win.renderer,   "FPS Cap",       (30, 60, 90, 120, 240, 500, 2000), g.def_fps_cap, tooltip="The framerate cap",                                                 **_menu_slider_kwargs),
@@ -1516,6 +1523,8 @@ class PlayWidgets:
             Button(win.renderer, "Color", self.color_skin_button, pos=(DPX, DPY + 90), **_skin_button_kwargs),
             Button(win.renderer, "Done", self.new_player_skin, pos=(DPX, DPY + 120), click_effect=True, **_skin_button_kwargs)
         ]
+        # other widgets
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     # menu widget commands
     @staticmethod
@@ -4845,8 +4854,10 @@ async def main(debug, cprof=False):
                     # render the sword
                     g.mb.sword.ox, g.mb.sword.oy = mbr.topleft
                     g.mb.sword.ox += 60
-                    g.mb.sword.oy += 170
+                    g.mb.sword.oy += 200
                     g.mb.sword.update()
+                    # tool crafter button
+                    pw.tool_crafter_selector.rect.topleft = mbr.topleft
                     # draw the connections
                     for xo, (name, crystal) in enumerate(g.mb.crystals.items()):
                         # draw_line(win.renderer, (g.mb.sword.ox, g.mb.sword.oy), (crystal.ox, crystal.oy), BLACK)

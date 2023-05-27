@@ -235,10 +235,22 @@ anvil_img = timgload3("Images", "Surfaces", "anvil.png")
 gun_crafter_img = timgload3("Images", "Surfaces", "gun_crafter.png")
 gun_crafter_base = pygame.Surface((gun_crafter_img.width, gun_crafter_img.height))
 magic_table_img = timgload3("Images", "Surfaces", "magic-table.png")
+
+# tool crafter
 tool_crafter_img = timgload("Images", "Surfaces", "tool-crafter.png")
 tool_crafter_rect = tool_crafter_img.get_rect()
 tool_crafter_sword_width = 124
 tool_crafter_metals_width = tool_crafter_rect.width - tool_crafter_sword_width
+tool_crafter_img = timgload3("Images", "Midblits", "tool-crafter.png")
+w, h = 550, 380
+tool_crafter_img = pygame.Surface((w, h), pygame.SRCALPHA)
+pygame.draw.rect(tool_crafter_img, (34, 42, 65, 225), (0, 0, w, h))
+pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, w, h), 3)
+pygame.draw.rect(tool_crafter_img, (34, 42, 65, 225), (0, 0, 124, h))
+pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, 124, h), 3)
+tool_crafter_img = Texture.from_surface(win.renderer, tool_crafter_img)
+tool_crafter_rect = tool_crafter_img.get_rect()
+
 # crafting and midblit constants
 workbench_rect = workbench_img.get_rect(center=win.center)
 furnace_rect = furnace_img.get_rect(center=workbench_rect.center)
@@ -371,24 +383,8 @@ class Game:
         self.menu_surf = pygame.Surface(win.size); self.menu_surf.set_alpha(100)
         self.skin_menu_surf = pygame.Surface((win.width / 11 * 9, win.height / 11 * 9)); self.skin_menu_surf.fill(LIGHT_GRAY)
         self.skin_menu_rect = self.skin_menu_surf.get_rect(center=[s / 2 for s in win.size])
-        # crafting
+        # midblits
         self.midblit = None
-        self.chest = None
-        self.chest_pos = chest_rect.topleft
-        self.craftings = {}
-        self.craftable = None
-        self.craft_by_what = None  # list -> int (later)
-        self.workbench_log = []
-        # furnace
-        self.burnings = {}
-        self.furnace_log = []
-        self.fuels = SmartOrderedDict()
-        self.fuel_index = 0
-        self.fuel_health = None
-        # anvil
-        self.smithings = {}
-        self.anvil_log = []
-        self.smither = None
         # gun crafter
         self.tup_gun_parts = os.listdir(path("Images", "Guns"))
         self.extra_gun_parts = ("scope", "silencer")
@@ -397,11 +393,9 @@ class Game:
         self.gun_attrs = {}
         self.gun_img = None
         self.gun_log = []
-        # magic table
-        self.magic_tool = None
-        self.magic_orbs = {}
-        self.magic_output = None
-        self.magic_log = []
+        # tool crafter
+        self.tool_crafter_selector = "sword"
+        self.tool_crafter_selector_rect = None
         # skin menu
         self.skin_anim_speed = 0.06
         self.skins = {  # "pos" is topleft (of the player model; not the screen) just like normal pixel systems
