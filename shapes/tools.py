@@ -1,7 +1,6 @@
 from settings import *
 
 
-
 # constants
 grays = [(x, x, x, 255) for x in range(1, 256)]
 browns = [(int(x * 0.6), int(x * 0.4), int(x * 0.2), 255) for x in range(1, 256)]

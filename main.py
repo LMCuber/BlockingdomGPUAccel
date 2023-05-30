@@ -19,6 +19,7 @@ from prim_data import *
 from sounds import *
 from world_generation import *
 from shapes.tools import *
+from shapes import tools
 
 
 class SmartSurface(pygame.Surface):
@@ -147,7 +148,6 @@ def save_structure(name):
 def mousebuttondown_event(button):
     if button == 1:
         g.clicked_when = g.stage
-        g.mouse_init = g.mouse
         if g.stage == "play":
             if g.player.main == "tool":
                 if "_sword" in g.player.tool:
@@ -206,6 +206,7 @@ def mousebuttondown_event(button):
 
         if g.clicked_when == "play":
             if g.midblit is not None:
+                mbr = g.midblit_rect()
                 if g.midblit == "chest":
                     if not chest_rect.collidepoint(g.mouse):
                         stop_midblit()
@@ -213,8 +214,9 @@ def mousebuttondown_event(button):
                         for rect in chest_rects:
                             if rect.collidepoint(g.mouse):
                                 g.chest_pos = [p - 3 for p in rect.topleft]
-                elif not g.midblit_rect().collidepoint(g.mouse):
-                    stop_midblit()
+                elif not mbr.collidepoint(g.mouse):
+                    if not (g.midblit == "tool-crafter" and -pw.tool_crafter_selector.combo_width <= g.mouse[0] - mbr.x <= 0 and 0 <= g.mouse[0] - mbr.y <= pw.tool_crafter_selector.combo_height):
+                        stop_midblit()
 
             if not g.skin_menu_rect.collidepoint(g.mouse):
                 g.skin_menu = False
@@ -262,8 +264,9 @@ def mousebuttondown_event(button):
 def mousebuttonup_event(button):
     if button == 1:
         g.first_affection = None
-        g.mouse_quit = g.mouse
-        visual.swing_sword(diff(g.mouse_init, g.mouse_quit))
+        # mouse log
+        visual.process_swipe(g.mouse_rel_log)
+        # rest
         g.clicked_when = None
         for block in all_blocks:
             block.broken = 0
@@ -1524,7 +1527,7 @@ class PlayWidgets:
             Button(win.renderer, "Done", self.new_player_skin, pos=(DPX, DPY + 120), click_effect=True, **_skin_button_kwargs)
         ]
         # other widgets
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, self.tool_crafter_selector_command, text_color=WHITE, bg_color=AQUAMARINE, extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     # menu widget commands
     @staticmethod
@@ -1786,6 +1789,13 @@ class PlayWidgets:
     @staticmethod
     def set_home_stage_settings_command():
         g.home_stage = "settings"
+
+    @staticmethod
+    def tool_crafter_selector_command(tool):
+        try:
+            g.mb.sword = getattr(tools, f"get_{tool}")(g.mb.sword_color)
+        except AttributeError:
+            MessageboxError(win.renderer, "Selected tool currently has no model view", **g.def_widget_kwargs)
 
 
 g.w = World()
@@ -2374,6 +2384,7 @@ class Visual:
         # sword
         self.angle = 0
         self.to_swing = 0
+        self.cursor_trail = CursorTrail(win.renderer, 50)
         # domineering sword
         self.ns_last = perf_counter()
         self.init_ns()
@@ -2605,6 +2616,7 @@ class Visual:
             self.draw()
 
     def update(self):  # visual update
+        # self.cursor_trail.update()
         self.render = True
         if g.player.main == "tool":
             self.image = g.w.tools[g.player.tool]
@@ -2687,12 +2699,24 @@ class Visual:
         self.ns_xo = 0
         self.ns_yo = 0
 
-    def swing_sword(self, amount):
-        self.sword_swing -= amount
-        self.angle += amount
+    def process_swipe(self, points):
+        if points:
+            g.mouse_angles = [-degrees(atan2(delta[1], delta[0])) for delta in points]
+            triple = [g.mouse_angles[0], g.mouse_angles[-1]]
+            for i, cur in enumerate(g.mouse_angles):
+                if cur != 0:
+                    if i < len(g.mouse_angles) - 1:
+                        nex = g.mouse_angles[i + 1]
+                        if abs(nex - cur) >= 15:
+                            triple.insert(1, cur)
+            triple = [triple[0], triple[1:-1][len(triple[1:-1]) // 2], triple[-1]]
+            for t in triple:
+                late_rects.append([pygame.Rect(*g.mouse_log[g.mouse_angles.index(t)], 10, 10), GREEN])
+            g.mouse_rel_log.clear()
+            g.mouse_log.clear()
 
-    def swing_sword(self, delta):
-        dx, dy = delta
+    def swing_sword(self, amount):
+        pass
 
     def start_reloading(self):
         self.stop_reloading()
@@ -3782,6 +3806,7 @@ async def main(debug, cprof=False):
         shown_fps = bottom_1p_avg = "0"
         fps_resetted = False
         started = ticks()
+        # pygame.mouse.set_visible(False)
         while running:
             # init dynamic constants
             mouse = pygame.mouse.get_pos()
@@ -3824,6 +3849,11 @@ async def main(debug, cprof=False):
             if not pygame.mixer.music.get_busy():
                 pw.next_piece_command()
 
+            # mouse log
+            if g.mouses[0]:
+                # g.mouse_rel_log.append(g.mouse)
+                pass
+
             # event loop
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -3858,7 +3888,6 @@ async def main(debug, cprof=False):
                                 elif event.key == pygame.K_q:
                                     # m = 50
                                     # g.player.x += sign(g.player.xvel) * m
-                                    # pprint(g.mb.sword.fill_vertices)
                                     pass
 
                                 if g.midblit == "workbench":
@@ -4098,6 +4127,7 @@ async def main(debug, cprof=False):
 
                     elif event.type == pygame.MOUSEBUTTONDOWN:
                         mousebuttondown_event(event.button)
+                        late_rects.clear()
 
                     elif event.type == pygame.MOUSEBUTTONUP:
                         mousebuttonup_event(event.button)
@@ -4128,6 +4158,10 @@ async def main(debug, cprof=False):
                         win.renderer.scale = (wr, wh)
 
                     elif event.type == pygame.MOUSEMOTION:
+                        if g.mouses[0]:
+                            g.mouse_rel_log.append(event.rel)
+                            g.mouse_log.append(g.mouse)
+                            late_rects.append([pygame.Rect(*g.mouse, 3, 3), RED])
                         if g.midblit == "tool-crafter":
                             if mouses[0]:
                                 dx, dy = event.rel
@@ -4190,7 +4224,6 @@ async def main(debug, cprof=False):
                 # background sprites
                 # for bsprite in all_background_sprites:
                 #     bsprite.update()
-
                 if g.terrain_mode == "chunk":
                     # processing chunks
                     updated_chunks = []
@@ -4974,6 +5007,10 @@ async def main(debug, cprof=False):
                 g.render_offset = (0, 0)
 
             draw_and_update_widgets()
+
+            # late stuff for debugging
+            for rect, color in late_rects:
+                fill_rect(win.renderer, rect, color)
 
             # updating the window
             for string in strings:

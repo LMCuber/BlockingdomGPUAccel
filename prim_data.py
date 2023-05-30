@@ -1021,6 +1021,9 @@ tinfo = {
 
     "bat":
         {"blocks": {}},
+
+    "kunai":
+        {"blocks": {}},
 }
 tool_names = list(tinfo.keys())
 tinfo["sickle"]["blocks"] |= {wheat: 0.12 for wheat in wheats}

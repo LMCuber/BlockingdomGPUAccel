@@ -378,6 +378,8 @@ class Game:
         self.show_info_index = 0
         self.mouse_init = (0, 0)
         self.mouse_quit = (0, 0)
+        self.mouse_rel_log = []
+        self.mouse_log = []
         # surfaces
         self.night_sky = pygame.Surface(win.size)
         self.menu_surf = pygame.Surface(win.size); self.menu_surf.set_alpha(100)
