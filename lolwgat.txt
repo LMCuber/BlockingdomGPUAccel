@@ -1,8 +1,0 @@
-[Command: python3 -u /Users/leonik/OneDrive/0_Python_Projects/Blockingdom/main_scroll.py]
-pygame 2.1.2 (SDL 2.0.18, Python 3.9.9)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-2022-12-25 22:27:43.593 Python[42317:4149638] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/39/gckkpbyd4ml975ph12gblk9m0000gn/T/org.python.python.savedState
-Loaded in: 5.41s
-Average loading time: 4.12s
-
-[Finished in 14.411s]
