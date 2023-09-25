@@ -684,10 +684,11 @@ def load_tools():
 
 def load_guns():
     for gun_part in tup_gun_parts:
-        for gun_filename in os.listdir(path("assets", "Images", "Guns", gun_part)):
+        for gun_filename in os.listdir(path("assets", "Images", "Guns", gun_part.title())):
             gun_name = splitext(gun_filename)[0]
             a.blocks[f"{gun_name}_{gun_part}"] = imgload3("assets", "Images", "Guns", gun_part, gun_filename)
             gun_blocks.append(f"{gun_name}_{gun_part}")
+    raise
     a.og_blocks = {k: v.copy() for k, v in a.blocks.items()}
 
 
