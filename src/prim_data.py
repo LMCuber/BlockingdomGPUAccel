@@ -689,7 +689,6 @@ def load_guns():
             gun_name = splitext(gun_filename)[0]
             a.blocks[f"{gun_name}_{gun_part}"] = imgload3("assets", "Images", "Guns", gun_part, gun_filename)
             gun_blocks.append(f"{gun_name}_{gun_part}")
-    raise
     a.og_blocks = {k: v.copy() for k, v in a.blocks.items()}
 
 
