@@ -660,6 +660,7 @@ def new_world(worldcode=None):
                         open(path(".game_data", "tempfiles", wn + ".txt"), "w").close()
                         os.remove(path(".game_data", "tempfiles", wn + ".txt"))
                     except InvalidFilenameError:
+                        raise
                         MessageboxError(win.renderer, "Invalid world name", **pw.widget_kwargs)
                     else:
                         biome = choice(list(bio.blocks.keys()))
