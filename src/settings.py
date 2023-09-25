@@ -205,9 +205,10 @@ neuro_fonts = get_fonts("NeuropolX", "neuropol x rg.ttf")
 orbit_fonts = (get_fonts("Orbitron", "Orbitron-VariableFont_wght.ttf"))
 #dejavu_fonts = get_fonts("DejaVu", "ttf", "DejaVuSans-ExtraLight.ttf")
 #cyber_fonts = get_fonts("Cyberbit", "Cyberbit.ttf")
-arial_fonts = get_fonts("arial", sys=True)
-cambria_fonts = get_fonts("cambria", sys=True)
-helvue_fonts = get_fonts("helveticaneue", sys=True)
+# stixgen_fonts = get_fonts("Stixgeneral", sys=True, italic=True)
+# arial_fonts = get_fonts("arial", sys=True)
+# cambria_fonts = get_fonts("cambria", sys=True)
+# helvue_fonts = get_fonts("helveticaneue", sys=True)
 #pixel_font = Font("Fonts", "Pixel", "pixel.png")
 all_fonts = {x: pygame.font.SysFont(x, 30) for x in pygame.font.get_fonts()}
 
