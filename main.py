@@ -691,7 +691,7 @@ def new_world(worldcode=None):
 
     def start_generating():
         t = Thread(target=create)
-        t.setDaemon(True)
+        t.daemon = True
         t.start()
 
     if g.p.next_worldbutton_pos[1] < g.max_worldbutton_pos[1]:
