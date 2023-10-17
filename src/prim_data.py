@@ -112,6 +112,15 @@ class Block:
         self.broken = 0
         self.righted = False
         self.light = light
+        self.ypos = 0
+        self.yvel = 0
+        self.yacc = 0
+        # wind
+        self.sin = randf(0, 2 * pi)
+        self.plant_pos = (0, 15)
+        self.plant_offset = Vector2(0, -15)
+        self.plant_angle = 0
+        self.plant_sin_angle = 0
         # special
         self.craftings = {}
         self.reductant = [None, None]  # [name, amount]
@@ -145,6 +154,7 @@ class VoidBlock:
         self.name = name
         self.ore_chance = ore_chance
         self.light = 15
+        self.in_updating = False
 
 
 void_block = VoidBlock()
@@ -531,8 +541,8 @@ def load_blocks():
         ["open-door",       "lotus",            "daivinus",        "dirt_f_depr",     "grass3",          "tool-crafter",     "bricks",     "solar-panel", "wood_f_vrN",  "dirt_t"     ],
         ["cable_vrF",       "cable_vrH",        "",                "",                "",                "",                 "",           "torch",       "grass_f",      ""          ],
         ["",                "",                 "",                "corn-crop_vr3.2", "corn-crop_vr4.2", "",                 "",           "",            "soil_f",      ""           ],
-        ["",                "corn-crop_vr1.1",  "corn-crop_vr2.1", "corn-crop_vr3.1", "corn-crop_vr4.1", "",                 "",           "",            "dirt_f",      ""           ],
-        ["corn-crop_vr0.0", "corn-crop_vr1.0",  "corn-crop_vr2.0", "corn-crop_vr3.0", "corn-crop_vr4.0", "",                 "",           "",            "",            ""           ],
+        ["",                "corn-crop_vr1.1",  "corn-crop_vr2.1", "corn-crop_vr3.1", "corn-crop_vr4.1", "cattail-top",      "",           "",            "dirt_f",      ""           ],
+        ["corn-crop_vr0.0", "corn-crop_vr1.0",  "corn-crop_vr2.0", "corn-crop_vr3.0", "corn-crop_vr4.0", "cattail",          "",           "",            "",            ""           ],
     ]
     for y, layer in enumerate(block_list):
         for x, block in enumerate(layer):
@@ -927,7 +937,7 @@ cables = {name for name in a.blocks.keys() if bpure(name) == "cable"}
 walk_through_blocks = {"air", "fire", "lava", "water", "spike-plant", "grass1", "grass2", "grass_f",
                        "workbench", "anvil", "furnace", "gun-crafter", "altar", "magic-table", "vine",
                        "open-door", "arrow", "grass3", "chest", "bed", "bed-right", "solar-panel",
-                       "blast-furnace",
+                       "blast-furnace", "cattail", "cattail-top",
                        *wheats, *cables}
 feature_blocks = {"solar-panel"}
 unbreakable_blocks = {"air", "fire", "water"}
@@ -1045,9 +1055,6 @@ linfo = {
     "torch": {"radius": 50, "color": (255, 215, 0, 120)}
 }
 
-updating_blocks = {} | flinfo.keys()
-
-
 ainfo = {}
 block_info = {
 }
@@ -1119,11 +1126,20 @@ visual_orbs_sprs = timgload3("assets", "Images", "Spritesheets", "visual_orbs.pn
 visual_orbs = {}
 
 # miscellaneous
-
 corns = {bn for bn in a.blocks if bpure(bn) == "corn-crop"}
 walk_through_blocks |= corns
 growable_corns = {"0.0", "1.0", "2.0", "3.0", "4.0"}
 soft_blocks = walk_through_blocks | empty_blocks
+
+invisible_blocks = {"cattail", "cattail-top"}
+
+orientation_blocks = {"bed": (1, 0), "cattail": (0, -1)}
+orientation_map = {(-1, 0): "left", (1, 0): "right", (0, -1): "top", (0, 1): "bottom"}
+orientation_blocks |= {f"{block}-{orientation_map[offset]}": tuple(-x for x in offset) for block, offset in orientation_blocks.items()}
+big_blocks = {"bed", "cattail"}
+
+# updating blocks
+updating_blocks = {"cattail", "cattail-top"} | flinfo.keys() | corns
 
 # classes
 classes = {}

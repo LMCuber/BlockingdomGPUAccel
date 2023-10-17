@@ -12,7 +12,8 @@ from .entities import *
 from . import entities as ent
 
 
-avatar_url = r"https://avatars.dicebear.com/api/pixel-art-neutral/:seed.svg?mood[]=:mood"
+# avatar_url = r"https://avatars.dicebear.com/api/pixel-art-neutral/:seed.svg?mood[]=:mood"
+avatar_url = r"https://api.dicebear.com/7.x/pixel-art/svg?seed="
 quote_url = "https://inspirobot.me/api?generate=true"
 
 
@@ -539,6 +540,7 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                 #     entity(["hallowskull", "mob", "moving", "demon"])
                 if _chance(1 / 15):
                     set("torch", x, y)
+                    struct("amogus", x, y)
                     entity(["hallowskull", "mob", "moving", "demon"])
 
                 # top is free

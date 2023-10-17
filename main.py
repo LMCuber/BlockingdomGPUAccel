@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # I M P O R T S --------------------------------------------------------------------------------------- #
 import atexit
 import string
@@ -139,12 +141,12 @@ def tile_to_rect(abs_pos, scale=False):
 
 
 def save_structure(name):
-    with open("structures.json", "r") as f:
+    with open(path("assets", "structures.json"), "r") as f:
         try:
             existing = json.load(f)
         except json.decoder.JSONDecodeError:
             existing = {}
-    with open("structures.json", "w") as f:
+    with open(path("assets", "structures.json"), "w") as f:
         existing[name] = g.structure
         json.dump(existing, f, indent=4)
     g.structure = {}
@@ -736,7 +738,6 @@ def delete_all_worlds():
             for file_ in os.listdir(path(".game_data", "worlds")):
                 os.remove(path(".game_data", "worlds", file_))
                 open(path(".game_data", "variables.dat"), "w").close()
-            print("outsidescope", all_home_world_world_buttons)
             empty_group(all_home_world_world_buttons)
             g.p.world_names.clear()
             g.w.name = None
@@ -757,7 +758,7 @@ def init_world(type_):
     if type_ == "new":
         if g.w.mode == "adventure":
             # g.player.inventory = ["tool-crafter", "prototype_grip", "prototype_magazine", "prototype_stock", "prototype_body"]
-            g.player.inventory = ["workbench", "silicon", "glass", "corn-crop_vr0.0", "vanadium"]
+            g.player.inventory = ["workbench", "silicon", "glass", "corn-crop_vr0.0", "cattail"]
             g.player.inventory_amounts = [100, 100, 100, 100, 100]
             g.player.stats = {
                 "lives": {"amount": rand(10, 100), "color": RED, "pos": (32, 20), "last_regen": ticks(), "regen_time": def_regen_time, "icon": "lives", "width": 0},
@@ -825,19 +826,16 @@ def diffuse_light(og_block, chunk_data):
     diffuse(og_block)
 
 
-def generate_chunk(chunk_index, biome="forest", terrain_only=False):
+def generate_chunk(chunk_index, biome="desert", terrain_only=False):
     # init NOW
     x, y = chunk_index
-    terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
-    lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
-    lighting.fill(BLACK)
     entities = []
     # lighting.fill({2: DARK_GRAY}.get(y, SKY_BLUE))
     fog = pygame.Surface((fog_w, fog_h))
     fog.fill(BLACK)
     fog.blit(fog_light, (0, 0))
     chunk_pos = (x * CW, y * CH)
-    metadata = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
+    g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
     biome = biome if biome is not None else choice(list(bio.blocks.keys()))
     if not terrain_only:
         chunk_data = {}
@@ -892,7 +890,7 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                 if name:
                     chunk_data[target_pos] = Block(name, target_pos, ore_chance)
         # world mods
-        entities, late_chunk_data = world_modifications(chunk_data, metadata, biome, chunk_pos, g.w.wgr)
+        entities, late_chunk_data = world_modifications(chunk_data, g.w.metadata[chunk_index], biome, chunk_pos, g.w.wgr)
         g.w.late_chunk_data |= late_chunk_data
     else:
         chunk_data = g.w.data[chunk_index]
@@ -909,36 +907,9 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
             #         diffuse_light(og_block, chunk_data)
 
     # blitting
-    for rel_y in range(CH):
-        for rel_x in range(CW):
-            abs_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
-            if abs_pos in chunk_data:
-                block = chunk_data[abs_pos]
-                name = block.name
-                # var init
-                color = (255, 215, 0, 120)
-                blit_x, blit_y = (rel_x * BS, rel_y * BS)
-                if blit_x - 50 < 0:
-                    color = (255, 0, 0, 120)
-                # block light level
-                # alpha = int((max_light - block.light) / max_light * 255)
-                if name in linfo:
-                    # lighting.fill((255, 0, 0, 120), (blit_x, blit_y, BS, BS))
-                    # pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, 120, (*rand_rgba()[:3], 120))
-                    """
-                    r = linfo[name]["radius"]
-                    light = pygame.Surface((r * 4, r * 4), pygame.SRCALPHA)
-                    pygame.gfxdraw.filled_circle(light, r * 2, r * 2, r, color)
-                    light = pygame.transform.box_blur(light, r // 2)
-                    pygame.draw.rect(light, ORANGE, (0, 0, r * 4, r * 4), 1)
-                    lighting.blit(light, (blit_x, blit_y))
-                    """
-                    pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], color)
-                # blit actual block image
-                terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
+    terrain, lighting = generate_lighting(chunk_data, chunk_index, blit_image=True)
     # suck the air out
     chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
-    lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
     # converting the surface to textures
     # if is_light:
     #     pg_to_pil(lighting).show()
@@ -946,15 +917,54 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     # if is_light:
     #     pg_to_pil(lighting).show()
     #     raise
-    tex_lighting = T(lighting)
-    tex_terrain = T(terrain)
     # set final values
     g.w.data[chunk_index] = chunk_data
-    g.w.metadata[chunk_index] = metadata
-    g.w.terrains[chunk_index] = tex_terrain
-    g.w.lightings[chunk_index] = tex_lighting
     g.w.entities[chunk_index] = entities
     return terrain
+
+
+def generate_lighting(chunk_data, chunk_index, blit_image=False):
+    chunk_pos = (chunk_index[0] * CW, chunk_index[1] * CH)
+    metadata = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
+    if blit_image:
+        terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
+    lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
+    lighting.fill(BLACK)
+    enum = {"left": [], "right": [], "up": [], "down": []}
+    for rel_y in range(CH):
+        for rel_x in range(CW):
+            abs_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
+            if abs_pos in chunk_data:
+                block = chunk_data[abs_pos]
+                name = block.name
+                blit_x, blit_y = (rel_x * BS, rel_y * BS)
+                if name in linfo:
+                    color = (255, 215, 0, 120)
+                    # color = [rand(0, 255) for _ in range(3)] + [120]
+                    pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], color)
+                    if blit_x - 90 < 0:
+                        enum["left"].append([name, blit_x + BS // 2, blit_y + BS // 2])
+                    if blit_x + 90 > (CW * BS):
+                        enum["right"].append([name, blit_x + BS // 2, blit_y + BS // 2])
+                    if blit_y - 90 < 0:
+                        enum["up"].append([name, blit_x + BS // 2, blit_y + BS // 2])
+                    if blit_y + 90 > (CH * BS):
+                        enum["down"].append([name, blit_x + BS // 2, blit_y + BS // 2])
+                # blit actual block image
+                if blit_image:
+                    terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
+    color = (255, 0, 0, 200)
+    lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
+
+    tex_lighting = T(lighting)
+    g.w.lightings[chunk_index] = tex_lighting
+    g.w.metadata[chunk_index] |= metadata
+    #
+    if blit_image:
+        tex_terrain = T(terrain)
+        g.w.terrains[chunk_index] = tex_terrain
+        return tex_terrain, tex_lighting
+    return tex_lighting
 
 
 # S T A T I C  O B J E C T  F U N C T I O N S  -------------------------------------------------------  #
@@ -1002,6 +1012,7 @@ class ExitHandler:
         with open(path(".game_data", "variables.dat"), "wb") as f:
             pickle.dump(g.p, f)
         # generating world icon
+        img = pygame.Surface((),)
         """
         icon = pygame.Surface(wb_icon_size, pygame.SRCALPHA)
         br = 3
@@ -1080,7 +1091,7 @@ class World:
         self.name = None
         self.linked = False
         self.boss_scene = False
-        self.wgr = Random(132)
+        self.wgr = Random(112)
         self.noise = Noise()
         self.last_chunks = []
         # game settings
@@ -1277,18 +1288,22 @@ class World:
                     self.terrain.blit(img, (x * BS, y * BS))
             # pg_to_pil(terrain).show(); raise eggplant sigma male
 
-    def modify(self, setto, target_chunk, abs_pos, update=True, righted=False, overwrites=None, overwrites_empty=True):
+    def modify(self, setto, target_chunk, abs_pos, update=True, righted=False, overwrites=None, overwrites_empty=True, remove_from_updating=False, **kwargs):
         # update texture
         nbg = non_bg(setto)
         block = self.data[target_chunk].get(abs_pos, void_block)
         current = non_bg(block.name)
         blit_x, blit_y = abs_pos[0] % CW * BS, abs_pos[1] % CH * BS
+        # remove from updating when needed
+        if remove_from_updating:
+            self.to_update[target_chunk].remove(self.data[target_chunk][abs_pos])
+        # overwrite?
         if overwrites is None:
             overwrites = empty_blocks
         if overwrites_empty:
             overwrites |= empty_blocks
         if setto in empty_blocks or current in overwrites:
-            self.terrains[target_chunk].update(self.bimg(setto, tex=False), (blit_x, blit_y, BS, BS))
+            u_good = True
             if setto in empty_blocks:
                 if abs_pos in self.data[target_chunk]:
                     del self.data[target_chunk][abs_pos]
@@ -1296,29 +1311,46 @@ class World:
                     block.in_updating = False
                     g.w.to_update[target_chunk].remove(block)
             else:
+                if update:
+                    if nbg in big_blocks:
+                        offset = orientation_blocks[nbg]
+                        ori_name = orientation_map[offset]
+                        if nbg == "cattail":
+                            kw = {}
+                        else:
+                            kw = {}
+                        right_chunk, right_pos = correct_tile(target_chunk, abs_pos, *offset)
+                        if g.w.data[right_chunk].get(right_pos, void_block).name not in empty_blocks:
+                            left_chunk, left_pos = correct_tile(target_chunk, abs_pos, *[-o for o in offset])
+                            if g.w.data[left_chunk].get(left_pos, void_block).name not in empty_blocks:
+                                u_good = False
+                            else:
+                                g.w.modify(f"{setto}-{ori_name}", target_chunk, abs_pos)
+                                target_chunk, abs_pos = left_chunk, left_pos
+                                blit_x -= 30
+                        else:
+                            g.w.modify(f"{setto}-{ori_name}", right_chunk, right_pos)
+            if u_good:
                 self.data[target_chunk][abs_pos] = Block(setto, abs_pos)
-            #
-            if setto in updating_blocks:
-                if target_chunk not in g.w.to_update:
-                    self.to_update[target_chunk] = []
-                self.data[target_chunk][abs_pos].in_updating = True
-                self.to_update[target_chunk].append(self.data[target_chunk][abs_pos])
-        # block updatings
-        if setto not in empty_blocks:
-            block = self.data[target_chunk][abs_pos]
-            if setto in flinfo:
-                block.ypos = 0
-                block.yvel = 0
-                block.yacc = flinfo[setto]["yacc"]
-                block.last_fall = ticks()
+                if setto not in invisible_blocks:
+                    self.terrains[target_chunk].update(self.bimg(setto, tex=False), (blit_x, blit_y, BS, BS))
+                # set correct sine for cattail
+                if nbg == "cattail":
+                    cur = g.w.data[target_chunk][abs_pos]
+                    ctt = g.w.data[right_chunk][right_pos]
+                    ctt.sin = cur.sin
+                    ctt.plant_pos = (0, ctt.plant_pos[1] + BS)
+                    ctt.plant_offset = Vector2(0, ctt.plant_offset.y - BS)
+        # update
         if update:
             # § PLACE §
             # bed (king size)
-            if nbg == "bed":
-                g.w.modify("bed-right", *correct_tile(target_chunk, abs_pos, 1, 0))
-
+            # § BREAK §
+            if nbg == "air":
+                if any(x in current for x in big_blocks):
+                    g.w.modify("air", *correct_tile(target_chunk, abs_pos, *orientation_blocks[current]), update=False)
             # cables
-            hash_table = {  # TODO: rewrite as wave function collapse later
+            hash_table = {  # TODO: rewrite as wave function collapse later : lol nah
                 # up and down
                 "cable_vrF_deg0": dict.fromkeys([
                     (0, -1), (0, 1)
@@ -1345,22 +1377,39 @@ class World:
             if nbg == "dynamite":
                 # diffuse_light()
                 pass
-            # § BREAK §
-            if nbg == "air":
-                if current == "bed":
-                    g.w.modify("air", *correct_tile(target_chunk, abs_pos, 1, 0), update=False)
-                elif current == "bed-right":
-                    g.w.modify("air", *correct_tile(target_chunk, abs_pos, -1, 0), update=False)
+        if setto in updating_blocks:
+            if target_chunk not in g.w.to_update:
+                self.to_update[target_chunk] = []
+            self.data[target_chunk][abs_pos].in_updating = True
+            self.to_update[target_chunk].append(self.data[target_chunk][abs_pos])
+        # block updatings
+        if setto not in empty_blocks:
+            block = self.data[target_chunk][abs_pos]
+            if setto in flinfo:
+                block.ypos = 0
+                block.yvel = 0
+                block.yacc = flinfo[setto]["yacc"]
+                block.last_fall = ticks()
+        # structure
         if righted:
             g.w.data[target_chunk][abs_pos].righted = True
         if g.saving_structure:
-            if name in empty_blocks:
-                if (row, col) in g.structure:
-                    del g.structure[(row, col)]
+            if nbg in empty_blocks:
+                if abs_pos in g.structure:
+                    del g.structure[abs_pos]
             else:
-                g.structure[(row, col)] = name
+                g.structure[abs_pos] = nbg
         for entity in g.w.entities[target_chunk]:
             entity.request_block_data = True
+
+        # update the lighting if necessary
+        if nbg in linfo or current in linfo:
+            # lighting
+            self.lightings[target_chunk] = generate_lighting(self.data[target_chunk], target_chunk)
+
+        # kwargs
+        for k, v in kwargs.items():
+            setattr(self.data[target_chunk][abs_pos], k, v)
 
     def trigger(self, target_chunk, abs_pos, wait=0):
         block = g.w.data[target_chunk][abs_pos]
@@ -2018,7 +2067,6 @@ class Player(SmartVector):
         del self.anim_info
         del self.player_icon
         del self.image
-        del self.images
         return self.__dict__
 
     def update(self):  # player update
@@ -2773,7 +2821,7 @@ class Visual:
                         self.rect.left = g.player.rrect.right + 5
                     self.og_y = self.rect.centery = g.player.rrect.centery
                     if g.player.eating:
-                        self.rect.centery = self.og_y + sin(ticks() * 0.035) * 4
+                        self.rect.centery = self.og_y + sin(ticks() * 0.03) * 4
                 else:
                     self.render = False
 
@@ -3673,7 +3721,7 @@ class OrbParticle:
             # m = 0.5
             # self.rect.x += (self.og_offset[0] - self.rect.x) * m
             # self.rect.y += (self.og_offset[1] - self.rect.y) * m
-            print(self.rect.x)
+            pass
         else:
             self.angle += (45 - self.angle) * 0.1
             self.image.angle = self.angle
@@ -4027,7 +4075,6 @@ class MessageboxWorld:
         self.image.cblit(box, pos, anchor)
 
     def zoom(self, type_):
-        print(type_)
         og_img = self.image.copy()
         og_size = og_img.get_size()
         if type_ == "in":
@@ -4232,9 +4279,6 @@ async def main(debug, cprof=False):
         # light.blend_mode = pygame.BLEND_RGBA_MULT
         i = 0
         while running:
-            # with Shut():
-                # print(g.player.foo)
-            # print(g.mouse)
             # init dynamic constants
             mouse = pygame.mouse.get_pos()
             mouses = pygame.mouse.get_pressed()
@@ -4667,7 +4711,6 @@ async def main(debug, cprof=False):
                                         controller.map[controller.name]["can_down"] = False
                                     g.selected_widget = mp[g.selected_widget]
                                 controller.map[controller.name]["last_axismo"]["Jleft"] = event.value
-                        # print(event)
                         # # R2
                         if event.axis == a["R2"]:
                             delta = event.value - controller.map[controller.name]["last_axismo"]["R2"]
@@ -4767,17 +4810,28 @@ async def main(debug, cprof=False):
                             chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
                             terrain_tex = g.w.terrains[target_chunk]
                             lighting_tex = g.w.lightings[target_chunk]
-                            lighting_tex.alpha = 255 * (sin(ticks() * 0.004) + 1) / 2
+                            lighting_tex.alpha = 0
+                            # lighting_tex.alpha = 240 * (sin(ticks() * 0.00008) + 1) / 2
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
                             win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
-                            win.renderer.blit(g.w.lightings[target_chunk], chunk_rect)
+                            _chunk_rect = chunk_rect
+                            if "lighting_offset" in g.w.metadata[target_chunk]:
+                                _chunk_rect = chunk_rect.move(g.w.metadata[target_chunk]["lighting_offset"], 0)
+                            win.renderer.blit(g.w.lightings[target_chunk], _chunk_rect)
+                            # rest
                             g.w.block_data[target_chunk] = {}
                             g.w.block_rects[target_chunk] = {}
 
                             # updating blocks
                             if target_chunk in g.w.to_update:
                                 for block in g.w.to_update[target_chunk]:
+                                    # init
+                                    nbg = non_bg(block.name)
+                                    name = block.name
+                                    abs_pos = block.pos
+
+                                    # falling blocks
                                     if block.name in flinfo:
                                         block.yvel += block.yacc
                                         block.ypos += block.yvel
@@ -4799,6 +4853,62 @@ async def main(debug, cprof=False):
                                             except (KeyError, ValueError):
                                                 block.ypos -= block.yvel
                                                 block.yvel -= block.yacc
+
+                                    # corns blocks growing
+                                    elif nbg in corns:
+                                        version = name.split("_")[1].removeprefix("vr")
+                                        if version in growable_corns:
+                                            if "corn" not in block.last_growths:
+                                                block.last_growths["corn"] = epoch()
+                                            if epoch() - block.last_growths["corn"] >= 1:
+                                                if version == "0.0":
+                                                    g.w.modify("corn-crop_vr1.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
+                                                    g.w.modify("corn-crop_vr1.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                                    block.last_growths["corn"] = epoch()
+                                                elif version == "1.0":
+                                                    g.w.modify("corn-crop_vr2.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
+                                                    g.w.modify("corn-crop_vr2.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                                    block.last_growths["corn"] = epoch()
+                                                elif version == "2.0":
+                                                    g.w.modify("corn-crop_vr3.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
+                                                    g.w.modify("corn-crop_vr3.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns, remove_from_updating=True)
+                                                    g.w.modify("corn-crop_vr3.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns)
+                                                    block.last_growths["corn"] = epoch()
+                                                elif version == "3.0":
+                                                    g.w.modify("corn-crop_vr4.0", target_chunk, abs_pos, full_crop=True)
+                                                    g.w.modify("corn-crop_vr4.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns, remove_from_updating=True, full_crop=True)
+                                                    g.w.modify("corn-crop_vr4.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns, full_crop=True)
+                                                    block.last_growths["corn"] = epoch()
+
+                                    # flowing
+                                    elif nbg == "cattail":
+                                        # init
+                                        block.rect.topleft = block._rect.topleft
+                                        block.rect.x -= g.scroll[0]
+                                        block.rect.y -= g.scroll[1]
+                                        # interaction with player
+                                        if g.player.rect.colliderect(block.rect):
+                                            dx = block.rect.centerx - g.player.rect.centerx
+                                            target_angle = (20 - abs(dx)) / 20 * 90 * sign(dx)
+                                            block.plant_angle += (target_angle - block.plant_angle) * 0.1
+                                        # set the variables
+                                        block.plant_sin_angle = 5 * (sin(2 * pi * ticks() / 700 + block.sin - 2))
+                                        pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
+                                        vec = block.plant_offset
+                                        angle = block.plant_angle + block.plant_sin_angle
+                                        # set the images to blit
+                                        # [cattail]
+                                        surf_img = g.w.surf_assets["blocks"][nbg]
+                                        surf_img, surf_rect = rot_pivot(surf_img, angle, pos, vec)
+                                        tex_img = T(surf_img)
+                                        win.renderer.blit(tex_img, surf_rect)
+                                        # [cattail-top]
+                                        top_surf_img = g.w.surf_assets["blocks"]["cattail-top"]
+                                        top_pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
+                                        top_offset = Vector2(0, -45)
+                                        top_surf_img, top_surf_rect = rot_pivot(top_surf_img, angle, top_pos, top_offset)
+                                        top_tex_img = T(top_surf_img)
+                                        win.renderer.blit(top_tex_img, top_surf_rect)
 
                             # updating the entities in the chunk
                             for i, entity in enumerate(g.w.entities[target_chunk]):
@@ -4827,6 +4937,20 @@ async def main(debug, cprof=False):
                                         entity.take_damage(1)
                                         if entity.demon:
                                             entity.glitch()
+
+                            # show the chunk borders with different colors
+                            if target_chunk not in g.w.chunk_colors:
+                                chunk_color = [rand(0, 255) for _ in range(3)] + [255]
+                                g.w.chunk_colors[target_chunk] = chunk_color
+                            else:
+                                chunk_color = g.w.chunk_colors[target_chunk]
+
+                            rect = pygame.Rect(*g.w.metadata[target_chunk]["pos"], BS, BS)
+                            rect.x = rect.x * BS - g.scroll[0]
+                            rect.y = rect.y * BS - g.scroll[1]
+                            if pw.show_chunk_borders:
+                                chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
+                                chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
 
                             # infamous
                             continue
@@ -4930,7 +5054,6 @@ async def main(debug, cprof=False):
                                 # update block identity (§processing moved to main)
                                 if nbg == "frac-dist":
                                     if ticks() - block.last_frac_dist >= 1_000:
-                                        print((ticks() - block.last_frac_dist))
                                         for _ in range((ticks() - block.last_frac_dist) // 1_000):
                                             p = FracDistParticle(choices(list(range(5)), [at["ppm"] for at in atinfo.values()])[0])
                                             group(p, all_gases)
@@ -4939,20 +5062,6 @@ async def main(debug, cprof=False):
                                 # update block cache for collisions of the entities
                                 if abs_pos in g.w.data[target_chunk]:
                                     g.w.block_data[target_chunk][block.pos] = block
-
-                            # show the chunk borders with different colors
-                            if target_chunk not in g.w.chunk_colors:
-                                chunk_color = [rand(0, 255) for _ in range(3)] + [255]
-                                g.w.chunk_colors[target_chunk] = chunk_color
-                            else:
-                                chunk_color = g.w.chunk_colors[target_chunk]
-
-                            rect = pygame.Rect(*g.w.metadata[target_chunk]["pos"], BS, BS)
-                            rect.x = rect.x * BS - g.scroll[0]
-                            rect.y = rect.y * BS - g.scroll[1]
-                            if pw.show_chunk_borders:
-                                chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
-                                chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
 
                     # mouse shit with chunks
                     if not pw.keybinds_active:
@@ -5541,16 +5650,16 @@ async def main(debug, cprof=False):
                         avg_radius = sum(oinfo[name]["radius"] * molar_ratia[name] for name in g.mb.crystals)
                         if ea < 1.53:
                             if avg_radius < 1.365:
-                                print("hcp")
+                                ptrint("hcp")
                             else:
-                                print("fcc")
+                                ptrint("fcc")
                         elif ea > 1.88:
                             if avg_radius > 1.387:
-                                print("hcp")
+                                ptrint("hcp")
                             else:
-                                print("bcc")
+                                ptrint("bcc")
                         else:
-                            print("bcc and fcc")
+                            ptrint("bcc and fcc")
                         impact_toughness = 3461.4 * vec ** 3 - 80552 * vec ** 2 + 625259 * vec - 2 * 10 ** 6
                         write(win.renderer, "midtop", f"VEC = {vec:.2f}", orbit_fonts[15], YELLOW, centerx, y + 90 , tex=True)
                         write(win.renderer, "midtop", f"impact toughness  = {impact_toughness:.2f}", orbit_fonts[15], YELLOW, centerx, y + 120 , tex=True)
