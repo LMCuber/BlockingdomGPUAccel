@@ -541,8 +541,8 @@ def load_blocks():
         ["open-door",       "lotus",            "daivinus",        "dirt_f_depr",     "grass3",          "tool-crafter",     "bricks",     "solar-panel", "wood_f_vrN",  "dirt_t"     ],
         ["cable_vrF",       "cable_vrH",        "",                "",                "",                "",                 "",           "torch",       "grass_f",      ""          ],
         ["",                "",                 "",                "corn-crop_vr3.2", "corn-crop_vr4.2", "",                 "",           "",            "soil_f",      ""           ],
-        ["",                "corn-crop_vr1.1",  "corn-crop_vr2.1", "corn-crop_vr3.1", "corn-crop_vr4.1", "cattail-top",      "",           "",            "dirt_f",      ""           ],
-        ["corn-crop_vr0.0", "corn-crop_vr1.0",  "corn-crop_vr2.0", "corn-crop_vr3.0", "corn-crop_vr4.0", "cattail",          "",           "",            "",            ""           ],
+        ["",                "corn-crop_vr1.1",  "corn-crop_vr2.1", "corn-crop_vr3.1", "corn-crop_vr4.1", "cattail-top",      "pampas-top", "",            "dirt_f",      ""           ],
+        ["corn-crop_vr0.0", "corn-crop_vr1.0",  "corn-crop_vr2.0", "corn-crop_vr3.0", "corn-crop_vr4.0", "cattail",          "pampas",     "",            "",            ""           ],
     ]
     for y, layer in enumerate(block_list):
         for x, block in enumerate(layer):
@@ -934,11 +934,12 @@ fueinfo = {  # combustion energy in MJ | subtraction in amount p/f
 
 # B L O C K  C L A S S I F I C A T I O N S ------------------------------------------------------------- #
 cables = {name for name in a.blocks.keys() if bpure(name) == "cable"}
+plants = {"cattail", "pampas"}
 walk_through_blocks = {"air", "fire", "lava", "water", "spike-plant", "grass1", "grass2", "grass_f",
                        "workbench", "anvil", "furnace", "gun-crafter", "altar", "magic-table", "vine",
                        "open-door", "arrow", "grass3", "chest", "bed", "bed-right", "solar-panel",
-                       "blast-furnace", "cattail", "cattail-top",
-                       *wheats, *cables}
+                       "blast-furnace", "cattail-top", "pampas-top",
+                       *wheats, *cables, *plants}
 feature_blocks = {"solar-panel"}
 unbreakable_blocks = {"air", "fire", "water"}
 item_blocks = {"dynamite"}
@@ -1131,15 +1132,16 @@ walk_through_blocks |= corns
 growable_corns = {"0.0", "1.0", "2.0", "3.0", "4.0"}
 soft_blocks = walk_through_blocks | empty_blocks
 
-invisible_blocks = {"cattail", "cattail-top"}
+invisible_blocks = {"cattail", "cattail-top", "pampas", "pampas-top"}
 
-orientation_blocks = {"bed": (1, 0), "cattail": (0, -1)}
+
+orientation_blocks = {"bed": (1, 0), "cattail": (0, -1), "pampas": (0, -1)}
 orientation_map = {(-1, 0): "left", (1, 0): "right", (0, -1): "top", (0, 1): "bottom"}
 orientation_blocks |= {f"{block}-{orientation_map[offset]}": tuple(-x for x in offset) for block, offset in orientation_blocks.items()}
-big_blocks = {"bed", "cattail"}
+big_blocks = {"bed", "cattail", "pampas"}
 
 # updating blocks
-updating_blocks = {"cattail", "cattail-top"} | flinfo.keys() | corns
+updating_blocks = {"cattail", "cattail-top", "pampas", "pampas-top"} | flinfo.keys() | corns
 
 # classes
 classes = {}

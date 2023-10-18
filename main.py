@@ -1335,7 +1335,7 @@ class World:
                 if setto not in invisible_blocks:
                     self.terrains[target_chunk].update(self.bimg(setto, tex=False), (blit_x, blit_y, BS, BS))
                 # set correct sine for cattail
-                if nbg == "cattail":
+                if nbg in plants:
                     cur = g.w.data[target_chunk][abs_pos]
                     ctt = g.w.data[right_chunk][right_pos]
                     ctt.sin = cur.sin
@@ -4881,7 +4881,7 @@ async def main(debug, cprof=False):
                                                     block.last_growths["corn"] = epoch()
 
                                     # flowing
-                                    elif nbg == "cattail":
+                                    elif nbg in plants:
                                         # init
                                         block.rect.topleft = block._rect.topleft
                                         block.rect.x -= g.scroll[0]
@@ -4903,10 +4903,10 @@ async def main(debug, cprof=False):
                                         tex_img = T(surf_img)
                                         win.renderer.blit(tex_img, surf_rect)
                                         # [cattail-top]
-                                        top_surf_img = g.w.surf_assets["blocks"]["cattail-top"]
+                                        top_surf_img = g.w.surf_assets["blocks"][f"{name}-top"]
                                         top_pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
                                         top_offset = Vector2(0, -45)
-                                        top_surf_img, top_surf_rect = rot_pivot(top_surf_img, angle, top_pos, top_offset)
+                                        top_surf_img, top_surf_rect = rot_pivot(top_surf_img, angle, top_pos, top_offset, nbg == "pampas")
                                         top_tex_img = T(top_surf_img)
                                         win.renderer.blit(top_tex_img, top_surf_rect)
 
