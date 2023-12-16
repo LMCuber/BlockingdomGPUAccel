@@ -763,7 +763,7 @@ def init_world(type_):
     if type_ == "new":
         if g.w.mode == "adventure":
             # g.player.inventory = ["tool-crafter", "prototype_grip", "prototype_magazine", "prototype_stock", "prototype_body"]
-            g.player.inventory = ["tool-crafter", "cactus", "glass", "corn-crop_vr0.0", "cattail"]
+            g.player.inventory = ["tool-crafter", "silicon", "glass", "corn-crop_vr0.0", "cattail"]
             g.player.inventory_amounts = [100, 100, 100, 100, 100]
             g.player.stats = {
                 "lives": {"amount": rand(10, 100), "color": RED, "pos": (32, 20), "last_regen": ticks(), "regen_time": def_regen_time, "icon": "lives", "width": 0},
@@ -776,7 +776,7 @@ def init_world(type_):
         elif g.w.mode == "freestyle":
             g.player.inventory = ["anvil", "bush", "dynamite", "command-block", "workbench"]
             g.player.inventory_amounts = [float("inf")] * 5
-        g.player.tools = ["iron_axe", "molybdenum_shovel"]
+        g.player.tools = ["iron_sword", "molybdenum_shovel"]
         g.player.tool_healths = [100, 100]
         g.player.tool_ammos = [None, None]
         g.player.indexes = {"tool": 0, "block": 0}
@@ -1086,7 +1086,6 @@ class World:
         self.block_data = {}
         self.block_rects = {}
         self.to_update = {}
-        self.to_break = []
         self.dimension = "data"
         self.entities = {}
         self.late_chunk_data = {}
@@ -1312,10 +1311,7 @@ class World:
             u_good = True
             if setto in empty_blocks:
                 if abs_pos in self.data[target_chunk]:
-                    # with suppress(KeyError):
-                    #     print(self.data[target_chunk][abs_pos].name)
                     del self.data[target_chunk][abs_pos]
-                    print(self.data[target_chunk][abs_pos])
                 if block.in_updating:
                     block.in_updating = False
                     g.w.to_update[target_chunk].remove(block)
@@ -1929,7 +1925,7 @@ class Animations:
             },
 
             "Monk": {
-                "run": {"frames": 4},
+                "run": {"frames": 4}
             },
 
             "Necromancer": {
@@ -1958,9 +1954,7 @@ class Animations:
                 self.imgs[weapon][anim_type]["images"] = [T(img) for img in surfs]
                 self.imgs[weapon][anim_type]["fimages"] = [T(pygame.transform.flip(img, True, False)) for img in surfs]
                 self.rects[weapon][anim_type] = self.imgs[weapon][anim_type]["images"][0].get_rect()
-        self.rects = {
-            "Roninette": pygame.Rect((0, 0, 17 * 3, 19 * 3)),
-        }
+
 
 class Player(SmartVector):
     def __init__(self):
@@ -2104,9 +2098,7 @@ class Player(SmartVector):
 
     def draw(self):  # player draw
         # pre
-        pass
         # intra
-        # win.renderer.blit(self.image, self.rect_draw)
         win.renderer.blit(self.image, self.rect_draw)
         # get the weapon the player is primarily
         # img = anim.imgs["Staff"]["run"][self.anim_direc][int(self.anim)]
@@ -2115,8 +2107,7 @@ class Player(SmartVector):
         # win.renderer.blit(img, rect)
         # post
         if pw.show_hitboxes:
-            draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
-            draw_rect(win.renderer, GREEN, self.rect_draw)
+            draw_rect(win.renderer, GREEN, self.rect)
         if self.armor["helmet"] is not None:
             win.renderer.blit(g.w.blocks[self.armor["helmet"]], self.rect)
         if self.armor["chestplate"] is not None:
@@ -2130,10 +2121,8 @@ class Player(SmartVector):
 
     @property
     def size(self):
-        # size = anim.rects[self.anim_skin].size
-        # size = (self.image.width, self.image.height)
-        size = (17 * S, 19 * S)
-        return size
+        rect = anim.rects["Necromancer"]["run"]
+        return rect.width, rect.height
 
     @property
     def rect_draw(self):
@@ -2141,8 +2130,7 @@ class Player(SmartVector):
 
     @property
     def _rect_draw(self):
-        rect = pygame.Rect(self._rect.topleft, (self.image.width, self.image.height))
-        return rect
+        return self._rect
 
     @property
     def rect(self):
@@ -2765,21 +2753,20 @@ class Visual:
 
         # pymunk
         self.lattice = []
+        self.bonds = []
         w, h = 3, 10
+        m = 5
         for y in range(h):
             for x in range(w):
-                m = rand(3, 10)
-                cond = y == 0
-                atom = PhysicsEntity(win.renderer, win.size, win.space, 700 + x * 40, 80 + y * 40, m=m, r=m, body_type=(STATIC if cond else DYNAMIC))
+                if (x, y) == (1, 0):
+                    body_type = KINEMATIC
+                else:
+                    body_type = DYNAMIC
+                atom = PhysicsEntity(win.renderer, win.size, win.space, 700 + x * 40, 80 + y * 40, m=m, r=m, body_type=body_type)
                 self.lattice.append(atom)
-        self.bonds = []
-        for i in range(len(self.lattice)):
-            with suppress(IndexError, ValueError):
-                string = PhysicsEntityConnector(win.renderer, win.size, win.space, self.lattice[i], self.lattice[i + 1])
-                self.bonds.append(string)
-            with suppress(IndexError, ValueError):
-                string = PhysicsEntityConnector(win.renderer, win.size, win.space, self.lattice[i], self.lattice[i + w])
-                self.bonds.append(string)
+                with suppress(IndexError):
+                    bond = PhysicsEntity(win.renderer, win.size, win.space, atom, self.lattice[-w])
+                    self.bonds.append(bond)
 
         # scope
         bw = 5
@@ -2811,10 +2798,10 @@ class Visual:
             if pw.show_hitboxes:
                 (win.renderer, ORANGE, self.rect, 1)
             # pymunk render
-            # for bond in self.bonds:
-            #     bond.draw()
-            #     bond.src.draw()
-            #     bond.dest.draw()
+            for bond in self.bonds:
+                bond.draw()
+                bond.src.draw()
+                bond.dest.draw()
         for node in self.ns_nodes[:]:
             if ticks() - node[-1] >= 330:
                 self.ns_nodes.remove(node)
@@ -3017,7 +3004,7 @@ class Visual:
 
             av = 3
             da = {-1: 90, 1: -90}
-            if g.player.tool_type in swinging_tools or True:
+            if g.player.tool_type in swinging_tools:
                 # move position according to the mouse
                 o = 45
                 self.rect.center = g.mouse
@@ -3030,8 +3017,9 @@ class Visual:
                 else:
                     self.rect.centery = max(g.player.rect.centery - o, g.mouse[1])
                 # flip image if necessarry
-                if self.facing_right:
-                    self.image.flip_x = True
+                # if self.facing_right:
+                #     self.image.flip_x = True
+                #     self.rect.x += BS
                 if g.mouses[0]:
                     # change tool angle
                     self.angle += av * self.sign
@@ -3050,16 +3038,6 @@ class Visual:
                                 if name in tinfo[g.player.tool_type]["blocks"]:
                                     block.broken += 1
                                     break
-                    # collisiòn
-                    for block, rect in g.player.block_data:
-                        rect = pygame.Rect(rect.x - g.scroll[0], rect.y - g.scroll[1], BS, BS)
-                        if pw.show_hitboxes:
-                            draw_rect(win.renderer, ORANGE, rect)
-                        if self.rect.colliderect(rect):
-                            block.broken += 0.03
-                            test(block.name)
-                            if block not in g.w.to_break and block.name not in empty_blocks:
-                                g.w.to_break.append(block)
                 else:
                     self.angle = da[self.sign]
 
@@ -3078,7 +3056,10 @@ class Visual:
 
             draw_rect(win.renderer, pygame.Color("green"), self.rect)
 
-            # draw
+            # draw rect if hitboxes are on
+            if pw.show_hitboxes or True:
+                pass
+
             self.draw()
 
         elif g.player.main == "block":
@@ -3106,11 +3087,9 @@ class Visual:
         dy = sum(p[1] for p in points)
         if (dx > 0) if g.player.direc == "right" else (dx < 0):
             if dy < 0:
-                # g.player.new_anim("uslash")
-                pass
+                g.player.new_anim("uslash")
             elif dy > 0:
-                # g.player.new_anim("dslash")
-                pass
+                g.player.new_anim("dslash")
         g.mouse_rel_log.clear()
 
     def swing_sword(self):
@@ -3160,8 +3139,7 @@ class UI:
                         (player_border_rect.centerx + width, player_border_rect.top + y * yo),  # topright
                         [player_border_rect.centerx + width - _o, player_border_rect.top + y * yo + height],  # bottomright
                         (player_border_rect.centerx, player_border_rect.top + height + y * yo)]  # bottomleft
-                fill_quad(win.renderer, color, *quad)
-                draw_quad(win.renderer, BLACK, *quad)
+                fill_quad(win.renderer, *quad, color)
         win.renderer.blit(player_border, player_border_rect)
         win.renderer.blit(g.player.player_icon, g.player.player_icon_rect)
 
@@ -4073,7 +4051,7 @@ class StaticWidget:
     def check_selected(self):
         o = 3
         if self.selected:
-            draw_rect(win.renderer, ORANGE, self.rect)
+            draw_rect(win.renderer, self.rect, ORANGE)
 
 
 class StaticButton(StaticWidget):
@@ -4977,7 +4955,7 @@ async def main(debug, cprof=False):
                             terrain_tex = g.w.terrains[target_chunk]
                             lighting_tex = g.w.lightings[target_chunk]
                             lighting_tex.alpha = 0
-                            # lighting_tex.alpha = 240 * (sin(ticks() * 0.0008) + 1) / 2wa
+                            # lighting_tex.alpha = 240 * (sin(ticks() * 0.00008) + 1) / 2
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
                             win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
@@ -5122,16 +5100,10 @@ async def main(debug, cprof=False):
                                 chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
 
                             # infamous
-                            # continue
+                            continue
 
                             for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
                             #   init
-                                if block in g.w.to_break:
-                                    try:
-                                        breaking_sprs[int(block.broken)]
-                                    except IndexError:
-                                        block.finish_breaking = (target_chunk, abs_pos)
-                                continue
                                 num_blocks += 1
                                 name = block.name
                                 nbg = non_bg(name)
@@ -5217,6 +5189,14 @@ async def main(debug, cprof=False):
                                             # slime_color = [slime_gray] * 3
                                             slime_color = [min(max(c, 0), 255) for c in slime_color]
                                             (win.renderer, slime_color, (rect.x + slime_x, rect.y + slime_y, 1, 1))
+                                # broken
+                                if block.broken > 0:
+                                    try:
+                                        win.renderer.blit(breaking_sprs[int(block.broken)], rect)
+                                    except:
+                                        for drop, amount in dif_drop_blocks.get(nbg, {nbg: 1}).items():
+                                            # group(Drop(drop, _rect, extra=amount), all_drops)
+                                            g.w.modify("air", target_chunk, abs_pos)
 
                                 # update block identity (§processing moved to main)
                                 if nbg == "frac-dist":
@@ -5229,15 +5209,6 @@ async def main(debug, cprof=False):
                                 # update block cache for collisions of the entities
                                 if abs_pos in g.w.data[target_chunk]:
                                     g.w.block_data[target_chunk][block.pos] = block
-
-                    # breakinig the blocks with tools
-                    for block in g.w.to_break[:]:
-                        if block.finish_breaking is None:
-                            rect = pygame.Rect(block.rect[0] - g.scroll[0], block.rect[1] - g.scroll[1], BS, BS)
-                            win.renderer.blit(breaking_sprs[int(block.broken)], rect)
-                        else:
-                            g.w.modify("air", *block.finish_breaking)
-                            g.w.to_break.remove(block)
 
                     # mouse shit with chunks
                     if not pw.keybinds_active:
@@ -5816,7 +5787,7 @@ async def main(debug, cprof=False):
                         crystal.update()
                         # remaining text
                         molar_ratio = lattice.stoic / num_atoms
-                        molar_ratia[name] = molar_rsatio
+                        molar_ratia[name] = molar_ratio
                         write(win.renderer, "midtop", f"{molar_ratio:.2f}", orbit_fonts[12], MINT, x, y + 70, tex=True)
                     if g.mb.crystals:
                         # cofigurational entropy
@@ -5973,13 +5944,13 @@ async def main(debug, cprof=False):
             # poly.update()
             # night.alpha = 255 * (sin(ticks() * 0.002) + 1) * 0.5
 
-            # i += 0.1
-            # if i >= 4:
-            #     i = 0
-            # image = anim.imgs["Necromancer"]["run"]["images"][int(i)]
-            # rect = anim.rects["Necromancer"]["run"]
-            # rect = pygame.Rect(rect.x + 4 * 100, rect.y + 50, *rect.size)
-            # win.renderer.blit(image, rect)
+            i += 0.1
+            if i >= 4:
+                i = 0
+            image = anim.imgs["Necromancer"]["run"]["images"][int(i)]
+            rect = anim.rects["Necromancer"]["run"]
+            rect = pygame.Rect(rect.x + 4 * 100, rect.y + 50, *rect.size)
+            win.renderer.blit(image, rect)
 
             win.renderer.scale = win.scale
 

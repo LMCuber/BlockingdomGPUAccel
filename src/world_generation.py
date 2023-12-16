@@ -497,6 +497,7 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
 
     def entity(traits):
         species = traits[0]
+        print(rel_xy)
         e = getattr(ent, species.capitalize())(species, traits, metadata["index"], rel_xy)
         entities.append(e)
 
@@ -540,8 +541,8 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                 #     entity(["hallowskull", "mob", "moving", "demon"])
                 if _chance(1 / 15):
                     set("torch", x, y)
-                    struct("amogus", x, y)
-                    entity(["hallowskull", "mob", "moving", "demon"])
+                    # struct("amogus", x, y)
+                    entity(["keno", "mob", "moving", "demon"])
 
                 # top is free
                 if get(x, y - 1) == "air":

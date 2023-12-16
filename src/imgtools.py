@@ -9,6 +9,9 @@ def T(surf):
     return Texture.from_surface(win.renderer, surf)
 
 
+def I(surf):
+    return Image(T(surf))
+
 
 class WindowHandler:
     def __init__(self, size, scale=(1, 1), *args, debug=False, vsync=0, gpu_accel=True, **kwargs):

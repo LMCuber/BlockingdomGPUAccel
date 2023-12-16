@@ -104,6 +104,7 @@ class Block:
         self.pos = pos
         self._rect = pygame.Rect((pos[0] * BS, pos[1] * BS), (BS, BS))
         self.rect = self._rect.copy()
+        self.finish_breaking = None
         self.ore_chance = ore_chance
         self.angle = 0
         self.sin = rand(0, 500)
@@ -169,16 +170,16 @@ class Vel:
 
 
 class Scrollable:
+    def __init__(self, g):
+        self.g = g
+
     @property
     def rect(self):
-        return pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self._rect.size)
+        return pygame.Rect(self._rect.x - self.g.scroll[0], self._rect.y - self.g.scroll[1], *self._rect.size)
 
     @property
     def rrect(self):
         return pygame.Rect([r * 3 for r in self.rect])
-    # def update_scrollable(self):
-    #     self._rect.topleft = (floor(self.x), floor(self.y))
-    #     self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
 
 
 class Simp(pygame.sprite.Sprite):
@@ -575,6 +576,10 @@ def load_blocks():
             _y -= 1
             pygame.draw.rect(a.blocks["spike-plant"], rgb_mult(GREEN, randf(0.6, 1.4)), (_x, _y, 3, 3))
     pygame.draw.rect(a.blocks["spike-plant"], rgb_mult(YELLOW, randf(0.6, 1.4)), (_x, _y, 3, 3))
+    # pampas
+    # a.blocks["pampas-top"] = palettize_image(a.blocks["pampas-top"], imgload("assets", "Images", "Palettes", "sunset.png"))
+    # pg_to_pil(a.blocks["pampas-top"]).show();raise
+
     # portal generator
     a.blocks["portal-generator"] = pygame.Surface((30, 30), pygame.SRCALPHA)
     for y in range(10):
@@ -727,35 +732,66 @@ def load_sizes():
 oinfo = {
     # name        | crystal |          | mohs |   radius in pm | fracture toughness  |  price in $ / kg |  | ppm in crust |      | mined at depth in km |      | color in rgb|
     # metals
-    "aluminium":  {"atom": "Al", "VEC":  3, "e/a": 1, "crystal": "FCC", "radius": 1.43, "toughenss":  33,   "price":         18,    "ppm":    82_300,     "depth": 0,                  "color": SILVER},
-    "chromium":   {"atom": "Cr", "VEC":  6, "e/a": 1, "crystal": "BCC", "radius": 1.28, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
-    "cobalt":     {"atom": "Co", "VEC":  9, "e/a": 2, "crystal": "HCP", "radius": 1.25, "toughness": 135,   "price":        210,    "ppm":     27.5,      "depth": 150,                "color": pygame.Color("#3d59ab")},
-    "copper":     {"atom": "Cu", "VEC": 11, "e/a": 1, "crystal": "FCC", "radius": 1.28, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
-    "diamond":    {"atom":  "C", "VEC":  0, "e/a": 4, "crystal": "FCC", "radius":  .70, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
-    "gold":       {"atom": "Au", "VEC": 11, "e/a": 1, "crystal": "FCC", "radius": 1.44, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
-    "iron":       {"atom": "Fe", "VEC":  8, "e/a": 2, "crystal": "BCC", "radius": 1.26, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
-    "manganese":  {"atom": "Mn", "VEC":  7, "e/a": 2, "crystal": "BCC", "radius": 1.27, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
-    "molybdenum": {"atom": "Mo", "VEC":  6, "e/a": 1, "crystal": "BCC", "radius": 1.39, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1,                  "color": SILVER},
-    "nickel":     {"atom": "Ni", "VEC": 10, "e/a": 2, "crystal": "FCC", "radius": 1.24, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
-    "niobium":    {"atom": "Nb", "VEC":  5, "e/a": 1, "crystal": "FCC", "radius": 1.43, "toughness":   0,   "price":        180,    "ppm":     20,        "depth": 0,                  "color": LIGHT_GRAY},
-    "palladium":  {"atom": "Pd", "VEC": 10, "e/a": 0, "crystal": "FCC", "radius": 1.37, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
-    "silver":     {"atom": "Ag", "VEC":  1, "e/a": 1, "crystal": "FCC", "radius": 1.44, "toughness":  73,   "price":        580,    "ppm": 0.08,          "depth": 427,                "color": SILVER},
-    "titanium":   {"atom": "Ti", "VEC":  4, "e/a": 2, "crystal": "HCP", "radius": 1.42, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
-    "tungsten":   {"atom":  "W", "VEC":  6, "e/a": 0, "crystal": "BCC", "radius": 1.39, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
-    "uranium":    {"atom":  "U", "VEC":  6, "e/a": 2, "crystal": "FCC", "radius": 1.56, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
-    "vanadium":   {"atom":  "V", "VEC":  5, "e/a": 2, "crystal": "BCC", "radius": 1.35, "toughness": 110,   "price":      2_000,    "ppm":    100,        "depth": 0,                  "color": SILVER},
-    "zirconium":  {"atom": "Zr", "VEC":  4, "e/a": 2, "crystal": "HCP", "radius": 1.55, "toughness":   0,   "price":        160,    "ppm":    190,        "depth": 0,                  "color": LIGHT_GRAY},
+    "aluminium":  {"atom": "Al", "density":  2.7, "VEC":  3, "ea": 1, "crystal": "FCC", "radius": 1.43, "toughness":  33,   "price":         18,    "ppm":    82_300,     "depth": 0,                  "color": SILVER},
+    "chromium":   {"atom": "Cr", "density":  7.2, "VEC":  6, "ea": 1, "crystal": "BCC", "radius": 1.28, "toughness": 135,   "price":        100,    "ppm":    110,        "depth": 0,                  "color": SILVER},
+    "cobalt":     {"atom": "Co", "density":  8.9, "VEC":  9, "ea": 2, "crystal": "HCP", "radius": 1.25, "toughness": 135,   "price":        210,    "ppm":     27.5,      "depth": 150,                "color": pygame.Color("#3d59ab")},
+    "copper":     {"atom": "Cu", "density":  9.0, "VEC": 11, "ea": 1, "crystal": "FCC", "radius": 1.28, "toughness":  70,   "price":         27,    "ppm":     60,        "depth": 1,                  "color": (184, 115, 51)},
+    "diamond":    {"atom":  "C", "density":  3.5, "VEC":  0, "ea": 4, "crystal": "FCC", "radius":  .70, "toughness":   3.4, "price": 20_000_000,    "ppm": None,          "depth": (140_000, 200_000), "color": POWDER_BLUE},
+    "gold":       {"atom": "Au", "density": 19.3, "VEC": 11, "ea": 1, "crystal": "FCC", "radius": 1.44, "toughness":  65,   "price":     55_500,    "ppm":      0.004,    "depth": 0,                  "color": GOLD},
+    "iron":       {"atom": "Fe", "density":  7.9, "VEC":  8, "ea": 2, "crystal": "BCC", "radius": 1.26, "toughness": 135,   "price":         53,    "ppm": 50_000,        "depth": [9.14, 1.219],      "color": LIGHT_GRAY},
+    "manganese":  {"atom": "Mn", "density":  7.3, "VEC":  7, "ea": 2, "crystal": "BCC", "radius": 1.27, "toughness": 135,   "price":         17,    "ppm":      1066,     "depth": 1,                  "color": LIGHT_GRAY},
+    "molybdenum": {"atom": "Mo", "density": 10.3, "VEC":  6, "ea": 1, "crystal": "BCC", "radius": 1.39, "toughness":  30,   "price":        110,    "ppm":      1.2,      "depth": 1,                  "color": SILVER},
+    "nickel":     {"atom": "Ni", "density":  8.9, "VEC": 10, "ea": 2, "crystal": "FCC", "radius": 1.24, "toughness": 125,   "price":         77,    "ppm":     85,        "depth": 0,                  "color": (189, 186, 174)},
+    "niobium":    {"atom": "Nb", "density":  8.4, "VEC":  5, "ea": 1, "crystal": "FCC", "radius": 1.43, "toughness":   0,   "price":        180,    "ppm":     20,        "depth": 0,                  "color": LIGHT_GRAY},
+    "palladium":  {"atom": "Pd", "density": 12.0, "VEC": 10, "ea": 0, "crystal": "FCC", "radius": 1.37, "toughness":  90,   "price":     65_829,    "ppm":      0.015,    "depth": 0,                  "color": (190, 173, 210)},
+    "silver":     {"atom": "Ag", "density": 10.5, "VEC":  1, "ea": 1, "crystal": "FCC", "radius": 1.44, "toughness":  73,   "price":        580,    "ppm": 0.08,          "depth": 427,                "color": SILVER},
+    "titanium":   {"atom": "Ti", "density":  4.5, "VEC":  4, "ea": 2, "crystal": "HCP", "radius": 1.42, "toughness":  57.5, "price":         61,    "ppm":  5_650,        "depth": 0,                  "color": SILVER},
+    "tungsten":   {"atom":  "W", "density": 19.3, "VEC":  6, "ea": 0, "crystal": "BCC", "radius": 1.39, "toughness": 135,   "price":        110,    "ppm":      1.2,      "depth": 0.260,              "color": (226, 229, 222)},
+    "uranium":    {"atom":  "U", "density": 19.0, "VEC":  6, "ea": 2, "crystal": "FCC", "radius": 1.56, "toughness": 130,   "price":         11.75, "ppm":      2.5,      "depth": 0,                  "color": MOSS_GREEN},
+    "vanadium":   {"atom":  "V", "density":  6.1, "VEC":  5, "ea": 2, "crystal": "BCC", "radius": 1.35, "toughness": 110,   "price":      2_000,    "ppm":    100,        "depth": 0,                  "color": SILVER},
+    "zirconium":  {"atom": "Zr", "density":  6.5, "VEC":  4, "ea": 2, "crystal": "HCP", "radius": 1.55, "toughness":   0,   "price":        160,    "ppm":    190,        "depth": 0,                  "color": LIGHT_GRAY},
     # gemstones
-    "silicon":    {"mohs": 7, "price": 500,    "ppm": 277_000, "depth": 0,                             "color": (83, 104, 120)},
-    "coal":       {"mohs": 3, "price": 0.39,   "ppm": 000,     "depth": [0, 300],                      "color": BLACK},
-    "orthoclase": {"mohs": 6, "price": 93,     "ppm": None,    "depth": None,                          "color": (255, 197, 148)},
-    "topaz":      {"mohs": 8, "price": 000,    "ppm": None,    "depth": 0,                             "color": (30, 144, 255)},
-    "talc":       {"mohs": 1, "price": 4.2,    "ppm": 000,     "depth": 0,                             "color": MINT},
-    "quartz":     {"mohs": 7, "price": 000,    "ppm": None,    "depth": None,                          "color": LIGHT_PINK},
-    "tin":        {"mohs": 1, "price": 25.75,  "ppm": 000,     "depth": 0,                             "color": SILVER},
-    "corundum":   {"mohs": 9, "price": 000,    "ppm": 000,     "depth": [3.85, 10],                    "color": (168, 50, 107)},
-    "granite":    {"mohs": 6, "price": None,   "ppm": 800000,  "depth": [1.5, 50],                     "color": (244, 174, 114)},
 }
+
+"""
+import matplotlib.pyplot as plt
+import numpy
+from scipy.optimize import curve_fit
+
+
+def fit_func(x, a, b, c, d, e, f):
+    return a + b * x + c * x ** 2 + d * x ** 3 + e * x ** 4 + f * x ** 5
+
+
+attrs = ["density", "VEC", "ea", "radius", "toughness"]
+for oattr in attrs:
+    for iattr in attrs:
+        if oattr == iattr:
+            continue
+        ys = [oinfo[ore][oattr] for ore in oinfo]
+        xs = [oinfo[ore][iattr] for ore in oinfo]
+        ns = [ore for ore in oinfo]
+        xs, ys, ns = zip(*sorted(zip(xs, ys, ns)))
+
+        popt, pcov = curve_fit(fit_func, xs, ys)
+        x_line = numpy.arange(min(xs), max(xs), 1)
+        y_line = fit_func(x_line, *popt)
+
+        corr_matrix = numpy.corrcoef(xs, ys)
+        corr = corr_matrix[0, 1]
+        r_sq = corr ** 2
+
+        plt.plot(xs, ys)
+        plt.title(f"{oattr} versus {iattr} | R^2 = {r_sq}")
+        for i, txt in enumerate(ns):
+            plt.annotate(txt, (xs[i], ys[i]))
+
+        plt.plot(x_line, y_line, color="red")
+
+        plt.savefig(f"0_{oattr}_versus_{iattr}.png")
+        plt.close()
+raise
+"""
 
 # atmospheres
 atinfo = {
@@ -900,6 +936,9 @@ tinfo = {
 
     "kunai":
         {"blocks": {}},
+
+    "dart":
+        {"blocks": {}}
 }
 tool_names = sorted(tinfo.keys())
 tinfo["sickle"]["blocks"] |= {wheat: 0.12 for wheat in wheats}

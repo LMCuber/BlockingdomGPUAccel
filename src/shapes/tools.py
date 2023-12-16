@@ -2,16 +2,20 @@ from ..settings import *
 
 
 # constants
+# color definitions
 grays = [(x, x, x, 255) for x in range(1, 256)]
 browns = [(int(x * 0.6), int(x * 0.4), int(x * 0.2), 255) for x in range(1, 256)]
-
-
-def get_brown(mu, sigma):
-    return browns[int(random.gauss(mu, sigma))]
-
-
-def get_gray(mu, sigma):
-    return grays[int(random.gauss(mu, sigma))]
+reds = [(x, 0, 0, 255) for x in range(1, 256)]
+greens = [(0, x, 0, 255) for x in range(1, 256)]
+blues = [(0, 0, x, 255) for x in range(1, 256)]
+yellows = [(x, x, 0, 255) for x in range(1, 256)]
+# funcs
+get_gray = lambda mu, sigma: grays[int(nordis(mu, sigma))]
+get_brown = lambda mu, sigma: browns[int(nordis(mu, sigma))]
+get_red = lambda mu, sigma: reds[int(nordis(mu, sigma))]
+get_green = lambda mu, sigma: greens[int(nordis(mu, sigma))]
+get_blue = lambda mu, sigma: blues[int(nordis(mu, sigma))]
+get_yellow = lambda mu, sigma: yellows[int(nordis(mu, sigma))]
 
 
 # functions
@@ -118,7 +122,7 @@ def get_sword(base_color):
             [[browns[130], outline_color], 4 + 22, 0 + 22, 3 + 22, 7 + 22],
             [[browns[120], outline_color], 1 + 22, 5 + 22, 6 + 22, 2 + 22],
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015,0,
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
     )
     """
@@ -487,10 +491,100 @@ def get_hammer(base_color):
             [[get_gray(180, 20), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
             [[get_gray(180, 20), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015,0,
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
     )
     return hammer
+
+
+def get_dart(base_color):
+    get_color = choice((get_red, get_blue, get_green))
+    get_acolor = lambda mu, sigma: list(get_color(mu, sigma)[:3]) + [150]
+    mult = 140
+    #
+    dw, dl, dh = 0.05, 0.6, 0.06
+    bw, bl, bh = dw * 1.2, dl * 1.4, dh * 1.3
+    uw, ul, uh = bw * 0.3, bl * 0.1, bh * 0.3
+    tl = bl * 1.1
+    wuw, wul = dw * 3, dl * 0.5
+    wdw, wdl = dw * 3, dl * 0.5
+    #
+    base_color = (235, 235, 235, 255)
+    outline_color = (255, 255, 255, 255)
+    dart = Crystal(
+        win.renderer, [
+            # down
+            [0, dl, 0],
+            [-dw, 0, dh],
+            [dw, 0, dh],
+            [dw, 0, -dh],
+            [-dw, 0, -dh],
+            # base
+            [-bw, -bl, bh],
+            [bw, -bl, bh],
+            [bw, -bl, -bh],
+            [-bw, -bl, -bh],
+            # up
+            [-uw, -bl - ul, uh],
+            [uw, -bl - ul, uh],
+            [uw, -bl - ul, -uh],
+            [-uw, -bl - ul, -uh],
+            # tip
+            [0, -bl - tl, 0],
+            # wings
+            # left
+            [-wuw, dl + wul, 0],
+            [-wdw, dl + wul + wdl, 0],
+            [0, dl + wul + wdl, 0],
+            # right
+            [wdw, dl + wul + wdl, 0],
+            [wuw, dl + wul, 0],
+            # front
+            [0, dl + wul, wuw],
+            [0, dl + wul + wdl, wdw],
+            # back
+            [0, dl + wul, -wuw],
+            [0, dl + wul + wdl, -wdw],
+        ], [
+            # point colors
+        ], [
+            # connections
+        ], [
+            # fills
+            # down
+            [[get_color(140, 20), outline_color], 0, 1, 2],
+            [[get_color(140, 20), outline_color], 0, 2, 3],
+            [[get_color(140, 20), outline_color], 0, 3, 4],
+            [[get_color(140, 20), outline_color], 0, 4, 1],
+            # base
+            [[get_yellow(140, 20), outline_color], 5, 6, 2, 1],
+            [[get_yellow(140, 20), outline_color], 6, 7, 3, 2],
+            [[get_yellow(140, 20), outline_color], 7, 8, 4, 3],
+            [[get_yellow(140, 20), outline_color], 8, 5, 1, 4],
+            # up
+            [[get_yellow(140, 20), outline_color], 9, 10, 6, 5],
+            [[get_yellow(140, 20), outline_color], 10, 11, 7, 6],
+            [[get_yellow(140, 20), outline_color], 11, 12, 8, 7],
+            [[get_yellow(140, 20), outline_color], 12, 9, 5, 8],
+            # tip
+            [[get_gray(90, 20), outline_color], 13, 9, 10],
+            [[get_gray(90, 20), outline_color], 13, 10, 11],
+            [[get_gray(90, 20), outline_color], 13, 11, 12],
+            [[get_gray(90, 20), outline_color], 13, 12, 9],
+            # wings
+            # left
+            [[get_acolor(230, 20), outline_color], 0, 14, 15, 16],
+            # right
+            [[get_acolor(230, 20), outline_color], 0, 16, 17, 18],
+            # front
+            [[get_acolor(230, 20), outline_color], 19, 20, 16, 0],
+            # back
+            [[get_acolor(230, 20), outline_color], 21, 22, 16, 0],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return dart
 
 
 #

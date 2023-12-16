@@ -74,6 +74,7 @@ square_border_img = timgload3("assets", "Images", "Visuals", "square_border.png"
 square_border_rect = square_border_img.get_rect()
 player_border = timgload3("assets", "Images", "Visuals", "player_border.png")
 player_border_rect = pygame.Rect(10, 10, player_border.width, player_border.height)
+dart_img = timgload3("assets", "Images", "Visuals", "dart.png")
 
 # backgrounds
 player_hit_chart = timgload3("assets", "Images", "Background", "player_hit_chart.png")
@@ -294,6 +295,8 @@ class Game:
         # tool crafter
         self.tool_crafter_selector = "sword"
         self.tool_crafter_selector_rect = None
+        self.mb = None
+        self.sword = None
         # skin menu
         self.skin_anim_speed = 0.06
         self.skins = {  # "pos" is topleft (of the player model; not the screen) just like normal pixel systems

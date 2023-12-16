@@ -8,41 +8,42 @@ from .settings import *
 class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVector
     _img_metadata = {
             "chicken": {
-                "chicken": {"frames": 4},
+                "walk": {"frames": 4},
             },
 
             "portal": {
-                "portal": {"frames": 7},
+                "walk": {"frames": 7},
             },
 
             "camel": {
-                "camel": {"img_mult": randf(0.8, 1.2)},
+                "walk": {"img_mult": randf(0.8, 1.2)},
             },
 
             "fluff_camel": {
-                "fluff_camel": {"frames": 4},
+                "walk": {"frames": 4},
             },
 
             "penguin": {
-                "penguin": {"frames": 4},
+                "walk": {"frames": 4},
                 "penguin_sliding": {"frames": 4, "rotation": -90}
             },
 
             "snowman": {
-                "snowman": {"frames": 4},
+                "walk": {"frames": 4},
             },
 
             "hallowskull": {
-                "hallowskull": {"frames": 4},
-                "hallowskull_rise": {"frames": 5},
+                "walk": {"frames": 4},
+                "rise": {"frames": 5},
             },
 
             "keno": {
-                "keno": {"frames": 3, "end_frame": 1}
+                "idle": {"frames": 3},
+                "walk": {"frames": 10},
             },
 
             "bok-bok": {
-                "bok-bok": {"frames": 4},
+                "walk": {"frames": 4},
             },
     }
     imgs = {}
@@ -57,7 +58,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         # init
         self.anim = 0
         self.species = traits[0]
-        self.init_images(img_data, "images")
+        self.init_images("walk", "images")
         self.og_chunk_index = self.chunk_index = chunk_index
         self.x = chunk_index[0] * CW * BS + rel_pos[0] * BS
         self.y = chunk_index[1] * CH * BS + rel_pos[1] * BS - 100
@@ -392,4 +393,20 @@ class Hallowskull(BaseEntity):
         # self.movex(1)
         # self.jump_over_obstacles()
         # self.xvel, self.yvel = two_pos_to_vel(self._rect.center, g.player._rect.center)
+        pass
+
+
+class Keno(BaseEntity):
+    chance = 100
+    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs)
+        self.def_xvel = self.xvel = 0.3 * 0
+        self.gravity = 0.002 * 0
+        self.max_hp = self.hp = 250
+        self.drops = {"chicken": 1}
+
+    def spec_update(self):
+        self.movex(1)
+        self.jump_over_obstacles()
+        self.xvel, self.yvel = two_pos_to_vel(self._rect.center, g.player._rect.center)
         pass
