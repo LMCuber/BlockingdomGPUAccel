@@ -1,5 +1,5 @@
 # Logical Bugs
-## * Some entities rewinding to previous chunk for no reason
+## • Some entities rewinding to previous chunk for no reason
 ### Reproduced
 When the velocity of the entity gets to 1 + the ground velocity at the same time as the entity transitioning into a new chunk
 ### Reason
@@ -8,7 +8,7 @@ When the entity moves in the x-axis, it may encounter a new chunk. However, the 
 1. Update the y-axis of the entity first to sync it with the chunk relocation logic
 2. Fix the neighbour detection when overlapping chunks, it is harder so I will stick to 1 for now, but I might refactor it
 
-## * Unknown metadata for some known data at given position
+## • Unknown metadata for some known data at given position
 ### Reproduced
 When applying world_modifications in the generate_chunk function
 ### Reason
@@ -16,7 +16,7 @@ world_modifications generates structures that overextend outside the chunk, whic
 ### Solution
 Ignore those blocks lmao
 
-## * Some mobs not updating
+## • Some mobs not updating
 ### Reproduced
 When the mobs are too deep underground
 ### Reason
@@ -26,7 +26,7 @@ the mobs don't either
 ~~Save mobs in a global list rather than in a list per chunk (?)~~
 This is very resource-heavy. Just don't update the mobs, _or_ have a larger range for mob detection. For example, is the chunks update in a [-2, 2] range, the mobs will update in the [-5, 5] range. But I will look into this.
 
-## * You cannot break some blocks
+## • You cannot break some blocks
 ### Reproduced
 The blocks have to be extending out of a chunk border
 ### Reason
