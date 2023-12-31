@@ -75,6 +75,14 @@ square_border_rect = square_border_img.get_rect()
 player_border = timgload3("assets", "Images", "Visuals", "player_border.png")
 player_border_rect = pygame.Rect(10, 10, player_border.width, player_border.height)
 dart_img = timgload3("assets", "Images", "Visuals", "dart.png")
+orbs = {
+    "blue": timgload3("assets", "Images", "Visuals", "base_orb.png"),
+    "green": timgload3("assets", "Images", "Visuals", "base_orb.png"),
+    "purple": timgload3("assets", "Images", "Visuals", "base_orb.png"),
+}
+orbs["blue"].color = POWDER_BLUE
+orbs["green"].color = MOSS_GREEN
+orbs["purple"].color = PURPLE
 
 # backgrounds
 player_hit_chart = timgload3("assets", "Images", "Background", "player_hit_chart.png")
@@ -284,6 +292,7 @@ class Game:
         self.mouse_quit = (0, 0)
         self.mouse_rel_log = []
         self.mouse_log = []
+        self.mouse_delta = (0, 0)
         self.selected_widget = None
         # surfaces
         self.night_sky = pygame.Surface(win.size)
@@ -361,9 +370,11 @@ class Game:
         self.extra_scroll = [0, 0]
         self.saving_structure = False
         self.structure = {}
-        self.screenshake = 0
-        self.s_render_offset = None
-        self.render_offset = [0, 0]
+        # screenshake
+        self.last_screen_shake = ticks()
+        self.screen_shake_duration = 0
+        self.screen_shake_magnitude = 0
+        # ...
         self.clicked_when = None
         self.typing = False
         self.worldbutton_pos_ydt = wb_icon_size[1] + 5

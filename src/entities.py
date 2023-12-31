@@ -4,11 +4,15 @@ from .prim_data import *
 from .settings import *
 
 
+# C O N S T A N T S
+APURPLE = PURPLE[:3] + (30,)
+
 # B A S E  E N T I T Y --------------------------------------------------------------------------------- #
 class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVector
+                                # thank you past Leo for this, now I'm stuck on the fucking chicken bug manipulating spacetime
     _img_metadata = {
             "chicken": {
-                "walk": {"frames": 4},
+                "walk": {"frames": 2},
             },
 
             "portal": {
@@ -54,20 +58,23 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             kwargs = _img_metadata[mob_type][mob_name]
             img = imgload3("assets", "Images", "Mobs", mob_type, mob_file, **kwargs)
             imgs[mob_type][mob_name] = img
-    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
+    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=False, **kwargs):
         # init
         self.anim = 0
         self.species = traits[0]
-        self.init_images("walk", "images")
+        self.init_images("walk", "images", flip_flip=flip_flip)
+        self.demon = "demon" in traits
         self.og_chunk_index = self.chunk_index = chunk_index
+        self.rel_pos = rel_pos
         self.x = chunk_index[0] * CW * BS + rel_pos[0] * BS
-        self.y = chunk_index[1] * CH * BS + rel_pos[1] * BS - 100
+        self.y = chunk_index[1] * CH * BS + rel_pos[1] * BS
         self.pos = self.x, self.y
         self._rect = self.image.get_rect()
         self.rect = self._rect.copy()
         self.smart_vector = smart_vector
         self.traits = traits
         self.block_data = []
+        self.gravity = 0.1
         # Arbeehdee and Rilocto
         self.relocate_to = None
         self.request_block_data = True
@@ -93,9 +100,10 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         # extra traits
         if "mob" in self.traits:
             self.health_bar_border = pygame.Rect(0, 0, 80, 12)
+            self.health_bar_prev = pygame.Rect(0, 0, 0, 0)
             self.health_bar = pygame.Rect(0, 0, 0, 0)
         if "demon" in self.traits:
-            self.bar_rgb = lerp(RED, PURPLE, 50) + lerp(PURPLE, RED, 51)
+            self.bar_rgb = lerp(RED, PURPLE, 50) + lerp(PURPLE, RED, 51) + (255,)
             self.demon = True
         else:
             self.bar_rgb = bar_rgb
@@ -104,7 +112,6 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.last_took_damage = ticks()
         self.glitching = False
         self.last_glitched = ticks()
-        self.last_pause = ticks()
 
         # other attrs
         self.ray_cooldown = False
@@ -124,23 +131,27 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.mask_surf_blue = self.mask.to_surface(setcolor=(0, 0, 255, 127))
         self.mask_surf_blue.set_colorkey(BLACK)
         self.mask_surf_blue = Texture.from_surface(win.renderer, self.mask_surf_blue)
+        # red filter
+        self.mask_surf_damage = self.mask.to_surface(setcolor=(255, 0, 0, 50))
+        self.mask_surf_damage.set_colorkey(BLACK)
+        self.mask_surf_damage = Texture.from_surface(win.renderer, self.mask_surf_damage)
 
     @property
     def sign(self):
         return sign(self.xvel)
 
-    def update__rect(self):
+    def update__rect(self, *args):
+        # print(self.y, self._rect.y, args)
         self._rect.topleft = (int(self.x), int(self.y))
 
     # the base update that every entity undergoes
     def update(self, dt):
-        self.draw()
-        return
         # update the specific update of the species
         self.spec_update()
         # init rect
         # move x
         self.collide()
+
         # bok-bok
         if self.species == "bok-bok":
             # direction change
@@ -154,14 +165,16 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                 # g.player.flinch(0.1 * self.sign, -2)
                 pass
 
+        # collision with player
+        if g.player.anim_type == "stab" and self.rect.colliderect(g.player.rect):
+            self.take_damage(10)
+            self.flinch(5)
+
         # rest
         if not self.glitching:
             getattr(self, "spec_animate", self.animate)(dt)
 
         self.draw()
-
-        # perhaps request relocation?
-        self.check_chunk_borders()
 
         self.regenerate()
         self.display_hp()
@@ -170,30 +183,29 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.x += self.xvel
         # update _rect
         self.update__rect()
-        # collide x
-        for col in self.get_cols():
-            if self.xvel > 0:
-                self.right = col.left
-            else:
-                self.left = col.left
-        self.update__rect()
         # move y
         self.yvel += self.gravity
         self.y += self.yvel
         self.update__rect()
         # collide y
-        for col in self.get_cols():
+        for col in self.get_cols(False):
             self.bottom = col.top
             self.yvel = 0
         # update _rect
+        self.update__rect()
+        # collide x
+        for col in self.get_cols(True):
+            if self.xvel > 0:
+                self.right = col.left
+            else:
+                self.left = col.left
         self.update__rect()
         # scroll the actual "rect"
         self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
 
     def check_chunk_borders(self):
-        chunk_x = floor(self.centerx / (CW * BS))
-        chunk_y = floor(self.centery / (CH * BS))
-        # print(self.centerx / (CW * BS), self.centery / (CH * BS))
+        chunk_x = floor(self.x / (CW * BS))
+        chunk_y = floor(self.y / (CH * BS))
         if (chunk_x, chunk_y) != self.chunk_index:
             self.relocate_to = (chunk_x, chunk_y)
             self.request_block_data = True
@@ -207,31 +219,41 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
     def set_xvel(self, value):
         self.xvel = value
 
-    def get_cols(self):
+    def get_cols(self, hor=True):
         block_x = floor(self.x / BS)
         block_y = floor(self.y / BS)
         block_pos = (block_x, block_y)
-        xrange = (-1, 2)
-        yrange = (0, 3)
+        xrange = (-4, 5)
+        yrange = (-1, 4)
+        ret = []
+        good = lambda: block_pos == (16, 5) and self.chunk_index == (0, 0) and not hor
+        # pritn(self.x / BS, self.y / BS)
+        draw_rect(win.renderer, GREEN, self.rect)
+        # draw_rect(win.renderer, RED, self._rect)
         for yo in range(*yrange):
             for xo in range(*xrange):
+                chunk = self.chunk_index
+                pos = (block_pos[0] + xo, block_pos[1] + yo)
                 chunk, pos = correct_tile(self.chunk_index, block_pos, xo, yo)
-                if chunk in g.w.block_data:
-                    if pos in g.w.block_data[chunk]:
-                        block = g.w.block_data[chunk][pos]
-                        _rect, rect = block._rect, block.rect
-                        draw_rect(win.renderer, rect, RED)
-                        if self.rect.colliderect(rect):
-                            yield _rect
-                            # pass
-        return []
+                if chunk in g.w.data:
+                    if pos in g.w.data[chunk]:
+                        block = g.w.data[chunk][pos]
+                        if is_hard(block.name):
+                            _rect = block._rect
+                            rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
+                            draw_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
+                            if self._rect.colliderect(_rect):
+                                fill_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
+                                ret.append(_rect)
+        # print("x" if hor else "y", block_pos, self.chunk_index, self._rect.y, ret)
+        return ret
 
     def get_rects(self):
         return [data._rect for data in self.block_data]
 
     def flinch(self, height):
         def inner():
-            self.yvel = height
+            self.yvel = -sqrt(2 * self.gravity * height)
             fv = 0.6
             og_xvel = self.xvel
             self.xvel = fv if g.player.direc == "right" else -fv
@@ -275,11 +297,13 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
     def get_rect(self):
         return self._rect
 
-    def init_images(self, img_data, type_):
+    def init_images(self, img_data, type_, flip_flip=False):
         if type_ == "images":
             # load surfaces
             self.images = BaseEntity.imgs[self.species][img_data]
             self.h_images = [flip(img, True, False) for img in self.images]
+            if flip_flip:
+                self.images, self.h_images = self.h_images, self.images
             img = self.images[0]
             # init mask
             self.mask = pygame.mask.from_surface(img)
@@ -306,13 +330,15 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             win.renderer.blit(self.mask_surf_red, self.rect.move(-o, 0))
             win.renderer.blit(self.mask_surf_green, self.rect.move(o, 0))
             win.renderer.blit(self.mask_surf_blue, self.rect.move(0, -o))
+        # blit mob
+        win.renderer.blit(self.image, self.rect)
+        # blit mob blood
         if self.taking_damage:
             #image.fill((255, 0, 0, 125), special_flags=BLEND_RGB_ADD)
             # image = red_filter(self.image.to_surface())
             # image = Texture.from_surface(win.renderer, image)
             if not self.demon:
-                win.renderer.blit(self.red_filter, self.rect)
-        win.renderer.blit(self.image, self.rect)
+                win.renderer.blit(self.mask_surf_damage, self.rect)
 
     def animate(self, dt):
         self.anim += g.p.anim_fps * dt
@@ -345,33 +371,53 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             self.xvel = 0.2
 
     def regenerate(self):
-        if self.taking_damage and ticks() - self.last_took_damage >= 300:
+        if self.taking_damage and ticks() - self.last_took_damage >= 1000:
             self.taking_damage = False
         if self.glitching and ticks() - self.last_glitched >= 300:
             self.glitching = False
 
     def display_hp(self):
         if self.hp < self.max_hp:
+            # discrete logistic curve for smooth ass animation (smort)
+            self.prev_hp = self.prev_hp + 0.0005 * self.prev_hp * (self.hp - self.prev_hp)
+            # rest (dum dum)
             w = self.hp / self.max_hp * self.health_bar_border.width
+            pw = self.prev_hp / self.max_hp * self.health_bar_border.width
+            self.health_bar_prev.update(self.health_bar.topleft, (pw, self.health_bar_border.height))
             self.health_bar.update(self.health_bar.topleft, (w, self.health_bar_border.height))
             self.health_bar_border.centerx = self.rect.centerx
             self.health_bar_border.bottom = self.rect.top - 20
             self.health_bar.topleft = self.health_bar_border.topleft
-            fill_rect(win.renderer, self.health_bar, PURPLE)
-            draw_rect(win.renderer, self.health_bar_border, BLACK)
+            fill_rect(win.renderer, PINK, self.health_bar_prev)
+            fill_rect(win.renderer, PURPLE, self.health_bar)
+            draw_rect(win.renderer, BLACK, self.health_bar_border)
 
     def take_damage(self, amount):
-        self.taking_damage = True
-        self.last_took_damage = ticks()
-        self.hp -= amount
+        if not self.taking_damage:
+            self.taking_damage = True
+            self.last_took_damage = ticks()
+            self.prev_hp = self.hp
+            self.hp -= amount
 
 
 # M O B S ------------------------------------------------------------------------------------------------ #
 class Chicken(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
-        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs)
-        self.xvel = 0.3 * 0
-        self.gravity = 0.002
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=True, **kwargs)
+        self.xvel = 0.3
+        self.max_hp = self.hp = 70
+
+    def spec_update(self):
+        # self.movex(1)
+        # self.jump_over_obstacles()
+        pass
+
+
+class FluffCamel(BaseEntity):
+    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=True, **kwargs)
+        self.xvel = 0.3
+        self.max_hp = self.hp = 70
 
     def spec_update(self):
         # self.movex(1)
@@ -385,7 +431,6 @@ class Hallowskull(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
         super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs)
         self.def_xvel = self.xvel = 0.3 * 0
-        self.gravity = 0.002 * 0
         self.max_hp = self.hp = 250
         self.drops = {"chicken": 1}
 
@@ -401,12 +446,11 @@ class Keno(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
         super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs)
         self.def_xvel = self.xvel = 0.3 * 0
-        self.gravity = 0.002 * 0
         self.max_hp = self.hp = 250
         self.drops = {"chicken": 1}
 
     def spec_update(self):
-        self.movex(1)
-        self.jump_over_obstacles()
-        self.xvel, self.yvel = two_pos_to_vel(self._rect.center, g.player._rect.center)
+        # self.movex(1)
+        # self.jump_over_obstacles()
+        # self.xvel, self.yvel = two_pos_to_vel(self._rect.center, g.player._rect.center)
         pass

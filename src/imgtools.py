@@ -2,7 +2,7 @@ import pygame
 from pygame._sdl2.video import Window, Renderer, Texture, Image
 import os
 import pymunk
-from math import ceil
+from math import floor, ceil
 
 
 def T(surf):
@@ -56,14 +56,14 @@ BP = 10
 BS = BP * S
 HL, VL = 27, 20
 L = VL * HL
-CW, CH = 32, 32
+CW, CH = 16, 16
 MHL = HL * BS / S
 MVL = VL * BS / S
 wb_icon_size = 300, 70
 # win = WindowHandler((1280, 720), scale=(3, 3))
 win = WindowHandler((1280, 720), scale=(3 // S, 3 // S))
-H_CHUNKS = ceil(win.width / (CW * BS)) + 1
-V_CHUNKS = ceil(win.height / (CH * BS)) + 1
+H_CHUNKS = floor(win.width / (CW * BS)) + 2 * (win.width / (CW * BS) != 0) + 1
+V_CHUNKS = floor(win.height / (CH * BS)) + 2 * (win.height / (CW * BS) != 0)
 # V_CHUNKS, H_CHUNKS = 2, 2
 
 

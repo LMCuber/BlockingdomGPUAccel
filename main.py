@@ -376,8 +376,9 @@ def get_gun_info(name, part):
 
 
 def shake_screen(shake_offset, shake_length):
-    g.s_render_offset = shake_offset
-    g.screen_shake = shake_length
+    g.screen_shake_magnitude = shake_offset
+    g.screen_shake_duration = shake_length
+    g.last_screen_shake = ticks()
 
 
 def is_audio(file_name):
@@ -1315,7 +1316,6 @@ class World:
                     # with suppress(KeyError):
                     #     print(self.data[target_chunk][abs_pos].name)
                     del self.data[target_chunk][abs_pos]
-                    print(self.data[target_chunk][abs_pos])
                 if block.in_updating:
                     block.in_updating = False
                     g.w.to_update[target_chunk].remove(block)
@@ -1340,7 +1340,8 @@ class World:
                         else:
                             g.w.modify(f"{setto}-{ori_name}", right_chunk, right_pos)
             if u_good:
-                self.data[target_chunk][abs_pos] = Block(setto, abs_pos)
+                if setto not in empty_blocks:
+                    self.data[target_chunk][abs_pos] = Block(setto, abs_pos)
                 if setto not in invisible_blocks:
                     self.terrains[target_chunk].update(self.bimg(setto, tex=False), (blit_x, blit_y, BS, BS))
                 # set correct sine for cattail
@@ -1524,7 +1525,7 @@ class PlayWidgets:
             ]),
             "sliders": SmartList([
                 Slider(win.renderer,   "Resolution",    [", ".join([str(x) for x in r]) for r in resolutions], 0, tooltip="Set the resolution of the game in pixels",                          **_menu_slider_kwargs),
-                Slider(win.renderer,   "FPS Cap",       (10, 30, 60, 90, 120, 240, 500, 2000), g.def_fps_cap,     tooltip="The framerate cap",                                                 **_menu_slider_kwargs),
+                Slider(win.renderer,   "FPS Cap",       (1, 10, 30, 60, 90, 120, 240, 500, 2000), g.def_fps_cap,  tooltip="The framerate cap",                                                 **_menu_slider_kwargs),
                 Slider(win.renderer,   "Animation",     range(21),  int(g.p.anim_fps * g.fps_cap),                tooltip="Animation speed of graphics",                                       **_menu_slider_kwargs),
                 Slider(win.renderer,   "Camera Lag",    range(1, 51), 1,                                          tooltip="The lag of the camera that fixated on the player",                  **_menu_slider_kwargs),
                 Slider(win.renderer,   "Volume",        range(101), int(g.p.volume * 100),                        tooltip="Master volume",                                                     **_menu_slider_kwargs),
@@ -1929,7 +1930,11 @@ class Animations:
             },
 
             "Monk": {
+                "idle": {"frames": 4, "speed": 0.04},
                 "run": {"frames": 4},
+                "_run": {"frames": 4},
+                "jump": {"frames": 1},
+                "stab": {"frames": 3},
             },
 
             "Necromancer": {
@@ -1940,24 +1945,27 @@ class Animations:
                 "idle": {"frames": 2, "speed": 1},
                 "run": {"frames": 4, "speed": 4},
                 "jump": {"frames": 4, "speed": 6}
-            }
+            },
         }
-        # aanim imgs
+        # anim imgs
         base = path("assets", "Images", "Player_Animations")
         for weapon in os.listdir(base):
             if weapon == ".DS_Store" or weapon == "Staff":
                 continue
-            self.imgs[weapon] = {}
-            self.rects[weapon] = {}
-            for anim_file in os.listdir(path(base, weapon)):
-                anim_type, ext = os.path.splitext(anim_file)
-                surfs = imgload3(base, weapon, anim_file, frames=self.data[weapon][anim_type]["frames"])
-                if isinstance(surfs, pygame.Surface):
-                    surfs = [surfs]
-                self.imgs[weapon][anim_type] = {}
-                self.imgs[weapon][anim_type]["images"] = [T(img) for img in surfs]
-                self.imgs[weapon][anim_type]["fimages"] = [T(pygame.transform.flip(img, True, False)) for img in surfs]
-                self.rects[weapon][anim_type] = self.imgs[weapon][anim_type]["images"][0].get_rect()
+            try:
+                self.imgs[weapon] = {}
+                self.rects[weapon] = {}
+                for anim_file in os.listdir(path(base, weapon)):
+                    anim_type, ext = os.path.splitext(anim_file)
+                    surfs = imgload3(base, weapon, anim_file, frames=self.data[weapon][anim_type]["frames"])
+                    if isinstance(surfs, pygame.Surface):
+                        surfs = [surfs]
+                    self.imgs[weapon][anim_type] = {}
+                    self.imgs[weapon][anim_type]["images"] = [T(img) for img in surfs]
+                    self.imgs[weapon][anim_type]["fimages"] = [T(pygame.transform.flip(img, True, False)) for img in surfs]
+                    self.rects[weapon][anim_type] = self.imgs[weapon][anim_type]["images"][0].get_rect()
+            except KeyError:
+                raise
         self.rects = {
             "Roninette": pygame.Rect((0, 0, 17 * 3, 19 * 3)),
         }
@@ -2014,7 +2022,7 @@ class Player(SmartVector):
             surfs = data["images"]
             self.anim_info[name]["images"] = [T(img) for img in surfs]
             self.anim_info[name]["fimages"] = [T(pygame.transform.flip(img, True, False)) for img in surfs]
-        self.anim_skin = "Roninette"
+        self.anim_skin = "Monk"
         self.anim_type = "idle"
         self.anim_queue = []
         # for image in self.images:
@@ -2066,7 +2074,6 @@ class Player(SmartVector):
         self.def_food_pie = {"counter": -90}
         self.food_pie = self.def_food_pie.copy()
         self.achievements = {"steps taken": 0, "steps counting": 0}
-        self.armor = dict.fromkeys(("helmet", "chestplate", "leggings"), None)
         self.dead = False
 
         self.rand_username()
@@ -2116,13 +2123,7 @@ class Player(SmartVector):
         # post
         if pw.show_hitboxes:
             draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
-            draw_rect(win.renderer, GREEN, self.rect_draw)
-        if self.armor["helmet"] is not None:
-            win.renderer.blit(g.w.blocks[self.armor["helmet"]], self.rect)
-        if self.armor["chestplate"] is not None:
-            win.renderer.blit(g.w.blocks[self.armor["chestplate"]], (self.rect.x - 3, self.rect.y + 9))
-        if self.armor["leggings"] is not None:
-            win.renderer.blit(g.w.blocks[self.armor["leggings"]], (self.rect.x, self.rect.y + 21))
+            # draw_rect(win.renderer, GREEN, self.rect_draw)
 
     @property
     def sign(self):
@@ -2132,7 +2133,7 @@ class Player(SmartVector):
     def size(self):
         # size = anim.rects[self.anim_skin].size
         # size = (self.image.width, self.image.height)
-        size = (17 * S, 19 * S)
+        size = (25 * S, 24 * S)
         return size
 
     @property
@@ -2340,11 +2341,19 @@ class Player(SmartVector):
         if self.oxygen > 100:
             self.oxygen = 100
 
-    def dashx(self, amount, speed):
-        self.to_dashx = [amount * self.sign, speed * self.sign]
+    def dashx(self, amount, speed, wait=0):
+        def _dashx():
+            time.sleep(wait)
+            self.to_dashx = [amount * self.sign, speed * self.sign]
+        if wait > 0:
+            Thread(target=_dashx).start()
 
-    def dashy(self, amount, speed):
-        self.to_dashy = [amount * self.sign, speed * self.sign]
+    def dashy(self, amount, speed, wait=0):
+        def _dashx():
+            time.sleep(wait)
+            self.to_dashy = [amount * self.sign, speed * self.sign]
+        if wait > 0:
+            Thread(target=_dashx).start()
 
     def flinch(self, xvel, yvel):
         def inner():
@@ -2483,11 +2492,20 @@ class Player(SmartVector):
             return [data for data in self.block_data if self._rect.colliderect(data[1])]
 
     def scroll(self):
+        # scrolling
         g.fake_scroll[0] += (self._rect.x - g.fake_scroll[0] - win.width // 2 + self.width // 2 + g.extra_scroll[0]) / pw.lag.value
         g.fake_scroll[1] += (self._rect.y - g.fake_scroll[1] - win.height // 2 + self.height // 2 + g.extra_scroll[1]) / pw.lag.value
+        # getting rid of floating point errors
         g.scroll[0] = round(g.fake_scroll[0])
         g.scroll[1] = round(g.fake_scroll[1])
+        # screenshake maybe?
+        if g.screen_shake_magnitude > 0:
+            g.scroll[0] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
+            g.scroll[1] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
+            if ticks() - g.last_screen_shake >= g.screen_shake_duration:
+                g.screen_shake_magnitude = 0
 
+    # player move
     def adventure_move(self):
         if pw.keybinds_active:
             return
@@ -2681,17 +2699,19 @@ class Player(SmartVector):
     def external_gravity(self):
         pass
 
+    # new anim is adding to the queue
     def new_anim(self, anim_type, check=True):
         # dashes
         if anim_type == "dslash":
-            # self.dashx(8, -0.3)
-            pass
+            self.dashx(8, -0.3)
+        elif anim_type == "stab":
+            # self.dashx(9, -0.7, 0.1)
+            # self.y += 9
+            shake_screen(5, 30)
         elif anim_type == "uslash":
-            # self.dashx(8, -0.3)
-            # self.dashy(-10, 0.6)
-            # self.to_dashy = [50, -4]
-            # self.yvel = -3.7
-            pass
+            self.dashx(8, -0.3)
+            self.dashy(-10, 0.6)
+            self.yvel = -3.7
         # rest
         if check and len(self.anim_queue) < 4:
             if self.anim_type in ("idle", "run", "jump"):
@@ -2699,10 +2719,11 @@ class Player(SmartVector):
             else:
                 self.anim_queue.append(anim_type)
 
+    # setting anim is instantaneous
     def set_anim(self, anim_type=None):
         self.anim = 0
         self.anim_type = self.anim_queue.pop(0) if anim_type is None else anim_type
-        offset = self.anim_info[self.anim_type].get("offset", (0, 0))
+        offset = anim.imgs[self.anim_skin][self.anim_type].get("offset", (0, 0))
         if any(offset):
             self.x += offset[0]
             self.y += offset[1]
@@ -2718,27 +2739,30 @@ class Player(SmartVector):
     # player animate
     def animate(self):
         # debug
-        self.anim_skin = "Roninette"
-        # self.anim_type = "run"
-        # self.anim += g.p.anim_fps * data["speed"]
-        # self.width, self.height = anim.rects["Monk"]["run"]
-        fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
-        # if self.anim != "run":
-        #     self.anim += g.p.anim_fps * data["speed"]
-        if self.anim_type != "run":
-            self.anim += g.p.anim_fps * 2
-            self.anim = 0
         try:
+            # try whether animation exists
+            fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
+        except KeyError:
+            # the default animation is "run"
+            fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
+        if self.anim_type != "run":
+            # process animation speed from anim.data[]
+            self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
+        try:
+            # try animating the index given the [fdi]
             fdi[int(self.anim)]
         except IndexError:
+            # animation index exceeded the amount of frames
             if self.anim_type == "jump":
                 self.anim = 0
             else:
                 if self.anim_queue:
                     self.set_anim()
+                elif self.anim_type == "run":
+                    self.anim = 0
                 else:
                     self.set_anim("idle")
-            fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
+            fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
         finally:
             self.image = fdi[int(self.anim)]
 
@@ -2764,23 +2788,17 @@ class Visual:
         self.grapple_line = []
 
         # pymunk
-        self.lattice = []
-        w, h = 3, 10
-        for y in range(h):
-            for x in range(w):
-                m = rand(3, 10)
-                cond = y == 0
-                atom = PhysicsEntity(win.renderer, win.size, win.space, 700 + x * 40, 80 + y * 40, m=m, r=m, body_type=(STATIC if cond else DYNAMIC))
-                self.lattice.append(atom)
+        self.atoms = []
         self.bonds = []
-        for i in range(len(self.lattice)):
-            with suppress(IndexError, ValueError):
-                string = PhysicsEntityConnector(win.renderer, win.size, win.space, self.lattice[i], self.lattice[i + 1])
-                self.bonds.append(string)
-            with suppress(IndexError, ValueError):
-                string = PhysicsEntityConnector(win.renderer, win.size, win.space, self.lattice[i], self.lattice[i + w])
-                self.bonds.append(string)
-
+        w, h = 3, 10
+        for y in range(10):
+            atom = PhysicsEntity(win.renderer, win.size, win.space, 650, 300 + y * 5, 5, 5, 1, 0, (KINEMATIC if y == 0 else DYNAMIC))
+            self.atoms.append(atom)
+        self.first_atom = self.atoms[0]
+        for i in range(len(self.atoms)):
+            with suppress(IndexError):
+                bond = PhysicsEntityConnector(win.renderer, win.size, win.space, self.atoms[i], self.atoms[i + 1])
+                self.bonds.append(bond)
         # scope
         bw = 5
         self.scope_border_size = (80, 80)
@@ -2811,10 +2829,11 @@ class Visual:
             if pw.show_hitboxes:
                 (win.renderer, ORANGE, self.rect, 1)
             # pymunk render
+            # self.first_atom.body.velocity = g.mouse_delta
             # for bond in self.bonds:
             #     bond.draw()
-            #     bond.src.draw()
-            #     bond.dest.draw()
+                # bond.src.draw()
+                # bond.dest.draw()
         for node in self.ns_nodes[:]:
             if ticks() - node[-1] >= 330:
                 self.ns_nodes.remove(node)
@@ -3041,15 +3060,6 @@ class Visual:
                     else:
                         if self.angle >= 90:
                             self.angle = da[self.sign]
-                    # collide with blocks
-                    for block, rect in g.player.block_data:
-                        name = block.name
-                        if name != "air":
-                            rect = pygame.Rect(block._rect.x - g.scroll[0], block._rect.y - g.scroll[1], BS, BS)
-                            if self.rect.colliderect(rect):
-                                if name in tinfo[g.player.tool_type]["blocks"]:
-                                    block.broken += 1
-                                    break
                     # collisiòn
                     for block, rect in g.player.block_data:
                         rect = pygame.Rect(rect.x - g.scroll[0], rect.y - g.scroll[1], BS, BS)
@@ -3057,9 +3067,10 @@ class Visual:
                             draw_rect(win.renderer, ORANGE, rect)
                         if self.rect.colliderect(rect):
                             block.broken += 0.03
-                            test(block.name)
-                            if block not in g.w.to_break and block.name not in empty_blocks:
-                                g.w.to_break.append(block)
+                            if block not in g.w.to_break:
+                                if name in tinfo[g.player.tool_type]["blocks"]:
+                                    g.w.to_break.append(block)
+                                    break
                 else:
                     self.angle = da[self.sign]
 
@@ -3109,8 +3120,7 @@ class Visual:
                 # g.player.new_anim("uslash")
                 pass
             elif dy > 0:
-                # g.player.new_anim("dslash")
-                pass
+                g.player.new_anim("stab")
         g.mouse_rel_log.clear()
 
     def swing_sword(self):
@@ -4439,6 +4449,18 @@ async def main(debug, cprof=False):
         # pygame.mouse.set_visible(False)
         # light.blend_mode = pygame.BLEND_RGBA_MULT
         i = 0
+        yyy = 0
+
+        bbb = [pygame.Rect(360, 240, 30, 30),
+pygame.Rect(390, 240, 30, 30),
+pygame.Rect(420, 240, 30, 30),
+pygame.Rect(480, 240, 30, 30),
+pygame.Rect(510, 240, 30, 30),
+pygame.Rect(540, 240, 30, 30),
+pygame.Rect(570, 240, 30, 30),
+pygame.Rect(600, 240, 30, 30)]
+        pr = pygame.Rect(480, 169, 90, 72)
+
         while running:
             # init dynamic constants
             mouse = pygame.mouse.get_pos()
@@ -4523,12 +4545,14 @@ async def main(debug, cprof=False):
                             # disable_needed_widgets()
                             # pg_to_pil(win.renderer.to_surface()).show()
                             # o = OrbParticle((-30, -50), GREEN)
-                            o = OrbMatrix(lambda: g.player.rect.center)
-                            group(o, all_other_particles)
+                            # o = OrbMatrix(lambda: g.player.rect.center)
+                            # group(o, all_other_particles)
                             # o = OrbParticle((200, 200), WATER_BLUE, 118)
                             # group(o, all_other_particles)
                             # o = OrbParticle((150, 150), PURPLE, 118*2)
                             # group(o, all_other_particles)
+                            e = g.w.entities[(-1, 0)][0]
+                            e.take_damage(40)
 
                         # actual gameplay events
                         if g.stage == "play":
@@ -4815,6 +4839,7 @@ async def main(debug, cprof=False):
                         # win.renderer.scale = (wr, wh)
 
                     elif event.type == pygame.MOUSEMOTION:
+                        g.mouse_delta = event.rel
                         if g.mouses[0]:
                             g.mouse_rel_log.append(event.rel)
                             g.mouse_log.append(g.mouse)
@@ -4957,6 +4982,7 @@ async def main(debug, cprof=False):
                                 g.w.modify(name, chunk, pos)
                                 del g.w.late_chunk_data[chunk][pos]
 
+                    # update the chunks
                     for y in range(V_CHUNKS):
                         for x in range(H_CHUNKS):
                             # init chunk data like pos and other metadata
@@ -4975,12 +5001,13 @@ async def main(debug, cprof=False):
                             _cpos = g.w.metadata[target_chunk]["pos"]
                             chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
                             terrain_tex = g.w.terrains[target_chunk]
+                            # terrain_tex.color = (rrr, ggg, bbb, 255)
                             lighting_tex = g.w.lightings[target_chunk]
                             lighting_tex.alpha = 0
                             # lighting_tex.alpha = 240 * (sin(ticks() * 0.0008) + 1) / 2wa
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
-                            win.renderer.blit(g.w.terrains[target_chunk], chunk_rect)
+                            win.renderer.blit(terrain_tex, chunk_rect)
                             _chunk_rect = chunk_rect
                             if "lighting_offset" in g.w.metadata[target_chunk]:
                                 _chunk_rect = chunk_rect.move(g.w.metadata[target_chunk]["lighting_offset"], 0)
@@ -5080,32 +5107,7 @@ async def main(debug, cprof=False):
                                         win.renderer.blit(top_tex_img, top_surf_rect)
 
                             # updating the entities in the chunk
-                            for i, entity in enumerate(g.w.entities[target_chunk]):
-                                # get entity block data
-                                # if entity.request_block_data:
-                                    # entity.block_data = block_cache
-                                    # entity.request_block_data = False
-                                # update the entity
-                                num_entities += 1
-                                entity.update(g.dt)
-                                # relocate_to to a different key location of the entity
-                                if entity.relocate_to is not None:
-                                    if entity.relocate_to in g.w.data:
-                                        g.w.entities[entity.chunk_index].remove(entity)
-                                        g.w.entities[entity.relocate_to].append(entity)
-                                        entity.chunk_index = entity.relocate_to
-                                        entity.relocate_to = None
-                                        # entity.update(g.dt)
-                                # show hitboxes if selected by user
-                                if pw.show_hitboxes:
-                                    draw_rect(win.renderer, RED, entity.rect)
-                                    write(win.renderer, "midbottom", target_chunk, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
-                                # collide with attacking player
-                                if g.player.anim_type in ("uslash", "dslash"):
-                                    if entity._rect.colliderect(g.player._rect):
-                                        entity.take_damage(1)
-                                        if entity.demon:
-                                            entity.glitch()
+                            # updating_entities[target_chunk].append(target_chunk)
 
                             # show the chunk borders with different colors
                             if target_chunk not in g.w.chunk_colors:
@@ -5119,10 +5121,13 @@ async def main(debug, cprof=False):
                             rect.y = rect.y * BS - g.scroll[1]
                             if pw.show_chunk_borders:
                                 chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
-                                chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2)])
+                                chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2 + 60)])
 
+                            # |
                             # infamous
+                            # |
                             # continue
+                            # |
 
                             for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
                             #   init
@@ -5230,6 +5235,33 @@ async def main(debug, cprof=False):
                                 if abs_pos in g.w.data[target_chunk]:
                                     g.w.block_data[target_chunk][block.pos] = block
 
+                    # update the entities
+                    for chunk in updated_chunks:
+                        for i, entity in enumerate(g.w.entities[chunk]):
+                            # relocate entity to new chunk
+                            entity.check_chunk_borders()
+                            if entity.relocate_to is not None:
+                                if entity.relocate_to in g.w.data:
+                                    print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
+                                    g.w.entities[entity.chunk_index].remove(entity)
+                                    g.w.entities[entity.relocate_to].append(entity)
+                                    entity.chunk_index = entity.relocate_to
+                                    entity.relocate_to = None
+                                    pass
+                            # update the entity
+                            num_entities += 1
+                            entity.update(g.dt)
+                            # show hitboxes if selected by user
+                            if pw.show_hitboxes:
+                                draw_rect(win.renderer, RED, entity.rect)
+                                write(win.renderer, "midbottom", entity.chunk_index, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
+                            # collide with attacking player
+                            if g.player.anim_type in ("uslash", "dslash"):
+                                if entity._rect.colliderect(g.player._rect):
+                                    entity.take_damage(1)
+                                    if entity.demon:
+                                        entity.glitch()
+
                     # breakinig the blocks with tools
                     for block in g.w.to_break[:]:
                         if block.finish_breaking is None:
@@ -5279,6 +5311,7 @@ async def main(debug, cprof=False):
                                             # g.w.data[target_chunk][abs_pos] = Block(setto)
                                             if mod == 1:
                                                 setto += "_bg"
+                                            print(target_chunk, abs_pos)
                                             g.w.modify(setto, target_chunk, abs_pos)
                                 else:
                                     g.player.eating = False
@@ -5419,7 +5452,7 @@ async def main(debug, cprof=False):
                     draw_rect(win.renderer, color, cr)
                 for data in chunk_texts:
                     (t1, t2), pos = data
-                    write(win.renderer, "center", t1, orbit_fonts[12], WHITE, *pos, tex=True)
+                    write(win.renderer, "center", t1, orbit_fonts[12], CYAN, *pos, tex=True)
                 for mt in magic_tables:
                     pygame.gfxdraw.aaellipse(win.renderer, *mt)
 
@@ -5938,13 +5971,7 @@ async def main(debug, cprof=False):
                 elif g.home_stage == "settings":
                     all_home_settings_buttons.update()
 
-            # screen shake (offsetting the render)
-            if g.screen_shake > 0:
-                g.screen_shake -= 1
-                g.render_offset = (rand(-g.s_render_offset, g.s_render_offset), rand(-g.s_render_offset, g.s_render_offset))
-            else:
-                g.render_offset = (0, 0)
-
+            # widgets
             draw_and_update_widgets()
             if g.selected_widget is not None:
                 draw_rect(win.renderer, ORANGE, g.selected_widget.rect)
