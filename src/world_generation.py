@@ -538,7 +538,7 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                 # chicken
                 if _chance(1 / 16) and chunk_index == (0, 0):
                     set("torch", x, y)
-                    entity(["fluff_camel", "mob", "moving"])
+                    entity(["chicken", "mob", "moving"])
 
                 # top is free
                 if get(x, y - 1) == "air":
@@ -588,14 +588,6 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                         struct("desert-well", x, y)
 
     return entities, late_chunk_data
-
-
-# def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
-#     for pos, block in chunk_data.copy().items():
-#         if block.name == "soil_f":
-#             if r.random() <= 0.1:
-#                 chunk_data[pos] = Block("dynamite", block.pos)
-#     return []
 
 
 pyramid = dict.fromkeys([(-2, 0), (-1, -1), (0, -2), (1, -1), (2, 0), (1, 0), (0, 0), (-1, 0)], "sand") \

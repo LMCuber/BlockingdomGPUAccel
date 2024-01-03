@@ -60,6 +60,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             imgs[mob_type][mob_name] = img
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=False, **kwargs):
         # init
+        self.dead = False
         self.anim = 0
         self.species = traits[0]
         self.init_images("walk", "images", flip_flip=flip_flip)
@@ -131,21 +132,28 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.mask_surf_blue = self.mask.to_surface(setcolor=(0, 0, 255, 127))
         self.mask_surf_blue.set_colorkey(BLACK)
         self.mask_surf_blue = Texture.from_surface(win.renderer, self.mask_surf_blue)
-        # red filter
-        self.mask_surf_damage = self.mask.to_surface(setcolor=(255, 0, 0, 50))
-        self.mask_surf_damage.set_colorkey(BLACK)
-        self.mask_surf_damage = Texture.from_surface(win.renderer, self.mask_surf_damage)
-
-    @property
-    def sign(self):
-        return sign(self.xvel)
+        # damage mask
+        damage_mask = self.mask.to_surface(setcolor=(255, 0, 0, 120))
+        damage_mask_f = flip(damage_mask, True, False)
+        damage_mask.set_colorkey(BLACK)
+        damage_mask_f.set_colorkey(BLACK)
+        damage_mask = Texture.from_surface(win.renderer, damage_mask)
+        damage_mask_f = Texture.from_surface(win.renderer, damage_mask_f)
+        if flip_flip:
+            damage_mask, damage_mask_f = damage_mask_f, damage_mask
+        self.damage_mask = {
+            1: damage_mask,
+            -1: damage_mask_f
+        }
 
     def update__rect(self, *args):
         # print(self.y, self._rect.y, args)
         self._rect.topleft = (int(self.x), int(self.y))
 
     # the base update that every entity undergoes
-    def update(self, dt):
+    # entity update
+    def update(self, dt, show_hitboxes):
+        self.show_hitboxes = show_hitboxes
         # update the specific update of the species
         self.spec_update()
         # init rect
@@ -162,12 +170,12 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 
             # colliding with the player
             if self._rect.colliderect(g.player._rect):
-                # g.player.flinch(0.1 * self.sign, -2)
+                # g.player.flinch(0.1 * self.xbound, -2)
                 pass
 
         # collision with player
         if g.player.anim_type == "stab" and self.rect.colliderect(g.player.rect):
-            self.take_damage(10)
+            self.take_damage(40)
             self.flinch(5)
 
         # rest
@@ -188,13 +196,15 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.y += self.yvel
         self.update__rect()
         # collide y
-        for col in self.get_cols(False):
+        for col in self.get_cols(hor=False):
             self.bottom = col.top
             self.yvel = 0
+            if self.taking_damage:
+                self.stop_taking_damage()
         # update _rect
         self.update__rect()
         # collide x
-        for col in self.get_cols(True):
+        for col in self.get_cols(hor=True):
             if self.xvel > 0:
                 self.right = col.left
             else:
@@ -219,7 +229,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
     def set_xvel(self, value):
         self.xvel = value
 
-    def get_cols(self, hor=True):
+    def get_cols(self, hor=True, return_type="default"):
         block_x = floor(self.x / BS)
         block_y = floor(self.y / BS)
         block_pos = (block_x, block_y)
@@ -228,7 +238,8 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         ret = []
         good = lambda: block_pos == (16, 5) and self.chunk_index == (0, 0) and not hor
         # pritn(self.x / BS, self.y / BS)
-        draw_rect(win.renderer, GREEN, self.rect)
+        if self.show_hitboxes:
+            draw_rect(win.renderer, GREEN, self.rect)
         # draw_rect(win.renderer, RED, self._rect)
         for yo in range(*yrange):
             for xo in range(*xrange):
@@ -241,10 +252,16 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                         if is_hard(block.name):
                             _rect = block._rect
                             rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
-                            draw_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
+                            if self.show_hitboxes:
+                                draw_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
                             if self._rect.colliderect(_rect):
-                                fill_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
+                                if self.show_hitboxes:
+                                    fill_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
+                                if return_type == "default":
+                                    ret.append(_rect)
+                            if return_type == "_rect":
                                 ret.append(_rect)
+
         # print("x" if hor else "y", block_pos, self.chunk_index, self._rect.y, ret)
         return ret
 
@@ -338,7 +355,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             # image = red_filter(self.image.to_surface())
             # image = Texture.from_surface(win.renderer, image)
             if not self.demon:
-                win.renderer.blit(self.mask_surf_damage, self.rect)
+                win.renderer.blit(self.damage_mask[self.xbound], self.rect)
 
     def animate(self, dt):
         self.anim += g.p.anim_fps * dt
@@ -371,10 +388,11 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             self.xvel = 0.2
 
     def regenerate(self):
-        if self.taking_damage and ticks() - self.last_took_damage >= 1000:
-            self.taking_damage = False
-        if self.glitching and ticks() - self.last_glitched >= 300:
-            self.glitching = False
+        # if self.taking_damage and ticks() - self.last_took_damage >= 1000:
+        #     self.taking_damage = False
+        # if self.glitching and ticks() - self.last_glitched >= 300:
+        #     self.glitching = False
+        pass
 
     def display_hp(self):
         if self.hp < self.max_hp:
@@ -391,20 +409,33 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             fill_rect(win.renderer, PINK, self.health_bar_prev)
             fill_rect(win.renderer, PURPLE, self.health_bar)
             draw_rect(win.renderer, BLACK, self.health_bar_border)
+            if self.hp == 0:
+                if self.prev_hp / self.hp_before_death <= 0.35:
+                    self.die()
 
     def take_damage(self, amount):
         if not self.taking_damage:
             self.taking_damage = True
             self.last_took_damage = ticks()
             self.prev_hp = self.hp
-            self.hp -= amount
+            if self.hp - amount <= 0:
+                self.hp_before_death = self.hp
+                self.hp = 0
+                self.die()
+            else:
+                self.hp -= amount
+
+    def die(self):
+        self.dead = True
+        self.final_rects = self.get_cols(return_type="_rect")
 
 
 # M O B S ------------------------------------------------------------------------------------------------ #
 class Chicken(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
         super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=True, **kwargs)
-        self.xvel = 0.3
+        self.drops = {"chicken": 2}
+        self.def_xvel = self.xvel = 0.3
         self.max_hp = self.hp = 70
 
     def spec_update(self):

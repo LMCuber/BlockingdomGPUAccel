@@ -180,9 +180,11 @@ def mousebuttondown_event(button):
         g.clicked_when = g.stage
         if g.stage == "play":
     # def __init__(self, pos, mouse, start_pos, speed, gravity=0, image=None, name=None, color=BLACK, size=None, damage=0, traits=None, rotate=True, air_resistance=0, invisible=False, unfeelable=False, track_path=None, tangent=None):
+            """
             p = Projectile(g.player.rect.midtop, g.mouse, g.player._rect.center, speed=15, gravity=0.30, image=dart_img, track_path=False)
             p.image.color = choice((get_red, get_green, get_blue))(140, 20)
             all_projectiles.append(p)
+            """
 
             if g.player.main == "tool":
                 if "_sword" in g.player.tool:
@@ -3572,25 +3574,23 @@ class Drop(Scrollable):
             self.drop_amount = 1
         elif isinstance(extra, int):
             self.drop_amount = extra
-        self.image = g.w.blocks[self.name].copy()
-        self.image = scale2x(self.image)
-        self.width, self.height = self.image.get_size()
+        self.image = T(scale2x(g.w.surf_assets["blocks"][name]))
+        self.width, self.height = self.image.width, self.image.height
         self._rect = self.image.get_rect(topleft=rect.topleft)
         self._rect.x += rect.width / 2 - self.width / 3 / 2
         self._rect.y += rect.height / 2 - self.width / 3 / 2
         if offset:
             self._rect.topleft = [r + rand(0, 0) for r in self._rect.topleft]
         self.og_pos = self._rect.center
-        self.screen = g.w.screen
-        self.layer = g.w.layer
         self.sin = rand(0, 500)
 
+    # drop update
     def update(self):
         # doesnt work for scaled blitting past leo what an idiot you are not we cant emulate sine waves dumbass you think this was gud idear
-        # self._rect.centery = self.og_pos[1] + sin(ticks() * 0.001 + self.sin) * 2
-        win.renderer.blit(self.image, self.rrect)
+        self._rect.centery = self.og_pos[1] + sin(ticks() * 0.001 * 2 * pi * 0.5 + self.sin) * 5
+        win.renderer.blit(self.image, self.rect)
         if pw.show_hitboxes:
-            (win.renderer, RED, self.rrect, 1)
+            draw_rect(win.renderer, RED, self.rect)
 
     def kill(self):
         all_drops.remove(self)
@@ -3808,6 +3808,32 @@ class OrbParticle:
     def update(self):
         self.draw()
         self.move()
+
+
+class ShatterParticle(Scrollable):
+    def __init__(self, image, pos, _rects):
+        super().__init__(g)
+        self.image = image
+        self.x, self.y = pos
+        self._rect = self.image.get_rect()
+        self._rects = _rects
+        self.energy = self.yvel = -4.5
+        self.yacc = 0.2
+        self.xvel = 0
+        self.width, self.height = self.image.width, self.image.height
+
+    def update(self):
+        self.x += self.xvel
+        self.yvel += self.yacc
+        self.y += self.yvel
+        self._rect.topleft = (int(self.x), int(self.y))
+        for _rect in self._rects:
+            if self._rect.colliderect(_rect):
+                self.y = _rect.top - self.height
+                self.energy *= 0.7
+                self.yvel = self.energy
+        self._rect.topleft = (int(self.x), int(self.y))
+        win.renderer.blit(self.image, self.rect)
 
 
 class OrbMatrix:
@@ -4536,8 +4562,9 @@ pygame.Rect(600, 240, 30, 30)]
                             # group(Drop("dynamite", pygame.Rect([x / 3 for x in g.mouse] + [10, 10])), all_drops)
                             #group(FollowParticle(g.w.blocks["soil_f"], g.mouse, g.player.rect.center), all_other_particles)
                             # g.w.boss_scene = not g.w.boss_scene
-                            for p in all_other_particles:
-                                p.switch()
+                            # for p in all_other_particles:
+                            #     p.switch()
+                            pass
 
                         if event.key == K_q:  # debug so far until it gets a feature on its own
                             # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
@@ -4950,7 +4977,7 @@ pygame.Rect(600, 240, 30, 30)]
             hotbar_xo = -3
             tool_holders_x, tool_holders_y = (win.width / 2 - 35 + hotbar_xo, 7)
             inventory_x, inventory_y = (win.width / 2 + 21 + hotbar_xo, 7)
-            inventory_font_size = 15
+            inventory_font_size = 12
             # pre-scale play
             if g.stage == "play":
                 # filling
@@ -5237,7 +5264,7 @@ pygame.Rect(600, 240, 30, 30)]
 
                     # update the entities
                     for chunk in updated_chunks:
-                        for i, entity in enumerate(g.w.entities[chunk]):
+                        for i, entity in enumerate(g.w.entities[chunk][:]):
                             # relocate entity to new chunk
                             entity.check_chunk_borders()
                             if entity.relocate_to is not None:
@@ -5250,7 +5277,16 @@ pygame.Rect(600, 240, 30, 30)]
                                     pass
                             # update the entity
                             num_entities += 1
-                            entity.update(g.dt)
+                            entity.update(g.dt, pw.show_hitboxes)
+                            # check whether the entity is dead and drop the loot
+                            if entity.dead:
+                                # shatter particles
+                                img = T(pygame.Surface((5, 5)))
+                                group(ShatterParticle(img, entity._rect.center, entity.final_rects), all_other_particles)
+                                # drop the loot
+                                g.w.entities[chunk].remove(entity)
+                                for drop, amount in entity.drops.items():
+                                    all_drops.append(Drop(drop, entity._rect, amount))
                             # show hitboxes if selected by user
                             if pw.show_hitboxes:
                                 draw_rect(win.renderer, RED, entity.rect)
@@ -5468,8 +5504,8 @@ pygame.Rect(600, 240, 30, 30)]
                 all_projectiles.update()
 
                 # drops
-                # for drop in all_drops:
-                #     drop.update()
+                for drop in all_drops:
+                    drop.update()
 
                 # grass boi
                 """
@@ -5510,7 +5546,7 @@ pygame.Rect(600, 240, 30, 30)]
                 """
 
                 # P L A Y  B L I T S -------------------------------------------------------------------------- #
-                # write(win.renderer, "center", g.player.username, orbit_fonts[12], g.w.text_color, g.player.rrect.centerx, g.player.rrect.centery - 30)
+                write(win.renderer, "bottomright", g.player.username, orbit_fonts[12], g.w.text_color, *g.player.rect.topleft, tex=True)
                 # metal_detector_perc = floor((metal_detector + 0.5) * 100)
                 # write(win.renderer, "center", f"{metal_detector_perc}%", orbit_fonts[15], BLACK, g.player.rrect.centerx, g.player.rrect.centery - 60, border=WHITE)
                 # win.renderer.blit(g.bar_rgb_img.subsurface(0, 0, metal_detector_perc, g.bar_rgb_img.get_height()), (100, 100))
@@ -5557,14 +5593,16 @@ pygame.Rect(600, 240, 30, 30)]
                             win.renderer.blit(damage_output_surf, damage_output_rect)
 
                 # selected block
-                x = inventory_x + inventory_width * S / 10 + 1
-                y = inventory_y + 32
+                x = inventory_rect.x
+                y = inventory_rect.y
                 for index, block in enumerate(g.player.inventory):
+                    blit_rect = pygame.Rect(x + 3, y + 3, BS, BS)
                     if block is not None:
                         if g.player.inventory_amounts[index] != float("inf"):
-                            write(win.renderer, "center", g.player.inventory_amounts[index], orbit_fonts[inventory_font_size], g.w.text_color, x, y + 24, tex=True)
+                            write(win.renderer, "center", g.player.inventory_amounts[index], orbit_fonts[inventory_font_size], g.w.text_color, x + 17, y + 44, tex=True)
                         else:
-                            write(win.renderer, "center", INF, arial_fonts[18], g.w.text_color, x, y + 27, tex=True)
+                            write(win.renderer, "center", INF, arial_fonts[18], g.w.text_color, x + 17, y + 47, tex=True)
+                        win.renderer.blit(g.w.blocks[block], blit_rect)
                     x += 33
 
                 # workbench

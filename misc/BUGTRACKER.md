@@ -1,4 +1,12 @@
 # Logical Bugs
+## • Player sprite changing position (offset) when animating
+### Reproduced
+When changing the players animation to anything other than the idle, or just changing it in general
+## Reason
+The rectangle sizes don't match
+### Solution
+W. I. P.
+
 ## • Some entities rewinding to previous chunk for no reason
 ### Reproduced
 When the velocity of the entity gets to 1 + the ground velocity at the same time as the entity transitioning into a new chunk
