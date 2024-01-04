@@ -3811,16 +3811,20 @@ class OrbParticle:
 
 
 class ShatterParticle(Scrollable):
-    def __init__(self, image, pos, _rects):
+    def __init__(self, entity, area):
         super().__init__(g)
-        self.image = image
-        self.x, self.y = pos
-        self._rect = self.image.get_rect()
-        self._rects = _rects
-        self.energy = self.yvel = -4.5
-        self.yacc = 0.2
-        self.xvel = 0
+        self.area = area
+        self.image = entity.image
+        self.x, self.y = entity._rect.center
+        self._rect = pygame.Rect((0, 0), area[2:])
+        self._rect.center = self.x, self.y
+        self._rects = entity.final_rects
+        self.energy = self.yvel = randf(-3.5, -4)
+        self.yacc = 0.08
+        self.xvel = randf(-0.5, 0.5)
         self.width, self.height = self.image.width, self.image.height
+        self.drops = entity.drops
+        self.last = ticks()
 
     def update(self):
         self.x += self.xvel
@@ -3833,7 +3837,14 @@ class ShatterParticle(Scrollable):
                 self.energy *= 0.7
                 self.yvel = self.energy
         self._rect.topleft = (int(self.x), int(self.y))
-        win.renderer.blit(self.image, self.rect)
+        win.renderer.blit(self.image, self.rect, area=self.area)
+        if ticks() - self.last >= 2000:
+            # delete the particle
+            all_other_particles.remove(self)
+            # drop the loot
+            g.w.entities[entity.chunk_index].remove(entity)
+            for drop, amount in entity.drops.items():
+                all_drops.append(Drop(drop, entity._rect, amount))
 
 
 class OrbMatrix:
@@ -5281,12 +5292,13 @@ pygame.Rect(600, 240, 30, 30)]
                             # check whether the entity is dead and drop the loot
                             if entity.dead:
                                 # shatter particles
-                                img = T(pygame.Surface((5, 5)))
-                                group(ShatterParticle(img, entity._rect.center, entity.final_rects), all_other_particles)
-                                # drop the loot
-                                g.w.entities[chunk].remove(entity)
-                                for drop, amount in entity.drops.items():
-                                    all_drops.append(Drop(drop, entity._rect, amount))
+                                n = 3
+                                w = roundn(entity.image.width / n, S)
+                                h = roundn(entity.image.height / n, S)
+                                for y in range(n):
+                                    for x in range(n):
+                                        area = pygame.Rect(x * w, y * h, w, h)
+                                        group(ShatterParticle(entity, area), all_other_particles)
                             # show hitboxes if selected by user
                             if pw.show_hitboxes:
                                 draw_rect(win.renderer, RED, entity.rect)
