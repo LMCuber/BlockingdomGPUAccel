@@ -61,6 +61,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=False, **kwargs):
         # init
         self.dead = False
+        self.dying = False
         self.anim = 0
         self.species = traits[0]
         self.init_images("walk", "images", flip_flip=flip_flip)
@@ -75,10 +76,12 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.smart_vector = smart_vector
         self.traits = traits
         self.block_data = []
-        self.gravity = 0.1
+        self.gravity = 0.08
+        self.grounded = True
         # Arbeehdee and Rilocto
         self.relocate_to = None
         self.request_block_data = True
+        self.dialogue = False
         # rest
         if smart_vector:
             if anchor == "bottomleft":
@@ -152,65 +155,66 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 
     # the base update that every entity undergoes
     # entity update
-    def update(self, dt, show_hitboxes):
-        self.show_hitboxes = show_hitboxes
-        # update the specific update of the species
-        self.spec_update()
-        # init rect
-        # move x
-        self.collide()
+    def update(self, dt, show_hitboxes, dialogue):
+        if not self.dead:
+            self.show_hitboxes = show_hitboxes
+            # update the specific update of the species
+            self.spec_update()
+            # init rect
+            # move x
+            self.collide(dialogue)
 
-        # bok-bok
-        if self.species == "bok-bok":
-            # direction change
-            if (g.player._rect.centerx > self._rect.centerx and self.xvel < 0) \
-                    or (self._rect.centerx > g.player._rect.centerx and self.xvel > 0):
-                delay(self.set_xvel, 0.6, -self.xvel)
-            self.jump_over_obstacles()
+            # bok-bok
+            if self.species == "bok-bok":
+                # direction change
+                if (g.player._rect.centerx > self._rect.centerx and self.xvel < 0) \
+                        or (self._rect.centerx > g.player._rect.centerx and self.xvel > 0):
+                    delay(self.set_xvel, 0.6, -self.xvel)
+                self.jump_over_obstacles()
 
-            # colliding with the player
-            if self._rect.colliderect(g.player._rect):
-                # g.player.flinch(0.1 * self.xbound, -2)
-                pass
+                # colliding with the player
+                if self._rect.colliderect(g.player._rect):
+                    # g.player.flinch(0.1 * self.xbound, -2)
+                    pass
 
-        # collision with player
-        if g.player.anim_type == "stab" and self.rect.colliderect(g.player.rect):
-            self.take_damage(40)
-            self.flinch(5)
+            # collision with player
+            if g.player.anim_type == "stab" and self.rect.colliderect(g.player.rect):
+                self.take_damage(40)
+                self.flinch(5)
 
-        # rest
-        if not self.glitching:
-            getattr(self, "spec_animate", self.animate)(dt)
+            # rest
+            if not self.glitching:
+                getattr(self, "spec_animate", self.animate)(dt)
 
-        self.draw()
+            self.draw()
 
-        self.regenerate()
-        self.display_hp()
+            self.regenerate()
+            self.display_hp()
 
-    def collide(self):
-        self.x += self.xvel
-        # update _rect
-        self.update__rect()
-        # move y
-        self.yvel += self.gravity
-        self.y += self.yvel
-        self.update__rect()
-        # collide y
-        for col in self.get_cols(hor=False):
-            self.bottom = col.top
-            self.yvel = 0
-            if self.taking_damage:
-                self.stop_taking_damage()
-        # update _rect
-        self.update__rect()
-        # collide x
-        for col in self.get_cols(hor=True):
-            if self.xvel > 0:
-                self.right = col.left
-            else:
-                self.left = col.left
-        self.update__rect()
-        # scroll the actual "rect"
+    def collide(self, dialogue):
+        if not dialogue:
+            # move y
+            self.yvel += self.gravity
+            self.y += self.yvel
+            self.update__rect()
+            # collide y
+            for col in self.get_cols(hor=False):
+                self.bottom = col.top
+                self.yvel = 0
+                self.grounded = True
+                if self.taking_damage:
+                    self.stop_taking_damage()
+            self.update__rect()
+            self.x += self.xvel
+            self.update__rect()
+            # collide x
+            for col in self.get_cols(hor=True):
+                if self.xvel > 0:
+                    self.right = col.left
+                else:
+                    self.left = col.left
+            self.update__rect()
+            # scroll the actual "rect"
         self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
 
     def check_chunk_borders(self):
@@ -218,18 +222,28 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         chunk_y = floor(self.y / (CH * BS))
         if (chunk_x, chunk_y) != self.chunk_index:
             self.relocate_to = (chunk_x, chunk_y)
-            self.request_block_data = True
 
-    def jump_over_obstacles(self, yvel=-2):
-        s = 1 if self.xvel >= 0 else -1
-        ahead = pygame.Rect(self._rect.x + 10 * s, self._rect.y, *self.rect.size)
-        if self.get_cols(ahead):
-            self.yvel = yvel
+    def jump_over_obstacles(self, yvel=-3):
+        m = 1 if self.xvel >= 0 else -1
+        h = 2 * BS
+        _ahead = pygame.Rect(self._rect.x + m * 10, self._rect.y - self._rect.height, self._rect.width, h)
+        ahead = pygame.Rect(_ahead.x - g.scroll[0], _ahead.y - g.scroll[1], *_ahead.size)
+        if self.show_hitboxes:
+            draw_rect(win.renderer, PURPLE, ahead)
+        if self.grounded:
+            cols = self.get_cols(rep_rect=_ahead)
+            if len(cols) >= 2:
+                self.xvel *= -1
+                self.dialogue = True
+            elif len(cols) == 1:
+                self.set_yvel(yvel)
 
     def set_xvel(self, value):
         self.xvel = value
 
-    def get_cols(self, hor=True, return_type="default"):
+    def get_cols(self, hor=True, return_type="default", rep_rect=None):  # replacement rect
+        _self_rect = rep_rect if rep_rect is not None else self._rect
+        self_rect = pygame.Rect(_self_rect.x - g.scroll[0], _self_rect.y - g.scroll[1], *_self_rect.size)
         block_x = floor(self.x / BS)
         block_y = floor(self.y / BS)
         block_pos = (block_x, block_y)
@@ -238,9 +252,8 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         ret = []
         good = lambda: block_pos == (16, 5) and self.chunk_index == (0, 0) and not hor
         # pritn(self.x / BS, self.y / BS)
-        if self.show_hitboxes:
-            draw_rect(win.renderer, GREEN, self.rect)
-        # draw_rect(win.renderer, RED, self._rect)
+        if self.show_hitboxes and rep_rect is None:
+            draw_rect(win.renderer, GREEN, self_rect)
         for yo in range(*yrange):
             for xo in range(*xrange):
                 chunk = self.chunk_index
@@ -254,7 +267,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                             rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
                             if self.show_hitboxes:
                                 draw_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
-                            if self._rect.colliderect(_rect):
+                            if _self_rect.colliderect(_rect):
                                 if self.show_hitboxes:
                                     fill_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
                                 if return_type == "default":
@@ -262,7 +275,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                             if return_type == "_rect":
                                 ret.append(_rect)
 
-        # print("x" if hor else "y", block_pos, self.chunk_index, self._rect.y, ret)
+        # print("x" if hor else "y", block_pos, self.chunk_index, _self_rect.y, ret)
         return ret
 
     def get_rects(self):
@@ -270,7 +283,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 
     def flinch(self, height):
         def inner():
-            self.yvel = -sqrt(2 * self.gravity * height)
+            self.set_yvel(-sqrt(2 * self.gravity * height))
             fv = 0.6
             og_xvel = self.xvel
             self.xvel = fv if g.player.direc == "right" else -fv
@@ -332,6 +345,11 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             self.red_filter = pygame.Surface((30, 30))
             self.red_filter.fill(RED)
             self.red_filter = Texture.from_surface(win.renderer, self.red_filter)
+
+    def set_yvel(self, value):
+        self.yvel = value
+        if value < 0:
+            self.grounded = False
 
     def movex(self, amount):
         if not self.dying:
@@ -439,15 +457,13 @@ class Chicken(BaseEntity):
         self.max_hp = self.hp = 70
 
     def spec_update(self):
-        # self.movex(1)
-        # self.jump_over_obstacles()
-        pass
+        self.jump_over_obstacles()
 
 
 class FluffCamel(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
         super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=True, **kwargs)
-        self.xvel = 0.3
+        self.def_xvel = xvel = 0.3
         self.max_hp = self.hp = 70
 
     def spec_update(self):

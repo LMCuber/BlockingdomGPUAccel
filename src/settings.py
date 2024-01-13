@@ -368,6 +368,8 @@ class Game:
         self.fake_scroll = [0, 0]
         self.scroll = [0, 0]
         self.extra_scroll = [0, 0]
+        self.dialogue = False
+        self.scroll_orders = []
         self.saving_structure = False
         self.structure = {}
         # screenshake

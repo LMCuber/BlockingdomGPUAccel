@@ -34,6 +34,7 @@ class WindowHandler:
         self.centerx, self.centery = self.center
         self.space = pymunk.Space()
         self.space.gravity = (0, -900)
+        self.target_zoom = []
 
     def update_caption(self):
         """pygame.display.set_caption("\u15FF"   # because

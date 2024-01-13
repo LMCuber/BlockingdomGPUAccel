@@ -66,6 +66,10 @@ class SmartSurface(pygame.Surface):
 
 
 # N O R M A L  F U N C T I O N S ---------------------------------------------------------------------- #
+def pitch_shift(sound):
+    return sound
+
+
 def player_command(command):
     abs_args = command.split()
     args = SmartList(abs_args[1:])
@@ -766,8 +770,8 @@ def init_world(type_):
     if type_ == "new":
         if g.w.mode == "adventure":
             # g.player.inventory = ["tool-crafter", "prototype_grip", "prototype_magazine", "prototype_stock", "prototype_body"]
-            g.player.inventory = ["tool-crafter", "cactus", "glass", "corn-crop_vr0.0", "cattail"]
-            g.player.inventory_amounts = [100, 100, 100, 100, 100]
+            g.player.inventory = ["tool-crafter", None, "glass", "corn-crop_vr0.0", "cattail"]
+            g.player.inventory_amounts = [100, 0, 100, 100, 100]
             g.player.stats = {
                 "lives": {"amount": rand(10, 100), "color": RED, "pos": (32, 20), "last_regen": ticks(), "regen_time": def_regen_time, "icon": "lives", "width": 0},
                 "hunger": {"amount": rand(10, 100), "color": ORANGE, "pos": (32, 40), "icon": "hunger", "width": 0},
@@ -947,9 +951,9 @@ def generate_lighting(chunk_data, chunk_index, blit_image=False):
                 name = block.name
                 blit_x, blit_y = (rel_x * BS, rel_y * BS)
                 if name in linfo:
-                    color = (255, 215, 0, 120)
+                    light_color = (255, 215, 0, 120)
                     # color = [rand(0, 255) for _ in range(3)] + [120]
-                    pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], color)
+                    pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], light_color)
                     if blit_x - 90 < 0:
                         enum["left"].append([name, blit_x + BS // 2, blit_y + BS // 2])
                     if blit_x + 90 > (CW * BS):
@@ -1411,8 +1415,6 @@ class World:
                     del g.structure[abs_pos]
             else:
                 g.structure[abs_pos] = nbg
-        for entity in g.w.entities[target_chunk]:
-            entity.request_block_data = True
 
         # update the lighting if necessary
         if nbg in linfo or current in linfo:
@@ -1496,7 +1498,7 @@ class PlayWidgets:
         _menu_widget_kwargs = {"anchor": "center", "width": 130, "template": "menu widget", "font": orbit_fonts[15]}
         _menu_button_kwargs = _menu_widget_kwargs | {"height": 32}
         _menu_togglebutton_kwargs = _menu_button_kwargs
-        _menu_checkbutton_kwargs = _menu_widget_kwargs | {"height": 32}
+        _menu_checkbox_kwargs = _menu_widget_kwargs | {"width": 165, "height": 32}
         _menu_slider_kwargs = _menu_widget_kwargs | {"width": 235, "height": 60}
         self.widget_kwargs = {"pos": DPP, "font": orbit_fonts[20]}
         self.ok_kwargs = self.widget_kwargs | {"width": 200, "height": 60}
@@ -1515,15 +1517,16 @@ class PlayWidgets:
                 ToggleButton(win.renderer, ("Instant", "Generative"), tooltip="Toggles the visual generation of chunks", **_menu_togglebutton_kwargs),
             ]),
             "checkboxes": SmartList([
-                Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "Time",          self.show_time_command,        tooltip="Shows the in-world time",                                        **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "FPS",                                          tooltip="Shows the amount of frames per second",                          **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "VSync",         self.show_vsync_command,       tooltip="Enables VSync; may or may not work", check_command=self.check_vsync_command, uncheck_command=self.uncheck_vsync_command, **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "Coordinates",   self.show_coordinates_command, tooltip="Shows the player's coordinates as (x, y)",                       **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",                 **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "Fog",           self.fog_command,              tooltip="Fog effect for no reason at all",                                **_menu_checkbutton_kwargs),
-                Checkbox(win.renderer, "Clouds",        lambda_none,                   tooltip="Clouds lel what did you expect",                                 **_menu_checkbutton_kwargs),
+                Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Time",          self.show_time_command,        tooltip="Shows the in-world time",                                        **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "FPS",                                          tooltip="Shows the amount of frames per second",                          **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "VSync",         self.show_vsync_command,       tooltip="Enables VSync; may or may not work", check_command=self.check_vsync_command, uncheck_command=self.uncheck_vsync_command, **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Coordinates",   self.show_coordinates_command, tooltip="Shows the player's coordinates as (x, y)",                       **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",                 **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Screenshake",                                  tooltip="Screenshake can be disruptive for photosensitive players",       **_menu_checkbox_kwargs, checked=True),
+                Checkbox(win.renderer, "Fog",           self.fog_command,              tooltip="Fog effect for no reason at all",                                **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Clouds",        lambda_none,                   tooltip="Clouds lel what did you expect",                                 **_menu_checkbox_kwargs),
             ]),
             "sliders": SmartList([
                 Slider(win.renderer,   "Resolution",    [", ".join([str(x) for x in r]) for r in resolutions], 0, tooltip="Set the resolution of the game in pixels",                          **_menu_slider_kwargs),
@@ -1555,6 +1558,7 @@ class PlayWidgets:
         self.show_hitboxes =      self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Hitboxes")
         self.show_chunk_borders = self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Chunk Borders")
         self.vsync =              self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "VSync")
+        self.screenshake =        self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Screenshake")
         self.clouds =             self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Clouds")
         self.generation_mode =    self.menu_widgets["togglebuttons"].find(lambda x: x.text == "Instant")
         self.anim_fps =           self.menu_widgets["sliders"]      .find(lambda x: x.text == "Animation")
@@ -1823,13 +1827,17 @@ class PlayWidgets:
 
     # outer widget commands
     @staticmethod
-    def load_world_command():
+    def button_lw_command():
         if not all_messageboxes:
             loading_path = choose_file("Load a .dat file")
             if loading_path != "/":
                 with open(loading_path, "rb") as f:
                     worldcode = pickle.load(f)
                 new_world(worldcode)
+
+    @staticmethod
+    def button_jw_command():
+        Entry(win.renderer, "Enter something:", lambda x: print(x), **pw.entry_kwargs)
 
     @staticmethod
     def button_daw_command():
@@ -2462,7 +2470,7 @@ class Player(SmartVector):
                 if None in g.player.inventory or drop.name in g.player.inventory:
                     self.new_block(drop.name, drop.drop_amount)
                     drop.kill()
-                    pitch_shift(pickup_sound).play()
+                    # pitch_shift(pickup_sound).play()
                     if None not in self.inventory:
                         drop._rect.center = [pos + random.randint(-1, 1) for pos in drop.og_pos]
 
@@ -2495,17 +2503,20 @@ class Player(SmartVector):
 
     def scroll(self):
         # scrolling
-        g.fake_scroll[0] += (self._rect.x - g.fake_scroll[0] - win.width // 2 + self.width // 2 + g.extra_scroll[0]) / pw.lag.value
-        g.fake_scroll[1] += (self._rect.y - g.fake_scroll[1] - win.height // 2 + self.height // 2 + g.extra_scroll[1]) / pw.lag.value
-        # getting rid of floating point errors
-        g.scroll[0] = round(g.fake_scroll[0])
-        g.scroll[1] = round(g.fake_scroll[1])
-        # screenshake maybe?
-        if g.screen_shake_magnitude > 0:
-            g.scroll[0] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
-            g.scroll[1] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
-            if ticks() - g.last_screen_shake >= g.screen_shake_duration:
-                g.screen_shake_magnitude = 0
+        if g.scroll_orders:
+            g.scroll = g.scroll_orders[:]
+        else:
+            g.fake_scroll[0] += (self._rect.x - g.fake_scroll[0] - win.width // 2 + self.width // 2 + g.extra_scroll[0]) / pw.lag.value
+            g.fake_scroll[1] += (self._rect.y - g.fake_scroll[1] - win.height // 2 + self.height // 2 + g.extra_scroll[1]) / pw.lag.value
+            # getting rid of floating point errors
+            g.scroll[0] = round(g.fake_scroll[0])
+            g.scroll[1] = round(g.fake_scroll[1])
+            # screenshake maybe?
+            if pw.screenshake and g.screen_shake_magnitude > 0:
+                g.scroll[0] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
+                g.scroll[1] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
+                if ticks() - g.last_screen_shake >= g.screen_shake_duration:
+                    g.screen_shake_magnitude = 0
 
     # player move
     def adventure_move(self):
@@ -3145,7 +3156,8 @@ class UI:
 
     # ui update
     def update(self):
-        self.render_player_icon()
+        if not g.dialogue:
+            self.render_player_icon()
 
     def render_player_icon(self):
         m = g.mouse
@@ -3537,8 +3549,8 @@ class Projectile(Scrollable):
         if self.xvel != 0:
             self.xvel -= self.air_resistance if self.xvel > 0 else -self.air_resistance
         self.yvel += self.gravity
-        self.x += self.xvel * sign * g.dt
-        self.y += self.yvel * sign * g.dt
+        self.x += self.xvel * sign
+        self.y += self.yvel * sign
         # prevent stepping through bullets
         self.last_x = self.x
         self.last_y = self.y
@@ -3813,17 +3825,21 @@ class OrbParticle:
 class ShatterParticle(Scrollable):
     def __init__(self, entity, area):
         super().__init__(g)
+        self.entity = entity
         self.area = area
         self.image = entity.image
         self.x, self.y = entity._rect.center
         self._rect = pygame.Rect((0, 0), area[2:])
         self._rect.center = self.x, self.y
         self._rects = entity.final_rects
-        self.energy = self.yvel = randf(-3.5, -4)
+        self.syvel = self.yvel = randf(-3.5, -4)
         self.yacc = 0.08
+        self.energy = self.yvel
+        # self.xvel = 0
         self.xvel = randf(-0.5, 0.5)
-        self.width, self.height = self.image.width, self.image.height
+        self.width, self.height = area[2:]
         self.drops = entity.drops
+        self.bounces = 0
         self.last = ticks()
 
     def update(self):
@@ -3834,17 +3850,20 @@ class ShatterParticle(Scrollable):
         for _rect in self._rects:
             if self._rect.colliderect(_rect):
                 self.y = _rect.top - self.height
-                self.energy *= 0.7
+                self.energy *= 0.6
                 self.yvel = self.energy
+                self.bounces += 1
+                if self.bounces == 4:
+                    all_other_particles.remove(self)
         self._rect.topleft = (int(self.x), int(self.y))
         win.renderer.blit(self.image, self.rect, area=self.area)
-        if ticks() - self.last >= 2000:
-            # delete the particle
-            all_other_particles.remove(self)
-            # drop the loot
-            g.w.entities[entity.chunk_index].remove(entity)
-            for drop, amount in entity.drops.items():
-                all_drops.append(Drop(drop, entity._rect, amount))
+        if ticks() - self.last >= 1250:
+            # drop the loot (only the first time)
+            if self.entity not in g.w.entities[self.entity.chunk_index]:
+                return
+            g.w.entities[self.entity.chunk_index].remove(self.entity)
+            for drop, amount in self.entity.drops.items():
+                all_drops.append(Drop(drop, self.entity._rect, amount))
 
 
 class OrbMatrix:
@@ -4372,8 +4391,9 @@ pw = PlayWidgets()
 g.w = World()
 
 # le button
-button_cnw = StaticButton("Create New World",  (45, win.height - 160),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=new_world,                          visible_when=pw.is_worlds_worlds)
-button_lw =  StaticButton("Load World",        (45, win.height - 120),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.load_world_command,              visible_when=pw.is_worlds_worlds)
+button_cnw = StaticButton("Create New World",  (45, win.height - 200),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=new_world,                          visible_when=pw.is_worlds_worlds)
+button_lw =  StaticButton("Load World",        (45, win.height - 160),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_lw_command,               visible_when=pw.is_worlds_worlds)
+button_jw =  StaticButton("Join World",        (45, win.height - 120),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_jw_command,               visible_when=pw.is_worlds_worlds)
 button_daw = StaticButton("Delete All Worlds", (45, win.height - 80),                all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_daw_command,              visible_when=pw.is_worlds_worlds)
 button_c =   StaticButton("Credits",           (35, 130),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.show_credits_command,            visible_when=pw.is_worlds_static)
 button_i =   StaticButton("Intro",             (35, 170),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.intro_command,                   visible_when=pw.is_worlds_static)
@@ -4461,17 +4481,19 @@ async def main(debug, cprof=False):
         pritn(f"Average loading time: {round(g.p.loading_times.mean, 2)}s")
         pritn()
         # preinit dumb stuff I like to experiment with
-        pygame.display.set_caption("\u15FF"   # because
-                                   "\u0234"   # because
-                                   "\u1F6E"   # because
-                                   "\u263E"   # because
-                                   "\u049C"   # because
-                                   "\u0390"   # because
-                                   "\u2135"   # because
-                                   "\u0193"   # because
-                                   "\u15EB"   # because
-                                   "\u03A6"   # because
-                                   "\u722A")  # because
+        win.window.title = (
+            "\u4E43 "   # because
+            "\u0234 "   # because
+            "\u1F6E "   # because
+            "\u263E "   # because
+            "\u049C "   # because
+            "\u0390 "   # because
+            "\u2135 "   # because
+            "\u0193 "   # because
+            "\u15EB "   # because
+            "\u03A6 "   # because
+            "\u722A "   # because
+        )               # because
         # PyMunk
         balls = []
         strings = []
@@ -4487,17 +4509,18 @@ async def main(debug, cprof=False):
         # light.blend_mode = pygame.BLEND_RGBA_MULT
         i = 0
         yyy = 0
-
-        bbb = [pygame.Rect(360, 240, 30, 30),
-pygame.Rect(390, 240, 30, 30),
-pygame.Rect(420, 240, 30, 30),
-pygame.Rect(480, 240, 30, 30),
-pygame.Rect(510, 240, 30, 30),
-pygame.Rect(540, 240, 30, 30),
-pygame.Rect(570, 240, 30, 30),
-pygame.Rect(600, 240, 30, 30)]
-        pr = pygame.Rect(480, 169, 90, 72)
-
+        # lighting debug
+        _light = timgload("assets", "Images", "Visuals", "fog.png")
+        _light_rect = _light.get_rect()
+        light_surf = pygame.Surface((100, 100), pygame.SRCALPHA)
+        light_surf.fill(BLACK)
+        pygame.gfxdraw.filled_circle(light_surf, 50, 50, 50, (255, 215, 0, 120))
+        light_surf = pygame.transform.box_blur(light_surf, 20)
+        light_tex = T(light_surf)
+        _light_rect = light_tex.get_rect()
+        # loop
+        bliss = timgload("bliss.png")
+        bliss_rect = bliss.get_rect()
         while running:
             # init dynamic constants
             mouse = pygame.mouse.get_pos()
@@ -4577,6 +4600,9 @@ pygame.Rect(600, 240, 30, 30)]
                             #     p.switch()
                             pass
 
+                        if event.key == pygame.K_1:
+                            win.target_zoom = (3, 3)
+
                         if event.key == K_q:  # debug so far until it gets a feature on its own
                             # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
                             # new_world()
@@ -4589,8 +4615,9 @@ pygame.Rect(600, 240, 30, 30)]
                             # group(o, all_other_particles)
                             # o = OrbParticle((150, 150), PURPLE, 118*2)
                             # group(o, all_other_particles)
-                            e = g.w.entities[(-1, 0)][0]
-                            e.take_damage(40)
+                            # e = g.w.entities[(-1, 0)][0]
+                            # e.take_damage(40)
+                            ...
 
                         # actual gameplay events
                         if g.stage == "play":
@@ -4899,6 +4926,7 @@ pygame.Rect(600, 240, 30, 30)]
                         MessageboxOk(win.renderer, f'Device "{controller.name}" disconnected', **pw.ok_kwargs)
 
                     elif event.type == pygame.JOYBUTTONDOWN:
+                        print(event.button)
                         # init
                         b = controller.map[controller.name]["buttons"]
                         # x button
@@ -5042,7 +5070,7 @@ pygame.Rect(600, 240, 30, 30)]
                             # terrain_tex.color = (rrr, ggg, bbb, 255)
                             lighting_tex = g.w.lightings[target_chunk]
                             lighting_tex.alpha = 0
-                            # lighting_tex.alpha = 240 * (sin(ticks() * 0.0008) + 1) / 2wa
+                            # lighting_tex.alpha = 240 * (sin(ticks() * 0.0008) + 1) / 2
                             chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                             # render chunk
                             win.renderer.blit(terrain_tex, chunk_rect)
@@ -5057,7 +5085,6 @@ pygame.Rect(600, 240, 30, 30)]
                             # updating blocks
                             if target_chunk in g.w.to_update:
                                 for block in g.w.to_update[target_chunk]:
-                                    # init
                                     nbg = non_bg(block.name)
                                     name = block.name
                                     abs_pos = block.pos
@@ -5278,19 +5305,26 @@ pygame.Rect(600, 240, 30, 30)]
                         for i, entity in enumerate(g.w.entities[chunk][:]):
                             # relocate entity to new chunk
                             entity.check_chunk_borders()
-                            if entity.relocate_to is not None:
-                                if entity.relocate_to in g.w.data:
-                                    print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
-                                    g.w.entities[entity.chunk_index].remove(entity)
-                                    g.w.entities[entity.relocate_to].append(entity)
-                                    entity.chunk_index = entity.relocate_to
-                                    entity.relocate_to = None
-                                    pass
+                            if entity.relocate_to is not None and entity.relocate_to in g.w.data:
+                                # print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
+                                g.w.entities[entity.chunk_index].remove(entity)
+                                g.w.entities[entity.relocate_to].append(entity)
+                                entity.chunk_index = entity.relocate_to
+                                entity.relocate_to = None
                             # update the entity
                             num_entities += 1
-                            entity.update(g.dt, pw.show_hitboxes)
+                            entity.update(g.dt, pw.show_hitboxes, g.dialogue)
+                            # cool dialogue
+                            if entity.dialogue:
+                                g.dialogue = True
+                                g.scroll_orders = [
+                                    g.scroll[0] + entity.rect.x - 50,
+                                    g.scroll[1] + entity.rect.y - 80
+                                ]
+                                entity.dialogue = False
+                                win.target_zoom = (3, 3)
                             # check whether the entity is dead and drop the loot
-                            if entity.dead:
+                            if entity.dead and not entity.dying:
                                 # shatter particles
                                 n = 3
                                 w = roundn(entity.image.width / n, S)
@@ -5299,6 +5333,7 @@ pygame.Rect(600, 240, 30, 30)]
                                     for x in range(n):
                                         area = pygame.Rect(x * w, y * h, w, h)
                                         group(ShatterParticle(entity, area), all_other_particles)
+                                entity.dying = True
                             # show hitboxes if selected by user
                             if pw.show_hitboxes:
                                 draw_rect(win.renderer, RED, entity.rect)
@@ -5353,13 +5388,13 @@ pygame.Rect(600, 240, 30, 30)]
                                                 setto = g.player.block
                                         elif g.first_affection == "break":
                                             if name not in empty_blocks:
-                                                block.broken += 10 * g.dt
+                                                block.broken += 10
                                                 g.w.modify("air", target_chunk, abs_pos)
                                         if setto is not None:
                                             # g.w.data[target_chunk][abs_pos] = Block(setto)
                                             if mod == 1:
                                                 setto += "_bg"
-                                            print(target_chunk, abs_pos)
+                                            (target_chunk, abs_pos)
                                             g.w.modify(setto, target_chunk, abs_pos)
                                 else:
                                     g.player.eating = False
@@ -5457,7 +5492,7 @@ pygame.Rect(600, 240, 30, 30)]
                     # border if selected
                     if g.player.main == "tool":
                         if index == g.player.tooli:
-                            win.renderer.blit(square_border_img, pygame.Rect(x - 3, y - 3, *square_border_rect.size))
+                            win.renderer.blit(square_border_img, square_border_rect.move_to(topleft=(x - S, y - S)))
                             pass
                     x += 11 * S
 
@@ -5615,6 +5650,9 @@ pygame.Rect(600, 240, 30, 30)]
                         else:
                             write(win.renderer, "center", INF, arial_fonts[18], g.w.text_color, x + 17, y + 47, tex=True)
                         win.renderer.blit(g.w.blocks[block], blit_rect)
+                    if g.player.main == "block":
+                        if index == g.player.blocki:
+                            win.renderer.blit(square_border_img, square_border_rect.move_to(topleft=(blit_rect.x - S, blit_rect.y - S)))
                     x += 33
 
                 # workbench
@@ -6058,7 +6096,20 @@ pygame.Rect(600, 240, 30, 30)]
             # rect = pygame.Rect(rect.x + 4 * 100, rect.y + 50, *rect.size)
             # win.renderer.blit(image, rect)
 
-            win.renderer.scale = win.scale
+            # even more debug
+            # _light_rect.center = g.mouse
+            # win.renderer.blit(light_tex, _light_rect)
+
+            # zoom window for some cool reason
+            if win.target_zoom:
+                m = 0.1
+                win.renderer.scale = (
+                    win.renderer.scale[0] + m * (win.target_zoom[0] - win.renderer.scale[0]),
+                    win.renderer.scale[1] + m * (win.target_zoom[1] - win.renderer.scale[1]),
+                )
+            else:
+                # scale
+                win.renderer.scale = win.scale
 
             # refreshing the window
             win.renderer.present()

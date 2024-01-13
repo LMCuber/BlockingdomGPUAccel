@@ -536,7 +536,7 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
             # forest
             if biome == "forest":
                 # chicken
-                if _chance(1 / 16) and chunk_index == (0, 0):
+                if _chance(1 / 16):
                     set("torch", x, y)
                     entity(["chicken", "mob", "moving"])
 
