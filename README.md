@@ -1,7 +1,7 @@
 # Welcome to Blockingdom
 ## Installation Steps
-`git clone https://github.com/LMCuber/BlockingdomGPUAccel` 
-`pip install noise pygame-ce psutil numpy pillow translatepy googletrans pandas line_profiler pymunk pycountry`
+```git clone https://github.com/LMCuber/BlockingdomGPUAccel```
+```pip install noise pygame-ce psutil numpy pillow translatepy googletrans pandas line_profiler pymunk pycountry```
 
 If you're on Windows, there is a chance that the `noise` module doesn't import as intended and you get an error similar to this one: `error: Microsoft Visual C++ 14.0 is required. Get it with "Microsoft Visual C++ Build Tools": https://visualstudio.microsoft.com/downloads/`
 Until I switch to another noise library, you must install the latest Visual Studio IDE and make sure to tick the boxes that will install you the Visual C++ tools.
