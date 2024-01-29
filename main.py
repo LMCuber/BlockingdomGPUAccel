@@ -770,8 +770,8 @@ def init_world(type_):
     if type_ == "new":
         if g.w.mode == "adventure":
             # g.player.inventory = ["tool-crafter", "prototype_grip", "prototype_magazine", "prototype_stock", "prototype_body"]
-            g.player.inventory = ["tool-crafter", None, "glass", "corn-crop_vr0.0", "cattail"]
-            g.player.inventory_amounts = [100, 0, 100, 100, 100]
+            g.player.inventory = ["tool-crafter", "ramp_deg90", "glass", "corn-crop_vr0.0", "cattail"]
+            g.player.inventory_amounts = [100, 100, 100, 100, 100]
             g.player.stats = {
                 "lives": {"amount": rand(10, 100), "color": RED, "pos": (32, 20), "last_regen": ticks(), "regen_time": def_regen_time, "icon": "lives", "width": 0},
                 "hunger": {"amount": rand(10, 100), "color": ORANGE, "pos": (32, 40), "icon": "hunger", "width": 0},
@@ -1024,7 +1024,7 @@ class ExitHandler:
         with open(path(".game_data", "variables.dat"), "wb") as f:
             pickle.dump(g.p, f)
         # generating world icon
-        img = pygame.Surface((),)
+        # img = pygame.Surface((),)
         """
         icon = pygame.Surface(wb_icon_size, pygame.SRCALPHA)
         br = 3
@@ -1477,6 +1477,12 @@ class Play:
                 setattr(self, name, self.keybinds[keybind_type][name])
                 setattr(self, f"default_{name}", self.default_keybinds[keybind_type][name])
 
+
+# create game data if it doesn't exist
+if not os.path.exists(".game_data"):
+    os.makedirs(path(".game_data", "worlds"))
+    os.makedirs(path(".game_data", "tempfiles"))
+    open(path(".game_data", "variables.dat"), "w").close()
 
 # load variables
 if os.path.getsize(path(".game_data", "variables.dat")) > 0:
@@ -2495,28 +2501,29 @@ class Player(SmartVector):
                 self.rand_username()
         Entry(win.renderer, "Enter your new username:", set_username, **pw.entry_kwargs, default_text=("random", orbit_fonts[20]))
 
-    def get_cols(self, rects_only=True):
+    def get_cols(self, rects_only=True, ramps=False):
         if rects_only:
-            return [data[1] for data in self.block_data if self._rect.colliderect(data[1]) and is_hard(data[0].name)]
+            return [data[1] for data in ((self.block_data + self.ramp_data) if ramps else self.block_data) if self._rect.colliderect(data[1]) and is_hard(data[0].name)]
         else:
-            return [data for data in self.block_data if self._rect.colliderect(data[1])]
+            return [data for data in ((self.block_data + self.ramp_data) if ramps else self.block_data) if self._rect.colliderect(data[1])]
 
     def scroll(self):
         # scrolling
         if g.scroll_orders:
-            g.scroll = g.scroll_orders[:]
+            g.fake_scroll[0] += (g.scroll_orders[0] - g.fake_scroll[0] - win.width // 2) / pw.lag.value
+            g.fake_scroll[1] += (g.scroll_orders[1] - g.fake_scroll[1] - win.height // 2) / pw.lag.value
         else:
             g.fake_scroll[0] += (self._rect.x - g.fake_scroll[0] - win.width // 2 + self.width // 2 + g.extra_scroll[0]) / pw.lag.value
             g.fake_scroll[1] += (self._rect.y - g.fake_scroll[1] - win.height // 2 + self.height // 2 + g.extra_scroll[1]) / pw.lag.value
             # getting rid of floating point errors
-            g.scroll[0] = round(g.fake_scroll[0])
-            g.scroll[1] = round(g.fake_scroll[1])
-            # screenshake maybe?
-            if pw.screenshake and g.screen_shake_magnitude > 0:
-                g.scroll[0] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
-                g.scroll[1] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
-                if ticks() - g.last_screen_shake >= g.screen_shake_duration:
-                    g.screen_shake_magnitude = 0
+        g.scroll[0] = round(g.fake_scroll[0])
+        g.scroll[1] = round(g.fake_scroll[1])
+        # screenshake maybe?
+        if pw.screenshake and g.screen_shake_magnitude > 0:
+            g.scroll[0] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
+            g.scroll[1] += rand(-g.screen_shake_magnitude, g.screen_shake_magnitude)
+            if ticks() - g.last_screen_shake >= g.screen_shake_duration:
+                g.screen_shake_magnitude = 0
 
     # player move
     def adventure_move(self):
@@ -2615,7 +2622,27 @@ class Player(SmartVector):
             if self.xvel < 0:
                 self.left = col.right
 
-        # y-col
+        # ramp x-col
+        for block, ramp in self.ramp_data:
+            name = block.name
+            if self._rect.colliderect(ramp):
+                rel_x = self.x - ramp.x
+                if name.endswith("_deg0"):
+                    rel_y = rel_x + self.width
+                elif name.endswith("_deg0"):
+                    rel_y = ramp.height - rel_x
+                rel_y = min(rel_y, ramp.height)
+                rel_y = max(rel_y, 0)
+                target_y = ramp.y + ramp.height - rel_y
+                if self.bottom > target_y:
+                    self.bottom = target_y
+                    self.yvel = 0
+                    self.in_air = False
+            if pw.show_hitboxes:
+                rect = pygame.Rect(ramp.x - g.scroll[0], ramp.y - g.scroll[1], BS, BS)
+                draw_rect(win.renderer, RED, rect)
+
+        # y-movement
         self.gravity_active = True
         cols = self.get_cols(rects_only=False)
         if "water" in [col[0].name for col in cols]:
@@ -2666,20 +2693,6 @@ class Player(SmartVector):
                 self.top = col.bottom
                 self.yvel = 0
 
-        # ramp_data
-        for name, ramp in self.ramp_data:
-            if self._rect.colliderect(ramp):
-                rel_x = self.x - ramp.x
-                if name.endswith("_deg90"):
-                    rel_y = rel_x + self.width
-                elif name.endswith("_deg0"):
-                    rel_y = ramp.height - rel_x
-                rel_y = min(rel_y, ramp.height)
-                rel_y = max(rel_y, 0)
-                target_y = ramp.y + ramp.height - rel_y
-                if self.bottom > target_y:
-                    self.bottom = target_y
-                    self.yvel = 0
         for block, wt in self.water_data:
             name = block.name
             rel_x = (self.centerx - wt.x) * S
@@ -4133,6 +4146,8 @@ class StaticWidget:
 
     def update(self):
         self.draw()
+        if hasattr(self, "spec_update"):
+            self.spec_update()
         # self.check_selected()
         # self.spec_update()
 
@@ -4148,32 +4163,60 @@ class StaticButton(StaticWidget):
         self.selected = selected
         self.text = text
         if size == "world":
-            tw, th = 225, 24
+            tw, th = 300, 24
         elif size == "main":
             tw, th = 225, 24
         else:
             tw, th = orbit_fonts[20].size(text)
         w, h = tw + 10, th + 10
+        self.sw = sw = 20
+        self.width, self.height = w, h
         self.image = pygame.Surface((w, h), pygame.SRCALPHA)
-        self.image.set_colorkey(BLACK)
         # (self.image, bg_color, (0, 0, *self.image.get_size()), 0, 10, 10, 10, 10)
         # (self.image, DARK_BROWN, (0, 0, *self.image.get_size()), 2, 10, 10, 10, 10)
-        br = 6
-        if shape == "rect":
-            self.image.fill(bg_color)
-        elif shape == "crect":
-            pygame.draw.rect(self.image, bg_color, (0, 0, *self.image.get_size()), 0, br, br, br, br)
-        self.text_color = text_color
+        # br = 6
+        # if shape == "rect":
+        #     self.image.fill(bg_color)
+        # elif shape == "crect":
+            # pygame.draw.rect(self.image, bg_color, (0, 0, *self.image.get_size()), 0, br, br, br, br)
+        # self.text_color = text_color
         if shape == "sharp":
             wx = w / 2 + sw / 2
             wy = h / 2
         else:
             wx, wy = w / 2, h / 2
-        write(self.image, "center", text, orbit_fonts[20], WHITE, wx, wy, border=BLAC)
         self.rect = self.image.get_rect()
         self.command = command
+        self.orange = 0
         setattr(self.rect, anchor, pos)
         super().__after_init__()
+
+    def spec_update(self):
+        if self.rect.collidepoint(g.mouse):
+            self.orange += 0.06 * (self.width - self.orange)
+        else:
+            self.orange += 0.06 * -self.orange
+        # draw
+        fill_rect(win.renderer, LIGHT_GRAY, self.rect)
+        fill_rect(win.renderer, ORANGE, (self.rect.x, self.rect.y, self.orange, self.height))
+        draw_quad(win.renderer, BLACK,
+            (self.rect.x, self.rect.y),
+            (self.rect.x + self.sw, self.rect.y + self.height),
+            (self.rect.x + self.width, self.rect.y + self.height),
+            (self.rect.x + self.width - self.sw, self.rect.y)
+        )
+        fill_triangle(win.renderer, LIGHT_GRAY,
+            (self.rect.x - 1, self.rect.y),
+            (self.rect.x - 1, self.rect.y + self.height),
+            (self.rect.x - 1 + self.sw, self.rect.y + self.height)
+        )
+        fill_triangle(win.renderer, LIGHT_GRAY,
+            (self.rect.x + 1 + self.width - self.sw, self.rect.y),
+            (self.rect.x + 1 + self.width, self.rect.y),
+            (self.rect.x + 1 + self.width, self.rect.y + self.height)
+        )
+        # write
+        write(win.renderer, "center", self.text, orbit_fonts[20], BLACK, *self.rect.center, tex=True)
 
     def process_event(self, event):
         if is_left_click(event):
@@ -4391,10 +4434,11 @@ pw = PlayWidgets()
 g.w = World()
 
 # le button
-button_cnw = StaticButton("Create New World",  (45, win.height - 200),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=new_world,                          visible_when=pw.is_worlds_worlds)
-button_lw =  StaticButton("Load World",        (45, win.height - 160),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_lw_command,               visible_when=pw.is_worlds_worlds)
-button_jw =  StaticButton("Join World",        (45, win.height - 120),               all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_jw_command,               visible_when=pw.is_worlds_worlds)
-button_daw = StaticButton("Delete All Worlds", (45, win.height - 80),                all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_daw_command,              visible_when=pw.is_worlds_worlds)
+_a, _b = 23, 25
+button_cnw = StaticButton("Create New World",  (_a * 1 + _b, win.height - 200),        all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=new_world,                          visible_when=pw.is_worlds_worlds)
+button_lw =  StaticButton("Load World",        (_a * 2 + _b, win.height - 160),        all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_lw_command,               visible_when=pw.is_worlds_worlds)
+button_jw =  StaticButton("Join World",        (_a * 3 + _b, win.height - 120),        all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_jw_command,               visible_when=pw.is_worlds_worlds)
+button_daw = StaticButton("Delete All Worlds", (_a * 4 + _b, win.height - 80),         all_home_world_static_buttons, LIGHT_BROWN, anchor="topleft", size="world", command=pw.button_daw_command,              visible_when=pw.is_worlds_worlds)
 button_c =   StaticButton("Credits",           (35, 130),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.show_credits_command,            visible_when=pw.is_worlds_static)
 button_i =   StaticButton("Intro",             (35, 170),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.intro_command,                   visible_when=pw.is_worlds_static)
 button_ct =  StaticButton("Custom Textures",   (35, 210),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.custom_textures_command,         visible_when=pw.is_worlds_static)
@@ -4601,7 +4645,8 @@ async def main(debug, cprof=False):
                             pass
 
                         if event.key == pygame.K_1:
-                            win.target_zoom = (3, 3)
+                            # win.target_zoom = (3, 3)
+                            pass
 
                         if event.key == K_q:  # debug so far until it gets a feature on its own
                             # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
@@ -5318,11 +5363,11 @@ async def main(debug, cprof=False):
                             if entity.dialogue:
                                 g.dialogue = True
                                 g.scroll_orders = [
-                                    g.scroll[0] + entity.rect.x - 50,
-                                    g.scroll[1] + entity.rect.y - 80
+                                    entity._rect.centerx - entity.height / 2,
+                                    entity._rect.centery - entity.width / 2
                                 ]
                                 entity.dialogue = False
-                                win.target_zoom = (3, 3)
+                                # win.target_zoom = (3, 3)
                             # check whether the entity is dead and drop the loot
                             if entity.dead and not entity.dying:
                                 # shatter particles
@@ -5440,7 +5485,10 @@ async def main(debug, cprof=False):
                                                 (win.renderer, GREEN, rect, 1)
                                             else:
                                                 (win.renderer, RED, rect, 1)
-                                        g.player.block_data.append([block, _rect])
+                                        if name in ramp_blocks:
+                                            g.player.ramp_data.append([block, _rect])
+                                        else:
+                                            g.player.block_data.append([block, _rect])
                                         if xo == yo == 0:
                                             metal_detector = block.ore_chance
 

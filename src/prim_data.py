@@ -361,7 +361,7 @@ def rotate_base(block_type, rotations, prefix="base-", func=None, colorkey=None,
         if colorkey is not None:
             a.blocks[name].set_colorkey(colorkey)
         if ramp and r in (0, 90):
-                ramp_blocks.append(name)
+            ramp_blocks.append(name)
     rinfo[block_type] = rotations
     a.aliases["blocks"][block_type] = f"{block_type}_deg0"
 
@@ -531,19 +531,19 @@ def load_blocks():
     # general
     _bsprs = imgload3("assets", "Images", "Spritesheets", "blocks.png")
     block_list = [
-        ["air",             "bucket",           "apple",           "bamboo",          "cactus",          "watermelon",       "rock",       "chicken",     "leaf_f",                   ],
-        ["chest",           "snow",             "coconut",         "coconut-piece",   "command-block",   "wood",             "bed",        "bed-right",   "wood_f_vrLRT"              ],
-        ["base-pipe",       "blast-furnace",    "dynamite",        "fire",            "magic-brick",     "watermelon-piece", "grass1",     "bush",        "wood_f_vrRT"               ],
-        ["hay",             "base-curved-pipe", "glass",           "grave",           "sand",            "workbench",        "grass2",     "depr_leaf_f", "wood_f_vrLT"               ],
-        ["snow-stone",      "soil",             "stone",           "vine",            "wooden-planks",   "wooden-planks_a",  "stick",      "stone",       "wood_f_vrT",               ],
-        ["anvil",           "furnace",          "soil_p",          "blue_barrel",     "red_barrel",      "gun-crafter",      "base-ore",   "bread",       "wood_f_vrLR", "wood_sv_vrN"],
-        ["blackstone",      "closed-core",      "base-core",       "lava",            "base-orb",        "magic-table",      "base-armor", "altar",       "wood_f_vrR",               ],
-        ["closed-door",     "wheat_st1",        "wheat_st2",       "wheat_st3",       "wheat_st4",       "stone-bricks",     "",           "arrow",       "wood_f_vrL",  "soil_t"     ],
-        ["open-door",       "lotus",            "daivinus",        "dirt_f_depr",     "grass3",          "tool-crafter",     "bricks",     "solar-panel", "wood_f_vrN",  "dirt_t"     ],
-        ["cable_vrF",       "cable_vrH",        "",                "",                "",                "",                 "",           "torch",       "grass_f",      ""          ],
-        ["",                "",                 "",                "corn-crop_vr3.2", "corn-crop_vr4.2", "",                 "",           "",            "soil_f",      ""           ],
-        ["",                "corn-crop_vr1.1",  "corn-crop_vr2.1", "corn-crop_vr3.1", "corn-crop_vr4.1", "cattail-top",      "pampas-top", "",            "dirt_f",      ""           ],
-        ["corn-crop_vr0.0", "corn-crop_vr1.0",  "corn-crop_vr2.0", "corn-crop_vr3.0", "corn-crop_vr4.0", "cattail",          "pampas",     "",            "",            ""           ],
+        ["air",             "bucket",           "apple",           "bamboo",          "cactus",          "watermelon",       "rock",        "chicken",     "leaf_f",                   ],
+        ["chest",           "snow",             "coconut",         "coconut-piece",   "command-block",   "wood",             "bed",         "bed-right",   "wood_f_vrLRT"              ],
+        ["base-pipe",       "blast-furnace",    "dynamite",        "fire",            "magic-brick",     "watermelon-piece", "grass1",      "bush",        "wood_f_vrRT"               ],
+        ["hay",             "base-curved-pipe", "glass",           "grave",           "sand",            "workbench",        "grass2",      "depr_leaf_f", "wood_f_vrLT"               ],
+        ["snow-stone",      "soil",             "stone",           "vine",            "wooden-planks",   "wooden-planks_a",  "stick",       "stone",       "wood_f_vrT",               ],
+        ["anvil",           "furnace",          "soil_p",          "",                "wooden-stairs",   "",                 "base-ore",    "bread",       "wood_f_vrLR", "wood_sv_vrN"],
+        ["blackstone",      "closed-core",      "base-core",       "lava",            "base-orb",        "magic-table",      "base-armor",  "altar",       "wood_f_vrR",               ],
+        ["closed-door",     "wheat_st1",        "wheat_st2",       "wheat_st3",       "wheat_st4",       "stone-bricks",     "",            "arrow",       "wood_f_vrL",  "soil_t"     ],
+        ["open-door",       "lotus",            "daivinus",        "dirt_f_depr",     "grass3",          "tool-crafter",     "bricks",      "solar-panel", "wood_f_vrN",  "dirt_t"     ],
+        ["cable_vrF",       "cable_vrH",        "",                "",                "blue_barrel",     "red_barrel",       "gun-crafter", "torch",       "grass_f",      ""          ],
+        ["",                "",                 "",                "corn-crop_vr3.2", "corn-crop_vr4.2", "",                 "",            "",            "soil_f",      ""           ],
+        ["",                "corn-crop_vr1.1",  "corn-crop_vr2.1", "corn-crop_vr3.1", "corn-crop_vr4.1", "cattail-top",      "pampas-top",  "",            "dirt_f",      ""           ],
+        ["corn-crop_vr0.0", "corn-crop_vr1.0",  "corn-crop_vr2.0", "corn-crop_vr3.0", "corn-crop_vr4.0", "cattail",          "pampas",      "",            "",            ""           ],
     ]
     for y, layer in enumerate(block_list):
         for x, block in enumerate(layer):
@@ -599,7 +599,7 @@ def load_blocks():
     b = pygame.transform.scale(b, [s * 3 for s in b.get_size()])
     # ramp
     a.blocks["base-ramp"] = pygame.Surface((BS, BS), pygame.SRCALPHA)
-    pygame.gfxdraw.aapolygon(a.blocks["base-ramp"], [(0, 0), (0, BS - 1), (BS, BS - 1)], GRAY)
+    pygame.gfxdraw.aapolygon(a.blocks["base-ramp"], [(BS - 1, 0), (BS - 1, BS - 1), (0, BS - 1)], GRAY)
     # stone
     a.blocks["stone"] = grayscale(a.blocks["dirt_f_depr"])
     # jetpack
@@ -640,6 +640,7 @@ def load_blocks():
     for name, img in a.blocks.copy().items():
         if name.endswith("-planks"):
             # stairs
+            """
             stairs = img.copy()
             stairs.fill(BLACK, (0, 0, *[s / 2 for s in img.get_size()]))
             stairs.set_colorkey(BLACK)
@@ -650,6 +651,7 @@ def load_blocks():
             slabs_name = f"{name.removesuffix('-planks')}-slabs"
             a.blocks[slabs_name] = pygame.Surface((BS, BS), pygame.SRCALPHA)
             a.blocks[slabs_name].blit(slabs, (0, BS / 2))
+            """
     # deleting unneceserry blocks that have been modified anyway
     del a.blocks["soil"]
 
@@ -1158,6 +1160,7 @@ color_base("orb", orb_colors, unplaceable=True)
 rotate_base("pipe", rotations2)
 rotate_base("curved-pipe", rotations4)
 rotate_base("ramp", rotations4, ramp=True)
+rotate_base("wooden-stairs", rotations4, prefix="", ramp=True)
 rotate_base("cable_vrF", rotations2, prefix="")
 rotate_base("cable_vrH", rotations4, prefix="")
 

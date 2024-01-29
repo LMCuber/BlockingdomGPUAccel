@@ -9,7 +9,7 @@ Katana, Sorcery, Arcane Blade Warlock
 Katana, Necromancy, Deathblade Necroninja
 Katana, Ki Attack, Ki-Infused Kenshin
 Katana, Javelin, Precision Blade Thrower
-Katana, Knuckle Busters, Brawling Blade Monk
+Katana, Knuckle Dusters, Brawling Blade Monk
 Katana, Kunai, Stealthy Shinobi
 Katana, Hammer, Warlord Ronin
 Katana, Bow-n-Arrow, Ronin Sharpshooter (Sharpshooting Ronin)
@@ -28,7 +28,7 @@ Wakizashi, Sorcery, Spellweaving Ronin
 Wakizashi, Necromancy, Shadowblade Necromancer
 Wakizashi, Ki Attack, Ki-Infused Ronin
 Wakizashi, Javelin, Precision Striker
-Wakizashi, Knuckle Busters, Martial Shinobi
+Wakizashi, Knuckle Dusters, Martial Shinobi
 Wakizashi, Kunai, Stealthy Blade Thrower
 Wakizashi, Hammer, Blunt-Edge Ronin
 Wakizashi, Bow-n-Arrow, Precision Archer
@@ -46,7 +46,7 @@ Musket, Sorcery, Spellgun Sorcerer
 Musket, Necromancy, Necromantic Sniper
 Musket, Ki Attack, Ki-Shot Rifleman
 Musket, Javelin, Precision Marksman
-Musket, Knuckle Busters, Bullet Brawler
+Musket, Knuckle Dusters, Bullet Brawler
 Musket, Kunai, Stealthy Sharpshooter
 Musket, Hammer, Blunderbuss Basher
 Musket, Bow-n-Arrow, Longshot Marksman
@@ -63,7 +63,7 @@ Poison Grenade, Sorcery, Venomancer Spellcaster
 Poison Grenade, Necromancy, Plaguebringer Necromancer
 Poison Grenade, Ki Attack, Ki-Infused Toxinmaster
 Poison Grenade, Javelin, Plague Javelineer
-Poison Grenade, Knuckle Busters, Venom Fist Brawler
+Poison Grenade, Knuckle Dusters, Venom Fist Brawler
 Poison Grenade, Kunai, Toxic Blademaster (Toxic Blade Thrower)
 Poison Grenade, Hammer, Plague Hammerbearer
 Poison Grenade, Bow-n-Arrow, Toxic Archer
@@ -79,7 +79,7 @@ Longsword, Sorcery, Mystic Swordcaster
 Longsword, Necromancy, Deathblade Swordmaster
 Longsword, Ki Attack, Ki-Enhanced Swordmaster
 Longsword, Javelin, Precision Swordthrower
-Longsword, Knuckle Busters, Brawling Swordmaster
+Longsword, Knuckle Dusters, Brawling Swordmaster
 Longsword, Kunai, Stealthy Sword Thrower
 Longsword, Hammer, Warhammer Swordmaster
 Longsword, Bow-n-Arrow, Archerblade Warrior (Archerblade)
@@ -94,7 +94,7 @@ Shield, Sorcery, Arcane Guardian
 Shield, Necromancy, Dreadnought Necromancer
 Shield, Ki Attack, Shielded Monk
 Shield, Javelin, Shielded Javelineer
-Shield, Knuckle Busters, Shielded Brawler
+Shield, Knuckle Dusters, Shielded Brawler
 Shield, Kunai, Shielded Ninja
 Shield, Hammer, Shielded Vanguard
 Shield, Bow-n-Arrow, Arrow Warder
@@ -108,7 +108,7 @@ Flail, Sorcery, Sorcerous Flailmaster
 Flail, Necromancy, Deathflail Necromancer
 Flail, Ki Attack, Ki-Infused Swinger (Ki-Infused Flailer)
 Flail, Javelin, Flailed Javaineer (Flail Javelineer)
-Flail, Knuckle Busters, Brawling Flailmaster
+Flail, Knuckle Dusters, Brawling Flailmaster
 Flail, Kunai, Stealthy Flail Thrower
 Flail, Hammer, Blunt-Edge Flailer
 Flail, Bow-n-Arrow, Flailshot Archer
@@ -121,7 +121,7 @@ Staff, Sorcery, Mystic Arcanist
 Staff, Necromancy, Staff Necromancer
 Staff, Ki Attack, Ki-Infused Battlemage
 Staff, Javelin, Staff Javelineer
-Staff, Knuckle Busters, Arcane Brawler
+Staff, Knuckle Dusters, Arcane Brawler
 Staff, Kunai, Stealthy Spellblade
 Staff, Hammer, Runemaster Artificer
 Staff, Bow-n-Arrow, Enchanted Archer
@@ -133,12 +133,12 @@ Staff, Bullwhip, Enchanted Whipstaff
 Sorcery, Necromancy, Dark Sorcerer
 Sorcery, Ki Attack, Ki-Infused Sorcerer
 Sorcery, Javelin, Arcane Javelineer
-Sorcery, Knuckle Busters, Arcane Brawler
+Sorcery, Knuckle Dusters, Arcane Brawler
 Sorcery, Kunai, Arcane Ninja
 Sorcery, Hammer, Spellforged Artificer
 Sorcery, Ki Attack, Arcane Monk
 Sorcery, Javelin, Spellcaster Javelineer
-Sorcery, Knuckle Busters, Mystic Brawler
+Sorcery, Knuckle Dusters, Mystic Brawler
 Sorcery, Kunai, Arcane Blade Thrower
 Sorcery, Hammer, Enchanter Artificer
 Sorcery, Bow-n-Arrow, Spellshot Archer
@@ -149,7 +149,7 @@ Sorcery, Bullwhip, Arcane Whipshaper
 
 Necromancy, Ki Attack, Death-Touched Monk
 Necromancy, Javelin, Necro Javelineer
-Necromancy, Knuckle Busters, Necro Brawler
+Necromancy, Knuckle Dusters, Necro Brawler
 Necromancy, Kunai, Deathblade Ninja
 Necromancy, Hammer, Cursed Hammerbearer
 Necromancy, Bow-n-Arrow, Dark Archer
@@ -159,7 +159,7 @@ Necromancy, Karambit, Revenant Slasher of the Dark (Shadow Blade Assassin)
 Necromancy, Bullwhip, Zombhorde Maestro (Necrowhip Adept)
 
 Ki Attack, Javelin, Ki-Infused Striker
-Ki Attack, Knuckle Busters, Ki Brawler
+Ki Attack, Knuckle Dusters, Ki Brawler
 Ki Attack, Kunai, Ki-Enhanced Ninja
 Ki Attack, Hammer, Ki Hammerbearer
 Ki Attack, Bow-n-Arrow, Ki Archer
@@ -168,7 +168,7 @@ Ki Attack, Rapier, Ki Duelist
 Ki Attack, Karambit, Ki Blade Assassin
 Ki Attack, Bullwhip, Thunderlash Monk
 
-Javelin, Knuckle Busters, Brawling Javelineer
+Javelin, Knuckle Dusters, Brawling Javelineer
 Javelin, Kunai, Precision Blade Thrower
 Javelin, Hammer, Javelin Hammerbearer
 Javelin, Bow-n-Arrow, Ranged Javelineer
@@ -177,13 +177,13 @@ Javelin, Rapier, Javelin Duelist
 Javelin, Karambit, Javelin Assassin
 Javelin, Bullwhip, Tempest Javelinist
 
-Knuckle Busters, Kunai, Brawling Blade Thrower
-Knuckle Busters, Hammer, Brawling Hammerbearer
-Knuckle Busters, Bow-n-Arrow, Ranged Brawler
-Knuckle Busters, Tomahawk, Tribal Brawler
-Knuckle Busters, Rapier, Brawling Duelist
-Knuckle Busters, Karambit, Brawling Assassin
-Knuckle Busters, Bullwhip, Ironclad Whipfighter
+Knuckle Dusters, Kunai, Brawling Blade Thrower
+Knuckle Dusters, Hammer, Brawling Hammerbearer
+Knuckle Dusters, Bow-n-Arrow, Ranged Brawler
+Knuckle Dusters, Tomahawk, Tribal Brawler
+Knuckle Dusters, Rapier, Brawling Duelist
+Knuckle Dusters, Karambit, Brawling Assassin
+Knuckle Dusters, Bullwhip, Ironclad Whipfighter
 
 Kunai, Hammer, Blade Thrower Artificer
 Kunai, Bow-n-Arrow, Stealthy Archer

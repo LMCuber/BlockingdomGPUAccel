@@ -234,7 +234,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             cols = self.get_cols(rep_rect=_ahead)
             if len(cols) >= 2:
                 self.xvel *= -1
-                self.dialogue = True
+                # self.dialogue = True
             elif len(cols) == 1:
                 self.set_yvel(yvel)
 
