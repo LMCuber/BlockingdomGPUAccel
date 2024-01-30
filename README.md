@@ -1,7 +1,7 @@
 # Welcome to Blockingdom
 ## Installation Steps
 ```
-git clone https://github.com/LMCuber/BlockingdomGPUAccel`
+git clone https://github.com/LMCuber/BlockingdomGPUAccel
 pip install noise pygame-ce psutil numpy pillow translatepy googletrans pandas line_profiler pymunk pycountry
 ```
 

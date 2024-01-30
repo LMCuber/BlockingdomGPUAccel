@@ -906,29 +906,10 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
         g.w.late_chunk_data |= late_chunk_data
     else:
         chunk_data = g.w.data[chunk_index]
-    #
-    # lighting
-    for rel_y in range(CH):
-        for rel_x in range(CW):
-            og_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
-            # if og_pos in chunk_data:
-            #     og_block = chunk_data[og_pos]
-            #     og_name = og_block.name
-            #     if og_name in ("dynamite", "air"):
-            #         # found light source
-            #         diffuse_light(og_block, chunk_data)
-
     # blitting
     terrain, lighting = generate_lighting(chunk_data, chunk_index, blit_image=True)
     # suck the air out
     chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
-    # converting the surface to textures
-    # if is_light:
-    #     pg_to_pil(lighting).show()
-    # lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
-    # if is_light:
-    #     pg_to_pil(lighting).show()
-    #     raise
     # set final values
     g.w.data[chunk_index] = chunk_data
     g.w.entities[chunk_index] = entities
@@ -940,6 +921,8 @@ def generate_lighting(chunk_data, chunk_index, blit_image=False):
     metadata = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
     if blit_image:
         terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
+        if chunk_indsex[1] >= 1:
+            terrain.fill((30, 30, 30))
     lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
     lighting.fill(BLACK)
     enum = {"left": [], "right": [], "up": [], "down": []}
@@ -964,10 +947,10 @@ def generate_lighting(chunk_data, chunk_index, blit_image=False):
                         enum["down"].append([name, blit_x + BS // 2, blit_y + BS // 2])
                 # blit actual block image
                 if blit_image:
-                    terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
+                    if name != "air":
+                        terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
     color = (255, 0, 0, 200)
     lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
-
     tex_lighting = T(lighting)
     g.w.lightings[chunk_index] = tex_lighting
     g.w.metadata[chunk_index] |= metadata
@@ -1309,7 +1292,8 @@ class World:
         blit_x, blit_y = abs_pos[0] % CW * BS, abs_pos[1] % CH * BS
         # remove from updating when needed
         if remove_from_updating:
-            self.to_update[target_chunk].remove(self.data[target_chunk][abs_pos])
+            if abs_pos in self.data[target_chunk]:
+                self.to_update[target_chunk].remove(self.data[target_chunk][abs_pos])
         # overwrite?
         if overwrites is None:
             overwrites = empty_blocks
@@ -2629,7 +2613,7 @@ class Player(SmartVector):
                 rel_x = self.x - ramp.x
                 if name.endswith("_deg0"):
                     rel_y = rel_x + self.width
-                elif name.endswith("_deg0"):
+                elif name.endswith("_deg270"):
                     rel_y = ramp.height - rel_x
                 rel_y = min(rel_y, ramp.height)
                 rel_y = max(rel_y, 0)
