@@ -211,7 +211,8 @@ iexo2_fonts = get_fonts("Exo2", "Exo2-LightItalic.ttf")
 elec_fonts = get_fonts("Electrolize", "Electrolize-Regular.ttf")
 awave_fonts = get_fonts("Audiowide", "Audiowide-Regular.ttf")
 neuro_fonts = get_fonts("NeuropolX", "neuropol x rg.ttf")
-orbit_fonts = (get_fonts("Orbitron", "Orbitron-VariableFont_wght.ttf"))
+orbit_fonts = get_fonts("Orbitron", "Orbitron-VariableFont_wght.ttf")
+
 #dejavu_fonts = get_fonts("DejaVu", "ttf", "DejaVuSans-ExtraLight.ttf")
 #cyber_fonts = get_fonts("Cyberbit", "Cyberbit.ttf")
 # stixgen_fonts = get_fonts("Stixgeneral", sys=True, italic=True)
@@ -294,6 +295,7 @@ class Game:
         self.mouse_log = []
         self.mouse_delta = (0, 0)
         self.selected_widget = None
+        self.disabled_widgets = False
         # surfaces
         self.night_sky = pygame.Surface(win.size)
         self.menu_surf = pygame.Surface(win.size); self.menu_surf.set_alpha(100)

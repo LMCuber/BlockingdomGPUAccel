@@ -176,6 +176,7 @@ def disable_needed_widgets():
                                 else:
                                     CThread(target=widget.zoom, args=["out destroy"]).start()
                             elif not widget.disabled:
+                                g.disabled_widgets = True
                                 widget.disable()
 
 
@@ -183,7 +184,6 @@ def mousebuttondown_event(button):
     if button == 1:
         g.clicked_when = g.stage
         if g.stage == "play":
-    # def __init__(self, pos, mouse, start_pos, speed, gravity=0, image=None, name=None, color=BLACK, size=None, damage=0, traits=None, rotate=True, air_resistance=0, invisible=False, unfeelable=False, track_path=None, tangent=None):
             """
             p = Projectile(g.player.rect.midtop, g.mouse, g.player._rect.center, speed=15, gravity=0.30, image=dart_img, track_path=False)
             p.image.color = choice((get_red, get_green, get_blue))(140, 20)
@@ -292,6 +292,7 @@ def mousebuttondown_event(button):
 
 def mousebuttonup_event(button):
     if button == 1:
+        g.disabled_widgets = False
         g.first_affection = None
         visual.mouse_init = None
         # mouse log
@@ -544,6 +545,7 @@ def set_midblit(block):
 
 
 def stop_midblit(args=""):
+    g.disabled_widgets = True
     g.midblit = None
     g.cannot_place_block = True
     args = args.split("/")
@@ -690,9 +692,7 @@ def new_world(worldcode=None):
                         g.menu = False
                         g.w.name = wn
                         g.p.world_names.append(wn)
-                        # terrain
-                        if g.terrain_mode == "image":
-                            g.w.create_terrain_surf(size=(300, 300))
+                        # init world
                         init_world("new")
                 else:
                     generate_world(_glob.world_code)
@@ -838,7 +838,7 @@ def diffuse_light(og_block, chunk_data):
     diffuse(og_block)
 
 
-def generate_chunk(chunk_index, biome="forest", terrain_only=False):
+def generate_chunk(chunk_index, biome="beach", terrain_only=False):
     # init NOW
     x, y = chunk_index
     entities = []
@@ -865,12 +865,11 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
         prim, sec = bio.blocks[biome]
         tert = "stone"
         # - generation -
-        mult = 0.1
         depth = ore_chance = 0
         for rel_x in range(CW):
             y_offset = int(noise.pnoise1((x * CW + rel_x) * 0.1, repeat=10000000) * 5)
             if y == 1:
-                dirt_layer = CH / 2 - nordis(2, 3)
+                layers = bio.get_layers(biome)
             for rel_y in range(CH):
                 width, height = x * CW + rel_x, y * CH + rel_y
                 rel_pos = rel_x, rel_y
@@ -886,11 +885,12 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                     else:
                         name = "air"
                 elif y == 1:
-                    if rel_y <= dirt_layer:
-                        name = sec
-                    else:
-                        name = tert
+                    name = "air"
+                    for layer_block, interval in layers.items():
+                        if interval[0] <= rel_y <= interval[1]:
+                            name = layer_block
                 elif y >= 2:
+                    mult = 0.1
                     depth = noise.pnoise2(*[t * mult for t in target_pos], octaves=2)
                     ore_chance = noise.pnoise2(*[t * mult for t in target_pos], octaves=10)
                     if depth >= 0:
@@ -898,33 +898,40 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                         if chance(1 / 100):
                             name = choice(list(oinfo))
                     else:
-                        name = "air"
+                        name = "wallstone"
                 if name:
                     chunk_data[target_pos] = Block(name, target_pos, ore_chance)
         # world mods
         entities, late_chunk_data = world_modifications(chunk_data, g.w.metadata[chunk_index], biome, chunk_pos, g.w.wgr)
+        entities, late_chunk_data = [], {}
         g.w.late_chunk_data |= late_chunk_data
     else:
         chunk_data = g.w.data[chunk_index]
-    # blitting
-    terrain, lighting = generate_lighting(chunk_data, chunk_index, blit_image=True)
-    # suck the air out
-    chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
-    # set final values
+    #
+    # suck the air out, if doesn't exist => it's air which makes it faster vroem
+    # chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
     g.w.data[chunk_index] = chunk_data
+    terrain, lighting = generate_lighting(chunk_data, chunk_index, new=True, blit_image=True)
     g.w.entities[chunk_index] = entities
     return terrain
 
 
-def generate_lighting(chunk_data, chunk_index, blit_image=False):
+def generate_lighting(chunk_data, chunk_index, new=False, blit_image=False):
     chunk_pos = (chunk_index[0] * CW, chunk_index[1] * CH)
     metadata = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
     if blit_image:
         terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
-        if chunk_indsex[1] >= 1:
-            terrain.fill((30, 30, 30))
-    lighting = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
-    lighting.fill(BLACK)
+        if chunk_index[1] >= 1:
+            pass
+            # terrain.blit(pygame.transform.scale(g.w.surf_assets["blocks"]["wallstone"], (CW * BS, CH * BS)), (0, 0))
+    if new:
+        lighting = SmartSurface((CW, CH), pygame.SRCALPHA)
+    else:
+        lighting = g.w.lighting_surfs[chunk_index]
+    g.w.lighting_surfs[chunk_index] = lighting
+    tex_lighting = T(lighting)
+    g.w.lightings[chunk_index] = tex_lighting
+    # lighting.fill(BLACK)
     enum = {"left": [], "right": [], "up": [], "down": []}
     for rel_y in range(CH):
         for rel_x in range(CW):
@@ -934,9 +941,7 @@ def generate_lighting(chunk_data, chunk_index, blit_image=False):
                 name = block.name
                 blit_x, blit_y = (rel_x * BS, rel_y * BS)
                 if name in linfo:
-                    light_color = (255, 215, 0, 120)
-                    # color = [rand(0, 255) for _ in range(3)] + [120]
-                    pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], light_color)
+                    # pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], linfo[name]["color"])
                     if blit_x - 90 < 0:
                         enum["left"].append([name, blit_x + BS // 2, blit_y + BS // 2])
                     if blit_x + 90 > (CW * BS):
@@ -945,14 +950,16 @@ def generate_lighting(chunk_data, chunk_index, blit_image=False):
                         enum["up"].append([name, blit_x + BS // 2, blit_y + BS // 2])
                     if blit_y + 90 > (CH * BS):
                         enum["down"].append([name, blit_x + BS // 2, blit_y + BS // 2])
-                # blit actual block image
+                # blit actual block image onto global chunk surface
                 if blit_image:
                     if name != "air":
                         terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
+                # lighting
+                # if name == "air":
+                #     fill_light(chunk_index, abs_pos, 280)
     color = (255, 0, 0, 200)
-    lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
-    tex_lighting = T(lighting)
-    g.w.lightings[chunk_index] = tex_lighting
+    # lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
+    #
     g.w.metadata[chunk_index] |= metadata
     #
     if blit_image:
@@ -960,6 +967,83 @@ def generate_lighting(chunk_data, chunk_index, blit_image=False):
         g.w.terrains[chunk_index] = tex_terrain
         return tex_terrain, tex_lighting
     return tex_lighting
+
+
+def update_light():
+    global thread_active, light_surf, light_tex, light_rect
+    thread_active = True
+    light_min_x = DumbNumber()
+    light_max_x = DumbNumber()
+    light_min_y = DumbNumber()
+    light_max_y = DumbNumber()
+    #
+    for y in range(V_CHUNKS):
+        for x in range(H_CHUNKS):
+            # init chunk data like pos and other metadata
+            target_x = x - 1 + int(round(g.scroll[0] / (CW * BS)))
+            target_y = y - 1 + int(round(g.scroll[1] / (CH * BS)))
+            target_chunk = (target_x, target_y)
+            if target_chunk not in g.w.data or target_chunk != (0, 0):
+                continue
+            for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
+                block.light = max(block.light, block.light - 16)
+    for y in range(V_CHUNKS):
+        for x in range(H_CHUNKS):
+            # init chunk data like pos and other metadata
+            target_x = x - 1 + int(round(g.scroll[0] / (CW * BS)))
+            target_y = y - 1 + int(round(g.scroll[1] / (CH * BS)))
+            target_chunk = (target_x, target_y)
+            if target_chunk not in g.w.data or target_chunk != (0, 0):
+                continue
+            for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
+                if abs_pos[0] < light_min_x:
+                    light_min_x = abs_pos[0]
+                if abs_pos[0] > light_max_x:
+                    light_max_x = abs_pos[0]
+                if abs_pos[1] < light_min_y:
+                    light_min_y = abs_pos[1]
+                if abs_pos[1] > light_max_y:
+                    light_max_y = abs_pos[1]
+                block.light = 0
+                # if block.name == "air":
+                #     fill_light(target_chunk, abs_pos, 255)
+    surf_width = light_max_x - light_min_x
+    surf_height = light_max_y - light_min_y
+    light_surf = pygame.Surface((surf_width * BS, surf_height * BS), pygame.SRCALPHA)
+    # ------------
+    for y in range(V_CHUNKS):
+        for x in range(H_CHUNKS):
+            # init chunk data like pos and other metadata
+            target_x = x - 1 + int(round(g.scroll[0] / (CW * BS)))
+            target_y = y - 1 + int(round(g.scroll[1] / (CH * BS)))
+            target_chunk = (target_x, target_y)
+            if target_chunk not in g.w.data:
+                continue
+            if target_chunk == (0, 0):
+                for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
+                    rel_x, rel_y = abs_pos[0] % CW, abs_pos[1] % CH
+                    # light_surf.set_at((rel_x, rel_y), (0, 0, 0, 255 - block.light))
+                    pygame.draw.rect(light_surf, (0, 0, 0, 255 - block.light), (rel_x * BS, rel_y * BS, BS, BS))
+                    write(light_surf, "center", block.light, awave_fonts[10], GREEN, rel_x * BS + BS / 2, rel_y * BS + BS / 2)
+    light_tex = T(light_surf)
+    light_rect = pygame.Rect((0, 0, surf_width * BS, surf_height * BS))
+    thread_active = False
+
+
+def fill_light(target_chunk, abs_pos, light_value):
+    light_reduction = 25
+    new_light_value = max(0, light_value - light_reduction)
+    if target_chunk not in g.w.data:
+        return
+    if new_light_value > g.w.data[target_chunk][abs_pos].light:
+        g.w.data[target_chunk][abs_pos].light = int(new_light_value)
+        # rel_x, rel_y = abs_pos[0] % CW, abs_pos[1] % CH
+        fill_light(*correct_tile(target_chunk, abs_pos, -1, 0), new_light_value)
+        fill_light(*correct_tile(target_chunk, abs_pos, 1, 0), new_light_value)
+        fill_light(*correct_tile(target_chunk, abs_pos, 0, -1), new_light_value)
+        fill_light(*correct_tile(target_chunk, abs_pos, 0, 1), new_light_value)
+    else:
+        return
 
 
 # S T A T I C  O B J E C T  F U N C T I O N S  -------------------------------------------------------  #
@@ -1071,6 +1155,7 @@ class World:
         self.data = {}
         self.terrains = {}
         self.lightings = {}
+        self.lighting_surfs = {}
         self.magic_data = {}
         self.metadata = {}
         self.block_data = {}
@@ -1236,8 +1321,7 @@ class World:
             img = pygame.Surface((BS, BS), pygame.SRCALPHA)
             img.fill(list(WATER_BLUE[:2]) + [127])
         if is_bg(name):
-            #img = darken(img)
-            img = img
+            img = darken(img, 0.8)
         return img
 
     def create_terrain_surf(self, pos=None, name=None, size=None):
@@ -1375,7 +1459,7 @@ class World:
                                     g.w.modify(current, target_chunk, abs_pos)
                                     g.w.modify(new, new_chunk, new_pos)
             if nbg == "dynamite":
-                # diffuse_light()
+                diffuse_light(self.data[target_chunk][abs_pos], g.w.data[target_chunk])
                 pass
         if setto in updating_blocks:
             if target_chunk not in g.w.to_update:
@@ -1401,9 +1485,9 @@ class World:
                 g.structure[abs_pos] = nbg
 
         # update the lighting if necessary
-        if nbg in linfo or current in linfo:
+        if nbg in linfo or current in linfo or nbg == "dynamite":
             # lighting
-            self.lightings[target_chunk] = generate_lighting(self.data[target_chunk], target_chunk)
+            self.lightings[target_chunk] = generate_lighting(self.data[target_chunk], target_chunk, new=False)
 
         # kwargs
         for k, v in kwargs.items():
@@ -1485,11 +1569,13 @@ class PlayWidgets:
         # menu widgets
         set_default_fonts(orbit_fonts)
         set_default_tooltip_fonts(orbit_fonts)
-        _menu_widget_kwargs = {"anchor": "center", "width": 130, "template": "menu widget", "font": orbit_fonts[15]}
+        #
+        _menu_widget_kwargs = {"anchor": "center", "width": 130, "template": "menu widget", "font": orbit_fonts[15], "bg_color": (40, 40, 40, 210), "text_color": WHITE}
         _menu_button_kwargs = _menu_widget_kwargs | {"height": 32}
         _menu_togglebutton_kwargs = _menu_button_kwargs
         _menu_checkbox_kwargs = _menu_widget_kwargs | {"width": 165, "height": 32}
-        _menu_slider_kwargs = _menu_widget_kwargs | {"width": 235, "height": 60}
+        _menu_slider_kwargs = _menu_widget_kwargs | {"width": 235, "height": 60, "slider_color": WHITE}
+        #
         self.widget_kwargs = {"pos": DPP, "font": orbit_fonts[20]}
         self.ok_kwargs = self.widget_kwargs | {"width": 200, "height": 60}
         self.entry_kwargs  = {"pos": (DPX, DPY - 50), "font": orbit_fonts[20], "key_font": orbit_fonts[15]}
@@ -1525,10 +1611,11 @@ class PlayWidgets:
                 Slider(win.renderer,   "Camera Lag",    range(1, 51), 1,                                          tooltip="The lag of the camera that fixated on the player",                  **_menu_slider_kwargs),
                 Slider(win.renderer,   "Volume",        range(101), int(g.p.volume * 100),                        tooltip="Master volume",                                                     **_menu_slider_kwargs),
                 Slider(win.renderer,   "Entities",      (0, 1, 10, 100), 100,                                     tooltip="Maximum number of entities updateable",                             **_menu_slider_kwargs),
+                Slider(win.renderer,   "Lighting",      range(0, 256), 0, on_move_command=self.lighting_command,  tooltip="Experimental lighting",                                             **_menu_slider_kwargs),
             ]),
         }
         _sy = _y = 190
-        _x = 130
+        _x = 200
         for mw_type in self.menu_widgets:
             for mw in self.menu_widgets[mw_type]:
                 mw.set_pos((_x, _y), "topleft")
@@ -1604,7 +1691,7 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -1659,6 +1746,12 @@ class PlayWidgets:
         g.fog_img.fill(BLACK)
         g.fog_img.blit(g.fog_light, g.player.rect.center)
         win.renderer.blit(g.fog_img, (0, 0), special_flags=pygame.BLEND_MULT)
+
+    @staticmethod
+    def lighting_command(alpha):
+        return
+        for chunk_index, lighting in g.w.lightings.items():
+            lighting.alpha = alpha
 
     def change_skin_command(self):
         g.menu = False
@@ -2047,7 +2140,7 @@ class Player(SmartVector):
         self.xvel = 0
         self.extra_xvel = 0
         self.yvel = 0
-        self.gravity = 0.08
+        self.def_gravity = self.gravity = 0.08
         self.def_jump_yvel = -3.5
         self.jump_yvel = self.def_jump_yvel
         self.water_jump_yvel = self.jump_yvel / 2
@@ -2633,26 +2726,30 @@ class Player(SmartVector):
             if not self.entered_water:
                 self.last_entered_water = ticks()
                 self.entered_water = True
-            # if "air" in [data[0].name for data in self.block_data]:
             if ticks() - self.last_entered_water >= 50 and up:
                 self.y -= 1
                 self.gravity_active = False
-            for pos, terrain in g.w.terrains.items():
-                # terrain.color = (0, 120, 255
-                pass
         else:
             self.entered_water = False
 
         # acceleration due to gravity
         if not self.to_dashy[0]:
             if self.gravity_active:
+                self.gravity = self.def_gravity
+                if up:
+                    if not self.in_air:
+                        if self.tool == "uranium_shovel":
+                            self.yvel = 2 * self.def_jump_yvel
+                        else:
+                            self.yvel = self.def_jump_yvel
+                        self.in_air = True
+                        self.anim_type = "jump"
+                    elif self.yvel >= 0:
+                        if self.tool == "uranium_shovel":
+                            self.gravity = self.def_gravity * 0.1
                 self.yvel += self.gravity
                 if self.yvel >= 2:
                     self.in_air = True
-                if up and not self.in_air:
-                    self.yvel = self.def_jump_yvel
-                    self.in_air = True
-                    self.anim_type = "jump"
                 self.yvel = min(self.yvel, 8)
                 self.bottom += self.yvel
 
@@ -2785,7 +2882,6 @@ class Visual:
         self.moused = True
         # sword
         self.angle = 0
-        self.to_swing = 0
         self.cursor_trail = CursorTrail(win.renderer, 50)
         self.mouse_init = None
         # domineering sword
@@ -2796,7 +2892,6 @@ class Visual:
         self.bow_index = 0
         # grappling hook
         self.grapple_line = []
-
         # pymunk
         self.atoms = []
         self.bonds = []
@@ -2821,6 +2916,19 @@ class Visual:
         self.scope_inner_base = SmartSurface(self.scope_inner_size, pygame.SRCALPHA)
         self.reloading = False
         self.scope_yoffset = 12
+        # swinging
+        self.avel = 0
+        self.max_avel = 6
+        self.angle = 0
+        self.returning = 0
+        self.block_data = []
+        self.hit_direc = None
+        #
+        self.axe_update = self.pickaxe_update
+        self.axe_rebound = self.pickaxe_rebound
+        self.axe_stop_rebound = self.pickaxe_stop_rebound
+        # shoveling
+        self.yvel = 0
 
     def draw(self):  # visual draw
         if self.render:
@@ -2837,7 +2945,7 @@ class Visual:
                 win.renderer.draw_color = NAVY_BLUE
                 win.renderer.draw_line(m, g.mouse)
             if pw.show_hitboxes:
-                (win.renderer, ORANGE, self.rect, 1)
+                draw_rect(win.renderer, RED, self.rect)
             # pymunk render
             # self.first_atom.body.velocity = g.mouse_delta
             # for bond in self.bonds:
@@ -2870,236 +2978,116 @@ class Visual:
     def mask(self):
         return pygame.mask.from_surface(self.image)
 
-    def update(self):
-        if g.stage == "play":
-            self.render = True
-            if g.player.main == "block":
-                if g.player.block:
-                    self.og_img = g.w.blocks[g.player.block]
-                    self.image = self.og_img.copy()
-                    self.rect = self.image.get_rect()
-                    if g.player.direc == "left":
-                        self.rect.right = g.player.rrect.left - 5
-                    elif g.player.direc == "right":
-                        self.rect.left = g.player.rrect.right + 5
-                    self.og_y = self.rect.centery = g.player.rrect.centery
-                    if g.player.eating:
-                        self.rect.centery = self.og_y + sin(ticks() * 0.03) * 4
-                else:
-                    self.render = False
+    # update rebound stop rebound
+    def pickaxe_update(self):
+        if self.returning == 0:
+            m = 0.04
+            self.avel += m * (self.sign * self.max_avel - self.avel)
 
-            elif g.player.main == "tool":
-                if g.player.tool is not None:
-                    self.following = True
-                    self.og_img = scale3x(g.w.tools[g.player.tool])
-                    self.image = self.og_img.copy()
-                    self.rect = self.image.get_rect(center=self.rect.center)
-                    if orb_names["white"] in g.player.tool:
-                        self.following = False
-                    if g.player.tool == "diamond_sword":
-                        self.following = False
-                        self.rect.center = g.player.rrect.center
-                        self.sword_swing = 0
-                    if g.player.tool_type == "bow":
-                        self.following = False
-                    if g.player.tool_type != "sword":
-                        self.rect.center = g.player.rrect.center
+    def pickaxe_rebound(self, block=None):
+        if self.returning == 0:
+            self.returning = self.avel = -sign(self.avel)
 
-                    if g.player.tool_type != "sword":
-                        # keyboard weapon
-                        if self.following:
-                            self.rect.center = g.mouse
-                            o = 45
-                            if self.facing_right:
-                                self.rect.centerx = min(g.player.rrect.centerx + o, g.mouse[0])
-                            else:
-                                self.rect.centerx = max(g.player.rrect.centerx - o, g.mouse[0])
-                            if self.facing_up:
-                                self.rect.centery = min(g.player.rrect.centery + o, g.mouse[1])
-                            else:
-                                self.rect.centery = max(g.player.rrect.centery - o, g.mouse[1])
-                            self.rect.center = g.player.rrect.center
-                        if g.player.tool_type == "grappling-hook":
-                            if self.rect.center != g.mouse:
-                                self.image, self.rect = rot_center(self.og_img, -degrees(two_pos_to_angle(self.rect.center, g.mouse)) - 135, self.rect.center)
-                    elif self.sword_swing <= 0:
-                        self.rect.center = g.player.rrect.center
+    def pickaxe_stop_rebound(self):
+        if self.returning != 0:
+            self.avel = 7 * self.returning
+            self.returning = 0
 
-                    if bpure(g.player.tool) == "bat":
-                        if self.anticipate:
-                            self.angle += (80 - self.angle) / 10
-                            self.anticipation += 1
-                            self.image, self.rect = rot_center(self.og_img, self.angle, self.rect.center)
-                        #
-                        self.rect.center = g.player.rrect.center
-                        if self.to_swing > 0:
-                            try:
-                                self.anim += 0.4
-                                self.og_img = g.w.sprss["bat"][int(self.anim)]
-                            except IndexError:
-                                self.to_swing = 0
-                            self.image, self.rect = rot_center(self.og_img, self.angle, self.rect.center)
+    def shovel_update(self):
+        self.yvel += 0.4
+        self.rect.y += self.yvel
+        # self.rect.y = g.player.rect.centery - abs(sin(2 * pi * ticks() / 1000)) * 30 + 15
 
-                    if g.player.tool_type == "sword":
-                        if self.sword_swing >= 0:
-                            # majestic
-                            if orb_names["purple"] in g.player.tool:
-                                self.sword_log.append(glow_rect.center)
-                                self.following = False
-                                if len(self.sword_log) >= 30:
-                                    del self.sword_log[0]
-                            if orb_names["white"] in g.player.tool:
-                                self.changeable = True
-                                self.rect.center = g.player.rrect.center
-                                self.angle = -degrees(two_pos_to_angle(self.rect.center, g.mouse)) + 45 + 180
-                                self.image, self.rect = rot_center(self.og_img, self.angle, self.rect.center)
-                                self.draw()
-                                for entity in g.w.entities:
-                                    if "mob" in entity.traits:
-                                        entity.ray_cooldown = False
-                                self.refl_line = None
-
-                    elif "_bow" in g.player.tool:
-                        # angle
-                        self.angle = -degrees(two_pos_to_angle(self.rect.center, g.mouse)) - 45
-                        # image
-                        self.og_img = scale3x(g.w.tools[f"{g.player.tool}{ceil(self.bow_index)}"])
-                        self.image, self.rect = rot_center(self.og_img, self.angle, self.rect.center)
-                        # extra
-                        if orb_names["green"] in g.player.tool:
-                            if len(self.bow_rt) < 2 or self.bow_index < 3:
-                                ray_trace_bow()
-
-                    if g.player.tool_type in swinging_tools:
-                        self.image, self.rect = rot_pivot(self.og_img, self.rect.center, (30, 30), self.angle)
-
-                    if g.player.tool_type == "sword":
-                        if self.sword_swing > 0:
-                            self.swing_sword(14)
-                            mult = 10
-                            sgn = 1 if self.sword_swing < (self.max_sword_swing / 2) else -1
-                            xvel = self.sword_swing_xvel * sgn * mult
-                            yvel = self.sword_swing_yvel * sgn * mult
-                            self.rect.x += xvel
-                            self.rect.y += yvel
-                            angle = -degrees(two_pos_to_angle(g.mouse, g.player.rrect.center)) + 45
-                            self.image, self.rect = rot_center(self.og_img, angle, self.rect.center)
-
-                    if g.player.tool_type in rotating_tools:
-                        self.image = flip(self.image, self.facing_right, False)
-                        if self.facing_right:
-                            self.rect.centerx += (g.player.rrect.centerx - self.rect.centerx) * 2
-
-                    if g.mouses[0]:
-                        if g.player.tool == "diamond_sword":
-                            if perf_counter() - self.ns_last >= (2 * pi) / self.ns_freq:
-                                self.init_ns()
-                                self.ns_last = perf_counter()
-                            offset = trig_wave(perf_counter() * self.ns_freq, self.ns_width, self.ns_height, self.ns_theta, self.ns_xo, self.ns_yo)
-                            self.rect.center = (g.mouse[0] + offset[0], g.mouse[1] + offset[1])
-                            self.sword_swing = 1
-                            self.ns_nodes.append([self.rect.center, ticks()])
-
-                        if "_bow" in g.player.tool:
-                            self.bow_index += 0.06
-                            self.bow_index = min(self.bow_index, len(a.sprss["bow"]) - 1)
-
-                        if g.player.tool_type in swinging_tools:
-                            # swinging tool
-                            self.angle += 3
-                            if self.angle >= 90:
-                                self.angle = -90
-                            # breaking blocks
-                            for block, rect in g.player.block_data:
-                                name = block.name
-                                dest_rect = pygame.Rect((rect.x - g.scroll[0]) * S, (rect.y - g.scroll[1]) * S, BS * S, BS * S)
-                                if pw.show_hitboxes:
-                                    (win.renderer, ORANGE, self.rect, 2)
-                                if self.rect.colliderect(dest_rect):
-                                    if name in tinfo[g.player.tool_type]["blocks"]:
-                                        block.broken += 1
-                                        break
-                else:
-                    self.render = False
-
-                if self.grapple_line:
-                    draw_line(win.renderer, BROWN, *self.grapple_line)
-
-            self.draw()
+    def shovel_rebound(self, rect=None):
+        if rect is not None:
+            self.rect.bottom = rect.top
+        self.yvel = -5 * sign(self.yvel)
 
     def update(self):  # visual update
-        # particles
-        pass
-
         # self.cursor_trail.update()
         self.render = True
         if g.player.main == "tool":
-            self.image = g.w.tools[g.player.tool]
-            self.rect = self.image.get_rect(bottomright=g.player.rect.center)
-            self.image = Image(self.image)
-
-            # define origin for image rotation
-            if self.facing_right:
-                self.image.origin = (0, BS)
-            else:
-                self.image.origin = (BS, BS)
-
-            av = 3
-            da = {-1: 90, 1: -90}
-            if g.player.tool_type in swinging_tools or True:
-                # move position according to the mouse
-                o = 45
-                self.rect.center = g.mouse
-                if self.facing_right:
-                    self.rect.centerx = min(g.player.rect.centerx + o, g.mouse[0])
-                else:
-                    self.rect.centerx = max(g.player.rect.centerx - o, g.mouse[0])
-                if self.facing_up:
-                    self.rect.centery = min(g.player.rect.centery + o, g.mouse[1])
-                else:
-                    self.rect.centery = max(g.player.rect.centery - o, g.mouse[1])
-                # flip image if necessarry
-                if self.facing_right:
-                    self.image.flip_x = True
-                if g.mouses[0]:
-                    # change tool angle
-                    self.angle += av * self.sign
-                    if not self.facing_right:
-                        if self.angle <= -90:
-                            self.angle = da[self.sign]
-                    else:
-                        if self.angle >= 90:
-                            self.angle = da[self.sign]
-                    # collisiòn
-                    for block, rect in g.player.block_data:
-                        rect = pygame.Rect(rect.x - g.scroll[0], rect.y - g.scroll[1], BS, BS)
-                        if pw.show_hitboxes:
-                            draw_rect(win.renderer, ORANGE, rect)
-                        if self.rect.colliderect(rect):
-                            block.broken += 0.03
-                            if block not in g.w.to_break:
-                                if name in tinfo[g.player.tool_type]["blocks"]:
-                                    g.w.to_break.append(block)
-                                    break
-                else:
-                    self.angle = da[self.sign]
-
-            # rotate image if needed
+            # set visual image
+            self.image = g.w.surf_assets["tools"][g.player.tool]
             if g.player.tool_type in rotating_tools:
-                self.image.angle = self.angle
+                self.image, self.rect = rot_pivot(self.image, self.angle, g.player.rect.center, Vector2(-13, -13))
+            self.image = Image(T(self.image))
+            if g.player.tool_type == "shovel":
+                self.image.angle = 225
+            #
+            self.rect.centerx = g.player.rect.centerx - g.player.sign * 16
+            self.rect.centery = g.player.rect.centery - 10
+            self.image.flip_x = g.player.direc == "left"
 
-            # sword
-            if g.player.tool_type == "sword":
-                if self.to_swing > 0:
-                    self.to_swing -= 1
-                    if self.to_swing > 0:
-                        anim_img = test_sprs[int(7 - self.to_swing)]
-                        anim_rect = anim_img.get_rect(bottomleft=self.rect.center)
-                        win.renderer.blit(anim_img, anim_rect)
+            # get collisions
+            self.block_data.clear()
+            for yo in range(-2, 3):
+                for xo in range(-2, 3):
+                    target_chunk, abs_pos = pos_to_tile(self.rect.center)
+                    target_chunk, abs_pos = correct_tile(target_chunk, abs_pos, xo, yo)
+                    # processing the data
+                    if target_chunk in g.w.data:
+                        if abs_pos in g.w.data[target_chunk]:
+                            try:
+                                block = g.w.data[target_chunk][abs_pos]
+                            except KeyError:
+                                continue
+                            else:
+                                rect = pygame.Rect(block._rect.x - g.scroll[0], block._rect.y - g.scroll[1], BS, BS)
+                                self.block_data.append([block, rect])
+            if g.mouses[0]:
+                # collisiòn
+                any_col = False
+                # x-axis collision
+                m = 0.04
+                self.avel += m * (self.sign * self.max_avel - self.avel)
 
-            draw_rect(win.renderer, pygame.Color("green"), self.rect)
+                # if self.rect.centery - g.player.rect.centery >= 3 * BS:
+                #     getattr(self, f"{g.player.tool_type}_rebound", lambda_none)()
+                for block, rect in self.block_data:
+                    if self.rect.colliderect(rect):
+                        if block.name not in unbreakable_blocks:
+                            if bpure(block.name) in tinfo[g.player.tool_type]["blocks"]:
+                                block.broken += tinfo[g.player.tool_type]["blocks"][bpure(block.name)]
+                                # getattr(self, f"{g.player.tool_type}_rebound", lambda_none)(rect)
+                                if block not in g.w.to_break:
+                                    g.w.to_break.append(block)
+                                    any_col = True
+                                break
+                # if not any_col:
+                #     getattr(self, f"{g.player.tool_type}_stop_rebound", lambda_none)()
+            else:
+                # pickaxe deceleration
+                if g.player.tool_type in rotating_tools:
+                    m = 0.04
+                    self.avel += m * -self.avel
+            # x-axis collision
+            if g.player.tool_type == "shovel":
+                self.rect.centerx = g.mouse[0]
+            """
+                for block, rect in self.block_data:
+                    if pw.show_hitboxes:
+                        draw_rect(win.renderer, ORANGE, rect)
+                    if self.rect.colliderect(rect):
+                        if g.mouse_delta[0] >= 0:
+                            self.rect.right = rect.left
+                        else:
+                            self.rect.left = rect.right
+            """
 
-            # draw
+            # final angle adjustments
+            if g.player.tool_type in rotating_tools:
+                self.angle += self.avel
+
+            # # set tool x-pos to player
+            # if g.player.tool_type == "shovel":
+            #     o = 60
+            #     if self.facing_right:
+            #         self.rect.centerx = min(g.player.rect.centerx + o, g.mouse[0])
+            #     else:
+            #         self.rect.centerx = max(g.player.rect.centerx - o, g.mouse[0])
+
+            # render
             self.draw()
 
         elif g.player.main == "block":
@@ -3154,7 +3142,8 @@ class UI:
     # ui update
     def update(self):
         if not g.dialogue:
-            self.render_player_icon()
+            # self.render_player_icon()
+            pass
 
     def render_player_icon(self):
         m = g.mouse
@@ -3967,6 +3956,65 @@ class OrbMatrix:
         self.draw()
 
 
+class Spark:
+    def __init__(self, loc, angle, speed, color, scale=1):
+        self.loc = loc
+        self.angle = angle
+        self.speed = speed
+        self.scale = scale
+        self.color = color
+        self.alive = True
+
+    def point_towards(self, angle, rate):
+        rotate_direction = ((angle - self.angle + math.pi * 3) % (math.pi * 2)) - math.pi
+        try:
+            rotate_sign = abs(rotate_direction) / rotate_direction
+        except ZeroDivisionError:
+            rotate_sing = 1
+        if abs(rotate_direction) < rate:
+            self.angle = angle
+        else:
+            self.angle += rate * rotate_sign
+
+    def calculate_movement(self, dt):
+        return [math.cos(self.angle) * self.speed * dt, math.sin(self.angle) * self.speed * dt]
+
+    # gravity and friction
+    def velocity_adjust(self, friction, force, terminal_velocity, dt):
+        movement = self.calculate_movement(dt)
+        movement[1] = min(terminal_velocity, movement[1] + force * dt)
+        movement[0] *= friction
+        self.angle = math.atan2(movement[1], movement[0])
+        # if you want to get more realistic, the speed should be adjusted here
+
+    def update(self, dt=1):
+        movement = self.calculate_movement(dt)
+        self.loc[0] += movement[0]
+        self.loc[1] += movement[1]
+
+        # a bunch of options to mess around with relating to angles...
+        #self.point_towards(math.pi / 2, 0.02)
+        #self.velocity_adjust(0.975, 0.2, 8, dt)
+        #self.angle += 0.1
+
+        self.speed -= 0.1
+
+        if self.speed <= 0:
+            self.alive = False
+
+        self.draw()
+
+    def draw(self, offset=[0, 0]):
+        if self.alive:
+            points = [
+                [self.loc[0] + math.cos(self.angle) * self.speed * self.scale, self.loc[1] + math.sin(self.angle) * self.speed * self.scale],
+                [self.loc[0] + math.cos(self.angle + math.pi / 2) * self.speed * self.scale * 0.3, self.loc[1] + math.sin(self.angle + math.pi / 2) * self.speed * self.scale * 0.3],
+                [self.loc[0] - math.cos(self.angle) * self.speed * self.scale * 3.5, self.loc[1] - math.sin(self.angle) * self.speed * self.scale * 3.5],
+                [self.loc[0] + math.cos(self.angle - math.pi / 2) * self.speed * self.scale * 0.3, self.loc[1] - math.sin(self.angle + math.pi / 2) * self.speed * self.scale * 0.3],
+            ]
+            fill_quad(win.renderer, self.color, *points)
+
+
 class InfoBox:
     def __init__(self, texts, pos=None, index=0):
         # init
@@ -4460,6 +4508,12 @@ late_lines = []
 late_imgs = []
 last_qwe = perf_counter()
 
+#
+thread_active = False
+light_surf = None
+light_tex = None
+light_rect = None
+
 
 # M A I N  L O O P ------------------------------------------------------------------------------------ #
 async def main(debug, cprof=False):
@@ -4537,19 +4591,34 @@ async def main(debug, cprof=False):
         # light.blend_mode = pygame.BLEND_RGBA_MULT
         i = 0
         yyy = 0
-        # lighting debug
-        _light = timgload("assets", "Images", "Visuals", "fog.png")
-        _light_rect = _light.get_rect()
-        light_surf = pygame.Surface((100, 100), pygame.SRCALPHA)
-        light_surf.fill(BLACK)
-        pygame.gfxdraw.filled_circle(light_surf, 50, 50, 50, (255, 215, 0, 120))
-        light_surf = pygame.transform.box_blur(light_surf, 20)
-        light_tex = T(light_surf)
-        _light_rect = light_tex.get_rect()
-        # loop
+
+        # lighting debug station lapland
         bliss = timgload("bliss.png")
         bliss_rect = bliss.get_rect()
+        r = 200
+        surf = pygame.Surface((2 * r, 2 * r), pygame.SRCALPHA)
+        layers = 25
+        glow = 11
+        for i in range(layers):
+            k = i * glow
+            k = clamp(k, 0, 255)
+            pygame.draw.circle(
+                surf, (k, k, k), surf.get_rect().center, r - i * 3
+            )
+        big_surf = pygame.Surface((win.width, win.height), pygame.SRCALPHA)
+        big_surf.fill(BLACK)
+        big_surf.blit(surf, (win.width // 2 - r, win.height // 2 - r))
+        tex = T(big_surf)
+        tex.blend_mode = pygame.BLEND_RGBA_MULT
+        # tex.blend_mode = pygame.BLEND_RGBA_MULT
+
+        # mist station jamayèn
+        ...
+        # cantaloop
         while running:
+
+
+            # group(Spark(list(pygame.mouse.get_pos()), rand(0, 360), 2, WHITE, 3), all_other_particles)
             # init dynamic constants
             mouse = pygame.mouse.get_pos()
             mouses = pygame.mouse.get_pressed()
@@ -5033,6 +5102,7 @@ async def main(debug, cprof=False):
             chunk_rects = []
             chunk_texts = []
             g.player.block_data = []
+            g.player.ext_block_data = []
             g.player.water_data = []
             g.player.ramp_data = []
             magic_tables = []
@@ -5065,342 +5135,362 @@ async def main(debug, cprof=False):
                 # background sprites
                 # for bsprite in all_background_sprites:
                 #     bsprite.update()
-                if g.terrain_mode == "chunk":
-                    # processing chunks
-                    updated_chunks = []
-                    num_blocks = 0
-                    num_entities = 0
-                    # late chunk data
-                    for chunk in g.w.late_chunk_data:
-                        if chunk in g.w.data:
-                            for pos, name in g.w.late_chunk_data[chunk].copy().items():
-                                g.w.modify(name, chunk, pos)
-                                del g.w.late_chunk_data[chunk][pos]
+                # processing chunks
+                updated_chunks = []
+                num_blocks = 0
+                num_entities = 0
+                # late chunk data
+                for chunk in g.w.late_chunk_data:
+                    if chunk in g.w.data:
+                        for pos, name in g.w.late_chunk_data[chunk].copy().items():
+                            g.w.modify(name, chunk, pos)
+                            del g.w.late_chunk_data[chunk][pos]
 
-                    # update the chunks
-                    for y in range(V_CHUNKS):
-                        for x in range(H_CHUNKS):
-                            # init chunk data like pos and other metadata
-                            target_x = x - 1 + int(round(g.scroll[0] / (CW * BS)))
-                            target_y = y - 1 + int(round(g.scroll[1] / (CH * BS)))
-                            target_chunk = (target_x, target_y)
-                            updated_chunks.append(target_chunk)
-                            # create chunk if not existing yet
-                            if target_chunk not in g.w.data:
-                                surf_terrain = generate_chunk(target_chunk)
-                            elif target_chunk not in g.w.terrains:
-                                surf_terrain = generate_chunk(target_chunk, terrain_only=True)
-                            g.w.last_chunks.insert(0, surf_terrain)
-                            g.w.last_chunks = g.w.last_chunks[:1]
-                            # init chunk render
-                            _cpos = g.w.metadata[target_chunk]["pos"]
-                            chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
-                            terrain_tex = g.w.terrains[target_chunk]
-                            # terrain_tex.color = (rrr, ggg, bbb, 255)
-                            lighting_tex = g.w.lightings[target_chunk]
-                            lighting_tex.alpha = 0
-                            # lighting_tex.alpha = 240 * (sin(ticks() * 0.0008) + 1) / 2
-                            chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
-                            # render chunk
-                            win.renderer.blit(terrain_tex, chunk_rect)
-                            _chunk_rect = chunk_rect
-                            if "lighting_offset" in g.w.metadata[target_chunk]:
-                                _chunk_rect = chunk_rect.move(g.w.metadata[target_chunk]["lighting_offset"], 0)
-                            win.renderer.blit(g.w.lightings[target_chunk], _chunk_rect)
-                            # rest
-                            g.w.block_data[target_chunk] = {}
-                            g.w.block_rects[target_chunk] = {}
+                # update the chunks
+                for y in range(V_CHUNKS):
+                    for x in range(H_CHUNKS):
+                        # init chunk data like pos and other metadata
+                        target_x = x - 1 + int(round(g.scroll[0] / (CW * BS)))
+                        target_y = y - 1 + int(round(g.scroll[1] / (CH * BS)))
+                        target_chunk = (target_x, target_y)
+                        updated_chunks.append(target_chunk)
+                        # create chunk if not existing yet
+                        biome = choice(bio.biomes)
+                        biome = "beach"
+                        if target_chunk not in g.w.data:
+                            surf_terrain = generate_chunk(target_chunk, biome=biome)
+                        # elif target_chunk not in g.w.terrains:
+                        #     surf_terrain = generate_chunk(target_chunk, biome=biome, terrain_only=True)
+                        g.w.last_chunks.insert(0, surf_terrain)
+                        g.w.last_chunks = g.w.last_chunks[:1]
+                        # init chunk render
+                        _cpos = g.w.metadata[target_chunk]["pos"]
+                        chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
+                        terrain_tex = g.w.terrains[target_chunk]
+                        # terrain_tex.color = (rrr, ggg, bbb, 255)
+                        lighting_tex = g.w.lightings[target_chunk]
+                        lighting_tex.alpha = 0
+                        # lighting_tex.alpha = 240 * (sin(ticks() * 0.00008) + 1) / 2
+                        chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
+                        # render chunk
+                        win.renderer.blit(terrain_tex, chunk_rect)
+                        _chunk_rect = chunk_rect
+                        if "lighting_offset" in g.w.metadata[target_chunk]:
+                            _chunk_rect = chunk_rect.move(g.w.metadata[target_chunk]["lighting_offset"], 0)
+                        win.renderer.blit(g.w.lightings[target_chunk], _chunk_rect)
+                        # rest
+                        g.w.block_data[target_chunk] = {}
+                        g.w.block_rects[target_chunk] = {}
 
-                            # updating blocks
-                            if target_chunk in g.w.to_update:
-                                for block in g.w.to_update[target_chunk]:
-                                    nbg = non_bg(block.name)
-                                    name = block.name
-                                    abs_pos = block.pos
-
-                                    # falling blocks
-                                    if block.name in flinfo:
-                                        block.yvel += block.yacc
-                                        block.ypos += block.yvel
-                                        block.last_ypos = 0
-                                        if int(block.ypos) > block.last_ypos:
-                                            block.last_ypos = block.ypos
-                                        # if ticks() - block.last_fall >= 1_000:
-                                            _chunk, _pos = correct_tile(target_chunk, block.pos, 0, 1)
-                                            try:
-                                                if g.w.data[_chunk].get(_pos, void_block).name not in empty_blocks:
-                                                    raise ValueError
-                                                # make sand
-                                                g.w.modify(block.name, _chunk, _pos)
-                                                g.w.data[_chunk][_pos].yvel = g.w.data[target_chunk][block.pos].yvel
-                                                # delete prev. sand
-                                                if flinfo[block.name].get("delete", False):
-                                                    g.w.modify("air", target_chunk, block.pos)
-                                                block.last_fall = ticks()
-                                            except (KeyError, ValueError):
-                                                block.ypos -= block.yvel
-                                                block.yvel -= block.yacc
-
-                                    # corns blocks growing
-                                    elif nbg in corns:
-                                        version = name.split("_")[1].removeprefix("vr")
-                                        if version in growable_corns:
-                                            if "corn" not in block.last_growths:
-                                                block.last_growths["corn"] = epoch()
-                                            if epoch() - block.last_growths["corn"] >= 1:
-                                                if version == "0.0":
-                                                    g.w.modify("corn-crop_vr1.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
-                                                    g.w.modify("corn-crop_vr1.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
-                                                    block.last_growths["corn"] = epoch()
-                                                elif version == "1.0":
-                                                    g.w.modify("corn-crop_vr2.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
-                                                    g.w.modify("corn-crop_vr2.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
-                                                    block.last_growths["corn"] = epoch()
-                                                elif version == "2.0":
-                                                    g.w.modify("corn-crop_vr3.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
-                                                    g.w.modify("corn-crop_vr3.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns, remove_from_updating=True)
-                                                    g.w.modify("corn-crop_vr3.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns)
-                                                    block.last_growths["corn"] = epoch()
-                                                elif version == "3.0":
-                                                    g.w.modify("corn-crop_vr4.0", target_chunk, abs_pos, full_crop=True)
-                                                    g.w.modify("corn-crop_vr4.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns, remove_from_updating=True, full_crop=True)
-                                                    g.w.modify("corn-crop_vr4.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns, full_crop=True)
-                                                    block.last_growths["corn"] = epoch()
-
-                                    # flowing
-                                    elif nbg in plants:
-                                        # init
-                                        block.rect.topleft = block._rect.topleft
-                                        block.rect.x -= g.scroll[0]
-                                        block.rect.y -= g.scroll[1]
-                                        # interaction with player
-                                        if g.player.rect.colliderect(block.rect):
-                                            dx = block.rect.centerx - g.player.rect.centerx
-                                            target_angle = (20 - abs(dx)) / 20 * 90 * sign(dx)
-                                            block.plant_angle += (target_angle - block.plant_angle) * 0.1
-                                        else:
-                                            target_angle = 0
-                                            block.plant_angle += (target_angle - block.plant_angle) * 0.1
-                                        # set the variables
-                                        block.plant_sin_angle = 5 * (sin(2 * pi * ticks() / 700 + block.sin - 2))
-                                        pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
-                                        vec = block.plant_offset
-                                        angle = block.plant_angle + block.plant_sin_angle
-                                        # set the images to blit
-                                        # [cattail]
-                                        surf_img = g.w.surf_assets["blocks"][nbg]
-                                        surf_img, surf_rect = rot_pivot(surf_img, angle, pos, vec)
-                                        tex_img = T(surf_img)
-                                        win.renderer.blit(tex_img, surf_rect)
-                                        # [cattail-top]
-                                        top_surf_img = g.w.surf_assets["blocks"][f"{name}-top"]
-                                        top_pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
-                                        top_offset = Vector2(0, -45)
-                                        top_surf_img, top_surf_rect = rot_pivot(top_surf_img, angle, top_pos, top_offset, nbg == "pampas")
-                                        top_tex_img = T(top_surf_img)
-                                        win.renderer.blit(top_tex_img, top_surf_rect)
-
-                            # updating the entities in the chunk
-                            # updating_entities[target_chunk].append(target_chunk)
-
-                            # show the chunk borders with different colors
-                            if target_chunk not in g.w.chunk_colors:
-                                chunk_color = [rand(0, 255) for _ in range(3)] + [255]
-                                g.w.chunk_colors[target_chunk] = chunk_color
-                            else:
-                                chunk_color = g.w.chunk_colors[target_chunk]
-
-                            rect = pygame.Rect(*g.w.metadata[target_chunk]["pos"], BS, BS)
-                            rect.x = rect.x * BS - g.scroll[0]
-                            rect.y = rect.y * BS - g.scroll[1]
-                            if pw.show_chunk_borders:
-                                chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
-                                chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2 + 60)])
-
-                            # |
-                            # infamous
-                            # |
-                            # continue
-                            # |
-
-                            for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
-                            #   init
-                                if block in g.w.to_break:
-                                    try:
-                                        breaking_sprs[int(block.broken)]
-                                    except IndexError:
-                                        block.finish_breaking = (target_chunk, abs_pos)
-                                continue
-                                num_blocks += 1
+                        # updating blocks
+                        if target_chunk in g.w.to_update:
+                            for block in g.w.to_update[target_chunk]:
+                                nbg = non_bg(block.name)
                                 name = block.name
-                                nbg = non_bg(name)
+                                abs_pos = block.pos
 
-                            #     hitbox = False
-                            #     render = True
-                            #     # rendering the block
-                                (bx, by) = abs_pos
+                                # falling blocks
+                                if block.name in flinfo:
+                                    block.yvel += block.yacc
+                                    block.ypos += block.yvel
+                                    block.last_ypos = 0
+                                    if int(block.ypos) > block.last_ypos:
+                                        block.last_ypos = block.ypos
+                                    # if ticks() - block.last_fall >= 1_000:
+                                        _chunk, _pos = correct_tile(target_chunk, block.pos, 0, 1)
+                                        try:
+                                            if g.w.data[_chunk].get(_pos, void_block).name not in empty_blocks:
+                                                raise ValueError
+                                            # make sand
+                                            g.w.modify(block.name, _chunk, _pos)
+                                            g.w.data[_chunk][_pos].yvel = g.w.data[target_chunk][block.pos].yvel
+                                            # delete prev. sand
+                                            if flinfo[block.name].get("delete", False):
+                                                g.w.modify("air", target_chunk, block.pos)
+                                            block.last_fall = ticks()
+                                        except (KeyError, ValueError):
+                                            block.ypos -= block.yvel
+                                            block.yvel -= block.yacc
 
-                                _rect = block._rect
-                                block.rect.topleft = block._rect.topleft
-                                block.rect.x -= g.scroll[0]
-                                block.rect.y -= g.scroll[1]
-                                img = g.w.blocks[nbg]
-                                win.renderer.blit(img, block.rect)
-
-                                # growing wheat
-                                if nbg in wheats:
-                                    if nbg != "wheat_st4":
-                                        if "wheat" not in block.last_growths:
-                                            block.last_growths["wheat"] = epoch()
-                                        if epoch() - block.last_growths["wheat"] >= 5:
-                                            g.w.modify(f"wheat_st{int(nbg[-1]) + 1}", target_chunk, abs_pos)
+                                # corns blocks growing
                                 elif nbg in corns:
                                     version = name.split("_")[1].removeprefix("vr")
                                     if version in growable_corns:
                                         if "corn" not in block.last_growths:
                                             block.last_growths["corn"] = epoch()
-                                        if epoch() - block.last_growths["corn"] >= 2:
+                                        if epoch() - block.last_growths["corn"] >= 1:
                                             if version == "0.0":
-                                                g.w.modify("corn-crop_vr1.0", target_chunk, abs_pos, overwrites=corns)
+                                                g.w.modify("corn-crop_vr1.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
                                                 g.w.modify("corn-crop_vr1.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
                                                 block.last_growths["corn"] = epoch()
                                             elif version == "1.0":
-                                                g.w.modify("corn-crop_vr2.0", target_chunk, abs_pos, overwrites=corns)
+                                                g.w.modify("corn-crop_vr2.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
                                                 g.w.modify("corn-crop_vr2.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
                                                 block.last_growths["corn"] = epoch()
                                             elif version == "2.0":
-                                                g.w.modify("corn-crop_vr3.0", target_chunk, abs_pos, overwrites=corns)
-                                                g.w.modify("corn-crop_vr3.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                                g.w.modify("corn-crop_vr3.0", target_chunk, abs_pos, overwrites=corns, remove_from_updating=True)
+                                                g.w.modify("corn-crop_vr3.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns, remove_from_updating=True)
                                                 g.w.modify("corn-crop_vr3.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns)
                                                 block.last_growths["corn"] = epoch()
                                             elif version == "3.0":
-                                                g.w.modify("corn-crop_vr4.0", target_chunk, abs_pos)
-                                                g.w.modify("corn-crop_vr4.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
-                                                g.w.modify("corn-crop_vr4.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns)
+                                                g.w.modify("corn-crop_vr4.0", target_chunk, abs_pos, full_crop=True)
+                                                g.w.modify("corn-crop_vr4.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns, remove_from_updating=True, full_crop=True)
+                                                g.w.modify("corn-crop_vr4.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns, full_crop=True)
                                                 block.last_growths["corn"] = epoch()
 
-                                # flowing lava
-                                if nbg == "lava":
-                                    if ticks() - block.last_flow >= 200:
-                                        flowns = []
-                                        bottom_chunk, bottom_pos = correct_tile(target_chunk, abs_pos, 0, 1)
-                                        if bottom_chunk in g.w.data:
-                                            if g.w.data[bottom_chunk].get(bottom_pos, void_block).name != "lava":
-                                                if g.w.data[bottom_chunk].get(bottom_pos, void_block).name in empty_blocks:
-                                                    flowns.append([bottom_chunk, bottom_pos])
-                                            else:
-                                                flowns = True
-                                        if not flowns:
-                                            yo = 0
-                                            for xo in (-1, 1):
-                                                side_chunk, side_pos = correct_tile(target_chunk, abs_pos, xo, yo)
-                                                check_chunk, check_pos = correct_tile(target_chunk, abs_pos, 0, -1)
-                                                if g.w.data[check_chunk].get(check_pos, void_block).name == "lava":
-                                                    if side_chunk in g.w.data:
-                                                        if g.w.data[side_chunk].get(side_pos, void_block).name in empty_blocks:
-                                                            flowns.append([side_chunk, side_pos])
-                                        if isinstance(flowns, list):
-                                            for flown in flowns:
-                                                g.w.modify("lava", *flown)
-                                                block.last_flow = ticks()
-                                # slime perlin noise
-                                if nbg == "slime":
-                                    for slime_y in range(BS):
-                                        for slime_x in range(BS):
-                                            slime_mult = 1
-                                            slime_speed = 0.0005
-                                            slime_n = noise.pnoise3(slime_x / BS * slime_mult + bx * slime_mult, slime_y / BS * slime_mult + by * slime_mult, ticks() * slime_speed)
-                                            slime_range = 70
-                                            slime_gray = (slime_n + 0.5) * slime_range + (255 - slime_range)
-                                            slime_color = [0, slime_gray, 0]
-                                            # slime_color = [slime_gray] * 3
-                                            slime_color = [min(max(c, 0), 255) for c in slime_color]
-                                            (win.renderer, slime_color, (rect.x + slime_x, rect.y + slime_y, 1, 1))
+                                # flowing
+                                elif nbg in plants:
+                                    # init
+                                    block.rect.topleft = block._rect.topleft
+                                    block.rect.x -= g.scroll[0]
+                                    block.rect.y -= g.scroll[1]
+                                    # interaction with player
+                                    if g.player.rect.colliderect(block.rect):
+                                        dx = block.rect.centerx - g.player.rect.centerx
+                                        target_angle = (20 - abs(dx)) / 20 * 90 * sign(dx)
+                                        block.plant_angle += (target_angle - block.plant_angle) * 0.1
+                                    else:
+                                        target_angle = 0
+                                        block.plant_angle += (target_angle - block.plant_angle) * 0.1
+                                    # set the variables
+                                    block.plant_sin_angle = 5 * (sin(2 * pi * ticks() / 700 + block.sin - 2))
+                                    pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
+                                    vec = block.plant_offset
+                                    angle = block.plant_angle + block.plant_sin_angle
+                                    # set the images to blit
+                                    # [cattail]
+                                    surf_img = g.w.surf_assets["blocks"][nbg]
+                                    surf_img, surf_rect = rot_pivot(surf_img, angle, pos, vec)
+                                    tex_img = T(surf_img)
+                                    win.renderer.blit(tex_img, surf_rect)
+                                    draw_rect(win.renderer, ORANGE, surf_rect)
+                                    # [cattail-top]
+                                    top_surf_img = g.w.surf_assets["blocks"][f"{name}-top"]
+                                    top_pos = (block.rect.centerx + block.plant_pos[0], block.rect.centery + block.plant_pos[1])
+                                    top_offset = Vector2(0, -45)
+                                    top_surf_img, top_surf_rect = rot_pivot(top_surf_img, angle, top_pos, top_offset, nbg == "pampas")
+                                    top_tex_img = T(top_surf_img)
+                                    win.renderer.blit(top_tex_img, top_surf_rect)
 
-                                # update block identity (§processing moved to main)
-                                if nbg == "frac-dist":
-                                    if ticks() - block.last_frac_dist >= 1_000:
-                                        for _ in range((ticks() - block.last_frac_dist) // 1_000):
-                                            p = FracDistParticle(choices(list(range(5)), [at["ppm"] for at in atinfo.values()])[0])
-                                            group(p, all_gases)
-                                        block.last_frac_dist = ticks()
+                        # updating the entities in the chunk
+                        # updating_entities[target_chunk].append(target_chunk)
 
-                                # update block cache for collisions of the entities
-                                if abs_pos in g.w.data[target_chunk]:
-                                    g.w.block_data[target_chunk][block.pos] = block
-
-                    # update the entities
-                    for chunk in updated_chunks:
-                        for i, entity in enumerate(g.w.entities[chunk][:]):
-                            # relocate entity to new chunk
-                            entity.check_chunk_borders()
-                            if entity.relocate_to is not None and entity.relocate_to in g.w.data:
-                                # print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
-                                g.w.entities[entity.chunk_index].remove(entity)
-                                g.w.entities[entity.relocate_to].append(entity)
-                                entity.chunk_index = entity.relocate_to
-                                entity.relocate_to = None
-                            # update the entity
-                            num_entities += 1
-                            entity.update(g.dt, pw.show_hitboxes, g.dialogue)
-                            # cool dialogue
-                            if entity.dialogue:
-                                g.dialogue = True
-                                g.scroll_orders = [
-                                    entity._rect.centerx - entity.height / 2,
-                                    entity._rect.centery - entity.width / 2
-                                ]
-                                entity.dialogue = False
-                                # win.target_zoom = (3, 3)
-                            # check whether the entity is dead and drop the loot
-                            if entity.dead and not entity.dying:
-                                # shatter particles
-                                n = 3
-                                w = roundn(entity.image.width / n, S)
-                                h = roundn(entity.image.height / n, S)
-                                for y in range(n):
-                                    for x in range(n):
-                                        area = pygame.Rect(x * w, y * h, w, h)
-                                        group(ShatterParticle(entity, area), all_other_particles)
-                                entity.dying = True
-                            # show hitboxes if selected by user
-                            if pw.show_hitboxes:
-                                draw_rect(win.renderer, RED, entity.rect)
-                                write(win.renderer, "midbottom", entity.chunk_index, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
-                            # collide with attacking player
-                            if g.player.anim_type in ("uslash", "dslash"):
-                                if entity._rect.colliderect(g.player._rect):
-                                    entity.take_damage(1)
-                                    if entity.demon:
-                                        entity.glitch()
-
-                    # breakinig the blocks with tools
-                    for block in g.w.to_break[:]:
-                        if block.finish_breaking is None:
-                            rect = pygame.Rect(block.rect[0] - g.scroll[0], block.rect[1] - g.scroll[1], BS, BS)
-                            win.renderer.blit(breaking_sprs[int(block.broken)], rect)
+                        # show the chunk borders with different colors
+                        if target_chunk not in g.w.chunk_colors:
+                            chunk_color = [rand(0, 255) for _ in range(3)] + [255]
+                            g.w.chunk_colors[target_chunk] = chunk_color
                         else:
-                            g.w.modify("air", *block.finish_breaking)
-                            g.w.to_break.remove(block)
+                            chunk_color = g.w.chunk_colors[target_chunk]
 
-                    # mouse shit with chunks
-                    if not pw.keybinds_active:
-                        if not g.menu and g.midblit is None:
-                            if g.player.main == "block":
-                                # init
-                                target_chunk, abs_pos = pos_to_tile(g.mouse)
+                        rect = pygame.Rect(*g.w.metadata[target_chunk]["pos"], BS, BS)
+                        rect.x = rect.x * BS - g.scroll[0]
+                        rect.y = rect.y * BS - g.scroll[1]
+                        if pw.show_chunk_borders:
+                            chunk_rects.append([(*rect.topleft, CW * BS, CH * BS), chunk_color])
+                            chunk_texts.append([(target_chunk, [x, y]), (rect.x + CW * BS / 2, rect.y + CH * BS / 2 + 60)])
+
+                        # |
+                        # infamous
+                        # |
+                        # continue
+                        # |
+
+                        for index, (abs_pos, block) in enumerate(g.w.data[target_chunk].copy().items()):
+                        #   init
+                            if block in g.w.to_break:
                                 try:
-                                    block = g.w.data[target_chunk][abs_pos]
-                                    name = block.name
-                                except KeyError:
-                                    block = name = None
-                                _rect = pygame.Rect([x * BS for x in abs_pos], (BS, BS))
-                                rect = pygame.Rect((_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS))
-                                hovering_rect = [r * S for r in rect]
-                                if mouses:
-                                    pass
-                                # left mouse
-                                if g.mouses[0]:
+                                    breaking_sprs[int(block.broken)]
+                                except IndexError:
+                                    block.finish_breaking = (target_chunk, abs_pos)
+                            # g.player.ext_block_data.append([block, block._rect])
+                            # calculate_light(target_chunk, abs_pos)
+                            num_blocks += 1
+                            continue
+                            name = block.name
+                            nbg = non_bg(name)
+
+                        #     hitbox = False
+                        #     render = True
+                        #     # rendering the block
+                            (bx, by) = abs_pos
+
+                            _rect = block._rect
+                            block.rect.topleft = block._rect.topleft
+                            block.rect.x -= g.scroll[0]
+                            block.rect.y -= g.scroll[1]
+                            img = g.w.blocks[nbg]
+                            win.renderer.blit(img, block.rect)
+
+                            # growing wheat
+                            if nbg in wheats:
+                                if nbg != "wheat_st4":
+                                    if "wheat" not in block.last_growths:
+                                        block.last_growths["wheat"] = epoch()
+                                    if epoch() - block.last_growths["wheat"] >= 5:
+                                        g.w.modify(f"wheat_st{int(nbg[-1]) + 1}", target_chunk, abs_pos)
+                            elif nbg in corns:
+                                version = name.split("_")[1].removeprefix("vr")
+                                if version in growable_corns:
+                                    if "corn" not in block.last_growths:
+                                        block.last_growths["corn"] = epoch()
+                                    if epoch() - block.last_growths["corn"] >= 2:
+                                        if version == "0.0":
+                                            g.w.modify("corn-crop_vr1.0", target_chunk, abs_pos, overwrites=corns)
+                                            g.w.modify("corn-crop_vr1.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                            block.last_growths["corn"] = epoch()
+                                        elif version == "1.0":
+                                            g.w.modify("corn-crop_vr2.0", target_chunk, abs_pos, overwrites=corns)
+                                            g.w.modify("corn-crop_vr2.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                            block.last_growths["corn"] = epoch()
+                                        elif version == "2.0":
+                                            g.w.modify("corn-crop_vr3.0", target_chunk, abs_pos, overwrites=corns)
+                                            g.w.modify("corn-crop_vr3.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                            g.w.modify("corn-crop_vr3.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns)
+                                            block.last_growths["corn"] = epoch()
+                                        elif version == "3.0":
+                                            g.w.modify("corn-crop_vr4.0", target_chunk, abs_pos)
+                                            g.w.modify("corn-crop_vr4.1", *correct_tile(target_chunk, abs_pos, 0, -1), overwrites=corns)
+                                            g.w.modify("corn-crop_vr4.2", *correct_tile(target_chunk, abs_pos, 0, -2), overwrites=corns)
+                                            block.last_growths["corn"] = epoch()
+
+                            # flowing lava
+                            if nbg == "lava":
+                                if ticks() - block.last_flow >= 200:
+                                    flowns = []
+                                    bottom_chunk, bottom_pos = correct_tile(target_chunk, abs_pos, 0, 1)
+                                    if bottom_chunk in g.w.data:
+                                        if g.w.data[bottom_chunk].get(bottom_pos, void_block).name != "lava":
+                                            if g.w.data[bottom_chunk].get(bottom_pos, void_block).name in empty_blocks:
+                                                flowns.append([bottom_chunk, bottom_pos])
+                                        else:
+                                            flowns = True
+                                    if not flowns:
+                                        yo = 0
+                                        for xo in (-1, 1):
+                                            side_chunk, side_pos = correct_tile(target_chunk, abs_pos, xo, yo)
+                                            check_chunk, check_pos = correct_tile(target_chunk, abs_pos, 0, -1)
+                                            if g.w.data[check_chunk].get(check_pos, void_block).name == "lava":
+                                                if side_chunk in g.w.data:
+                                                    if g.w.data[side_chunk].get(side_pos, void_block).name in empty_blocks:
+                                                        flowns.append([side_chunk, side_pos])
+                                    if isinstance(flowns, list):
+                                        for flown in flowns:
+                                            g.w.modify("lava", *flown)
+                                            block.last_flow = ticks()
+                            # slime perlin noise
+                            if nbg == "slime":
+                                for slime_y in range(BS):
+                                    for slime_x in range(BS):
+                                        slime_mult = 1
+                                        slime_speed = 0.0005
+                                        slime_n = noise.pnoise3(slime_x / BS * slime_mult + bx * slime_mult, slime_y / BS * slime_mult + by * slime_mult, ticks() * slime_speed)
+                                        slime_range = 70
+                                        slime_gray = (slime_n + 0.5) * slime_range + (255 - slime_range)
+                                        slime_color = [0, slime_gray, 0]
+                                        # slime_color = [slime_gray] * 3
+                                        slime_color = [min(max(c, 0), 255) for c in slime_color]
+                                        (win.renderer, slime_color, (rect.x + slime_x, rect.y + slime_y, 1, 1))
+
+                            # update block identity (§processing moved to main)
+                            if nbg == "frac-dist":
+                                if ticks() - block.last_frac_dist >= 1_000:
+                                    for _ in range((ticks() - block.last_frac_dist) // 1_000):
+                                        p = FracDistParticle(choices(list(range(5)), [at["ppm"] for at in atinfo.values()])[0])
+                                        group(p, all_gases)
+                                    block.last_frac_dist = ticks()
+
+                            # update block cache for collisions of the entities
+                            if abs_pos in g.w.data[target_chunk]:
+                                g.w.block_data[target_chunk][block.pos] = block
+
+                # if light_tex is not None and light_rect is not None:
+                #     win.renderer.blit(light_tex, light_rect)
+                #     draw_rect(win.renderer, RED, light_rect)
+
+                # update the entities
+                for chunk in updated_chunks:
+                    for i, entity in enumerate(g.w.entities[chunk][:]):
+                        # relocate entity to new chunk
+                        entity.check_chunk_borders()
+                        if entity.relocate_to is not None and entity.relocate_to in g.w.data:
+                            # print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
+                            g.w.entities[entity.chunk_index].remove(entity)
+                            g.w.entities[entity.relocate_to].append(entity)
+                            entity.chunk_index = entity.relocate_to
+                            entity.relocate_to = None
+                        # update the entity
+                        num_entities += 1
+                        entity.update(g.dt, pw.show_hitboxes, g.dialogue)
+                        # cool dialogue
+                        if entity.dialogue:
+                            g.dialogue = True
+                            g.scroll_orders = [
+                                entity._rect.centerx - entity.height / 2,
+                                entity._rect.centery - entity.width / 2
+                            ]
+                            entity.dialogue = False
+                            # win.target_zoom = (3, 3)
+                        # check whether the entity is dead and drop the loot
+                        if entity.dead and not entity.dying:
+                            # shatter particles
+                            n = 3
+                            w = roundn(entity.image.width / n, S)
+                            h = roundn(entity.image.height / n, S)
+                            for y in range(n):
+                                for x in range(n):
+                                    area = pygame.Rect(x * w, y * h, w, h)
+                                    group(ShatterParticle(entity, area), all_other_particles)
+                            entity.dying = True
+                        # show hitboxes if selected by user
+                        if pw.show_hitboxes:
+                            draw_rect(win.renderer, RED, entity.rect)
+                            write(win.renderer, "midbottom", entity.chunk_index, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
+                        # collide with attacking player
+                        if g.player.anim_type in ("uslash", "dslash"):
+                            if entity._rect.colliderect(g.player._rect):
+                                entity.take_damage(1)
+                                if entity.demon:
+                                    entity.glitch()
+
+                # breaking the blocks with tools
+                for block in g.w.to_break[:]:
+                    if block.finish_breaking is None:
+                        rect = pygame.Rect(block.rect[0] - g.scroll[0], block.rect[1] - g.scroll[1], BS, BS)
+                        win.renderer.blit(breaking_sprs[int(block.broken)], rect)
+                    else:
+                        g.w.modify("air", *block.finish_breaking)
+                        g.w.to_break.remove(block)
+
+                # mouse shit with chunks
+                if not pw.keybinds_active:
+                    if not g.menu and g.midblit is None:
+                        if g.player.main == "block":
+                            # init
+                            target_chunk, abs_pos = pos_to_tile(g.mouse)
+                            try:
+                                block = g.w.data[target_chunk][abs_pos]
+                                name = block.name
+                            except KeyError:
+                                block = name = None
+                            _rect = pygame.Rect([x * BS for x in abs_pos], (BS, BS))
+                            rect = pygame.Rect((_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS))
+                            m = 0.0018
+                            color = (
+                                (sin(ticks() * m) + 1) * 127.5,
+                                (sin((ticks() * m) - 0.333 * pi) + 1) * 127.5,
+                                (sin((ticks() * m) - 0.666 * pi) + 1) * 127.5,
+                                255,
+                            )
+                            color = ORANGE
+                            draw_rect(win.renderer, color, rect)
+                            with suppress(AttributeError):
+                                write(win.renderer, "center", block.light, orbit_fonts[16], WHITE, *rect.center, tex=True)
+                            hovering_rect = [r * S for r in rect]
+                            if mouses:
+                                pass
+                            # left mouse
+                            if g.mouses[0]:
+                                if not g.disabled_widgets:
                                     setto = None
                                     if g.player.block in finfo:
                                         g.player.eat()
@@ -5413,72 +5503,75 @@ async def main(debug, cprof=False):
                                             else:
                                                 g.first_affection = "break"
                                         if g.first_affection == "place":
-                                            if name in empty_blocks:
-                                                setto = g.player.block
+                                            if not _rect.colliderect(g.player._rect):
+                                                if name in empty_blocks:
+                                                    setto = g.player.block
                                         elif g.first_affection == "break":
-                                            if name not in empty_blocks:
-                                                block.broken += 10
+                                            if name not in empty_blocks and name not in unbreakable_blocks:
                                                 g.w.modify("air", target_chunk, abs_pos)
                                         if setto is not None:
                                             # g.w.data[target_chunk][abs_pos] = Block(setto)
                                             if mod == 1:
                                                 setto += "_bg"
-                                            (target_chunk, abs_pos)
                                             g.w.modify(setto, target_chunk, abs_pos)
-                                else:
-                                    g.player.eating = False
-                                # right mouse
-                                if mouses[2]:
-                                    if name is not None:
-                                        # rightings
-                                        # crafting stuff
-                                        if non_bg(name) in ("workbench", "furnace", "gun-crafter", "magic-table", "altar"):
-                                            if k in g.w.metadata[target_chunk]:
-                                                g.w.metadata[target_chunk][abs_pos] = {}
-                                            if non_bg(name) == "workbench":
-                                                pass
-                                        # rotations
-                                        elif bpure(name) == "ramp":
-                                            g.w.data[target_chunk][abs_pos] = rotate_name(name, rotations4)
-                                        else:
-                                            if g.player.block == "fire":
-                                                g.w.data[target_chunk][abs_pos] = [g.w.data[target_chunk][abs_pos], "fire"]
-
-                    # player collision with blocks
-                    for yo in range(-2, 3):
-                        for xo in range(-2, 3):
-                            # init
-                            target_chunk, abs_pos = pos_to_tile(g.player.rect.center)
-                            target_chunk, abs_pos = correct_tile(target_chunk, abs_pos, xo, yo)
-                            if xo == yo == 0:
-                                g.player.coordinates = abs_pos
-                                g.player.current_chunk = target_chunk
-                            # processing the data
-                            if target_chunk in g.w.data:
-                                if abs_pos in g.w.data[target_chunk]:
-                                    try:
-                                        block = g.w.data[target_chunk][abs_pos]
-                                    except KeyError:
-                                        continue
+                            else:
+                                g.player.eating = False
+                            # right mouse
+                            if mouses[2]:
+                                if name is not None:
+                                    # rightings
+                                    # crafting stuff
+                                    if non_bg(name) in ("workbench", "furnace", "gun-crafter", "magic-table", "altar"):
+                                        if k in g.w.metadata[target_chunk]:
+                                            g.w.metadata[target_chunk][abs_pos] = {}
+                                        if non_bg(name) == "workbench":
+                                            pass
+                                    # rotations
+                                    elif bpure(name) == "ramp":
+                                        g.w.data[target_chunk][abs_pos] = rotate_name(name, rotations4)
                                     else:
-                                        name = block.name
-                                        _rect = pygame.Rect([x * BS for x in abs_pos], (BS, BS))
-                                        rect = pygame.Rect((_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS))
-                                        if pw.show_hitboxes:
-                                            if xo == yo == 0:
-                                                (win.renderer, GREEN, rect, 1)
-                                            else:
-                                                (win.renderer, RED, rect, 1)
-                                        if name in ramp_blocks:
-                                            g.player.ramp_data.append([block, _rect])
-                                        else:
-                                            g.player.block_data.append([block, _rect])
-                                        if xo == yo == 0:
-                                            metal_detector = block.ore_chance
+                                        if g.player.block == "fire":
+                                            g.w.data[target_chunk][abs_pos] = [g.w.data[target_chunk][abs_pos], "fire"]
 
-                    # breaking blocks spritesheet rendering (if you see this fuck you)
+                if not thread_active:
+                    Thread(target=update_light, daemon=True).start()
+
+                # player collision with blocks
+                for yo in range(-2, 3):
+                    for xo in range(-2, 3):
+                        # init
+                        target_chunk, abs_pos = pos_to_tile(g.player.rect.center)
+                        target_chunk, abs_pos = correct_tile(target_chunk, abs_pos, xo, yo)
+                        if xo == yo == 0:
+                            g.player.coordinates = abs_pos
+                            g.player.current_chunk = target_chunk
+                        # processing the data
+                        if target_chunk in g.w.data:
+                            if abs_pos in g.w.data[target_chunk]:
+                                try:
+                                    block = g.w.data[target_chunk][abs_pos]
+                                except KeyError:
+                                    continue
+                                else:
+                                    name = block.name
+                                    _rect = pygame.Rect([x * BS for x in abs_pos], (BS, BS))
+                                    rect = pygame.Rect((_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS))
+                                    if pw.show_hitboxes:
+                                        if xo == yo == 0:
+                                            (win.renderer, GREEN, rect, 1)
+                                        else:
+                                            (win.renderer, RED, rect, 1)
+                                    if name in ramp_blocks:
+                                        g.player.ramp_data.append([block, _rect])
+                                    else:
+                                        g.player.block_data.append([block, _rect])
+                                    if xo == yo == 0:
+                                        metal_detector = block.ore_chance
+
+                # breaking blocks spritesheet rendering (if you see this fuck you)
 
                 # foregorund sprites (includes the player)
+                visual.update()
                 g.player.update()
 
                 # all_foreground_sprites.draw(win.renderer)
@@ -5576,7 +5669,6 @@ async def main(debug, cprof=False):
                     (win.renderer, g.w.text_color, hovering_rect, 1)
 
                 # visual block and tool
-                visual.update()
                 ui.update()
 
                 # projectiles
@@ -6164,5 +6256,6 @@ async def main(debug, cprof=False):
 if __name__ == "__main__":
     # main(debug=g.debug)
     asyncio.run(main(debug=g.debug))
-    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="cumtime")
+    # import cP =
+    rofile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="cumtime")
     # import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")

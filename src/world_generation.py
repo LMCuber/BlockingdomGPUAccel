@@ -83,6 +83,17 @@ class Biome:
         self.flatnesses = {"forest": 7, "industry": 10, "beach": 10}
         self.biomes = list(self.blocks.keys())
 
+    def get_layers(self, biome):
+        o1 = nordis(2, 2)
+        o2 = nordis(2, 2)
+        return {
+            "beach": {
+                "sand": (0, CH / 4 + o1),
+                "sandstone": (CH / 4 + o1, CH / 2 + o2),
+                "stone": (CH / 2 + o2, CH),
+            }
+        }[biome]
+
 
 bio = Biome()
 
@@ -463,7 +474,7 @@ def world_modifications(chunk: (int, int), metadata: DictWithoutException, biome
 
 
 # chunk-based v2
-# real (final version, at least for now)
+# real (finfal version, at least for now)
 def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
     # funcs
     def _rand(x, y):
@@ -495,9 +506,9 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
         for (xo, yo), block_name in structures[struct_name].items():
             set(block_name, block_x + xo, block_y + yo)
 
-    def entity(traits):
+    def entity(traits=None, rel=None, **kwargs):
         species = traits[0]
-        e = getattr(ent, species.title().replace("_", ""))(species, traits, metadata["index"], rel_xy)
+        e = getattr(ent, species.title().replace("_", ""))(species, traits, metadata["index"], rel if rel is not None else rel_xy, **kwargs)
         entities.append(e)
 
     # misc. init
@@ -520,17 +531,12 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
             if name == "air":
                 # forest water
                 if rel_y >= 8:
-                    set("water", x, y)
+                    # set("water", x, y)
                     # swamp lotus
                     if biome == "swamp":
                         if get(x, y - 1) == "air":
                             if _chance(1 / 20):
                                 set("lotus", x, y - 1)
-        if name == "stone":
-            if chance(1 / 100):
-                set("dynamite", x, y)
-                # set("dynamite", x + 1, y)
-                # set("dynamite", x + 1, y+1)
 
         if name == prim:
             # forest
@@ -586,6 +592,31 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                     elif _chance(1 / 20):
                         water_depth = _rand(1, 5)
                         struct("desert-well", x, y)
+
+            # beachs
+            elif biome == "beach":
+                if get(x, y - 1) == "air":
+                    # tree
+                    if _chance(1 / 14):
+                        num = 0
+                        h = 8
+                        for yo in range(nordis(h, 2)):
+                            num += 1
+                            suffix = ""
+                            c = h * 1.4
+                            if _chance(yo / c):
+                                set("coconut_bg", x - 1, y - 1 - yo)
+                                suffix += "L"
+                            if _chance(yo / c):
+                                set("coconut_bg", x + 1, y - 1 - yo)
+                                suffix += "R"
+                            suffix = suffix if suffix else "N"
+                            set(f"wood_p_vr{suffix}_bg", x, y - 1 - yo)
+                        if num:
+                            entity(["leaf_p"], (rel_x, rel_y - yo - 2), anchor="center")
+                    # rock
+                    if _chance(1 / 15):
+                        set(f"rock{'_hor' if chance(1 / 2) else ''}_bg", x, y - 1)
 
     return entities, late_chunk_data
 

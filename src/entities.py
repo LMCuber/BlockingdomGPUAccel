@@ -49,6 +49,10 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             "bok-bok": {
                 "walk": {"frames": 4},
             },
+
+            "leaf_p": {
+                "walk": {"frames": 1},
+            }
     }
     imgs = {}
     for mob_type in os.listdir(path("assets", "Images", "Mobs")):
@@ -57,6 +61,8 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             mob_name, _ = os.path.splitext(mob_file)
             kwargs = _img_metadata[mob_type][mob_name]
             img = imgload3("assets", "Images", "Mobs", mob_type, mob_file, **kwargs)
+            if isinstance(img, pygame.Surface):
+                img = [img]
             imgs[mob_type][mob_name] = img
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=False, **kwargs):
         # init
@@ -79,6 +85,9 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.gravity = 0.08
         self.grounded = True
         # Arbeehdee and Rilocto
+        # I have dementie
+        # I heva demtntia
+        # I have demenenetia
         self.relocate_to = None
         self.request_block_data = True
         self.dialogue = False
@@ -86,6 +95,9 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         if smart_vector:
             if anchor == "bottomleft":
                 self.left, self.bottom = self.pos
+            elif anchor == "center":
+                self.x -= self.image.width / 2 - BS / 2
+                self.y -= self.image.height / 2 - BS / 2
         else:
             self.og_rect = self.image.get_rect()
             setattr(self.og_rect, anchor, self.pos)
@@ -150,7 +162,6 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         }
 
     def update__rect(self, *args):
-        # print(self.y, self._rect.y, args)
         self._rect.topleft = (int(self.x), int(self.y))
 
     # the base update that every entity undergoes
@@ -188,33 +199,37 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 
             self.draw()
 
-            self.regenerate()
-            self.display_hp()
+            if "mob" in self.traits:
+                self.regenerate()
+                self.display_hp()
 
     def collide(self, dialogue):
-        if not dialogue:
-            # move y
-            self.yvel += self.gravity
-            self.y += self.yvel
+        if "moving" not in self.traits:
             self.update__rect()
-            # collide y
-            for col in self.get_cols(hor=False):
-                self.bottom = col.top
-                self.yvel = 0
-                self.grounded = True
-                if self.taking_damage:
-                    self.stop_taking_damage()
-            self.update__rect()
-            self.x += self.xvel
-            self.update__rect()
-            # collide x
-            for col in self.get_cols(hor=True):
-                if self.xvel > 0:
-                    self.right = col.left
-                else:
-                    self.left = col.left
-            self.update__rect()
-            # scroll the actual "rect"
+        else:
+            if not dialogue:
+                # move y
+                self.yvel += self.gravity
+                self.y += self.yvel
+                self.update__rect()
+                # collide y
+                for col in self.get_cols(hor=False):
+                    self.bottom = col.top
+                    self.yvel = 0
+                    self.grounded = True
+                    if self.taking_damage:
+                        self.stop_taking_damage()
+                self.update__rect()
+                self.x += self.xvel
+                self.update__rect()
+                # collide x
+                for col in self.get_cols(hor=True):
+                    if self.xvel > 0:
+                        self.right = col.left
+                    else:
+                        self.left = col.left
+                self.update__rect()
+                # scroll the actual "rect"
         self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
 
     def check_chunk_borders(self):
@@ -413,7 +428,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         pass
 
     def display_hp(self):
-        if self.hp < self.max_hp:
+        if "mob" in self.traits and self.hp < self.max_hp:
             # discrete logistic curve for smooth ass animation (smort)
             self.prev_hp = self.prev_hp + 0.0005 * self.prev_hp * (self.hp - self.prev_hp)
             # rest (dum dum)
@@ -451,7 +466,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 # M O B S ------------------------------------------------------------------------------------------------ #
 class Chicken(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
-        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=True, **kwargs)
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, flip_flip=True, **kwargs)
         self.drops = {"chicken": 2}
         self.def_xvel = self.xvel = 0.3
         self.max_hp = self.hp = 70
@@ -462,7 +477,7 @@ class Chicken(BaseEntity):
 
 class FluffCamel(BaseEntity):
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
-        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, flip_flip=True, **kwargs)
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, flip_flip=True, **kwargs)
         self.def_xvel = xvel = 0.3
         self.max_hp = self.hp = 70
 
@@ -476,7 +491,7 @@ class FluffCamel(BaseEntity):
 class Hallowskull(BaseEntity):
     chance = 100
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
-        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs)
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, **kwargs)
         self.def_xvel = self.xvel = 0.3 * 0
         self.max_hp = self.hp = 250
         self.drops = {"chicken": 1}
@@ -491,10 +506,23 @@ class Hallowskull(BaseEntity):
 class Keno(BaseEntity):
     chance = 100
     def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
-        super().__init__(img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs)
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, **kwargs)
         self.def_xvel = self.xvel = 0.3 * 0
         self.max_hp = self.hp = 250
         self.drops = {"chicken": 1}
+
+    def spec_update(self):
+        # self.movex(1)
+        # self.jump_over_obstacles()
+        # self.xvel, self.yvel = two_pos_to_vel(self._rect.center, g.player._rect.center)
+        pass
+
+
+class LeafP(BaseEntity):
+    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, **kwargs)
+        self.xvel = 0
+        # self.image.color = _GREEN
 
     def spec_update(self):
         # self.movex(1)

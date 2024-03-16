@@ -99,12 +99,12 @@ def get_sword(base_color):
             [[base_color, outline_color], 4, 0, 3, 7],
             [[base_color, outline_color], 1, 5, 6, 2],
 
-            # tip
-            [[base_color, outline_color], 0 + 8, 1 + 8, 2 + 8],
-            [[base_color, outline_color], 3 + 8, 4 + 8, 5 + 8],
-            [[base_color, outline_color], 3 + 8, 0 + 8, 2 + 8, 5 + 8],
-            [[base_color, outline_color], 0 + 8, 3 + 8, 4 + 8, 1 + 8],
-            [[base_color, outline_color], 5 + 8, 4 + 8, 1 + 8, 2 + 8],
+            # # tip
+            # [[base_color, outline_color], 0 + 8, 1 + 8, 2 + 8],
+            # [[base_color, outline_color], 3 + 8, 4 + 8, 5 + 8],
+            # [[base_color, outline_color], 3 + 8, 0 + 8, 2 + 8, 5 + 8],
+            # [[base_color, outline_color], 0 + 8, 3 + 8, 4 + 8, 1 + 8],
+            # [[base_color, outline_color], 5 + 8, 4 + 8, 1 + 8, 2 + 8],
 
             # guard
             [[browns[90], outline_color], 0 + 14, 1 + 14, 2 + 14, 3 + 14],
@@ -585,6 +585,109 @@ def get_dart(base_color):
         fill_as_connections=False,
     )
     return dart
+
+
+def get_staff(base_color):
+    mult = 140
+    w, l, h = 0.06, 1.2, 0.06
+    ow, ol, oh = 0.15, 0.15, 0.15
+    oo = 0
+    base_color = (235, 235, 235, 255)
+    blade_color = (50, 50, 50, 255)
+    outline_color = (255, 255, 255, 255)
+    hammer = Crystal(
+        win.renderer, [
+            # base
+            [-w, -l, h],
+            [w, -l, h],
+            [w, l, h],
+            [-w, l, h],
+            [-w, -l, -h],
+            [w, -l, -h],
+            [w, l, -h],
+            [-w, l, -h],
+            # orb BL
+            [-w, -l, h],
+            [-w, -l - ol, h],
+            [-w - ow, -l - ol, h],
+            [-w - ow, -l, h],
+            [-w, -l, h + oh],
+            [-w, -l - ol, h + oh],
+            [-w - ow, -l - ol, h + oh],
+            [-w - ow, -l, h + oh],
+            # orb BR
+            [ow + w * 2 -w, -l, h],
+            [ow + w * 2 -w, -l - ol, h],
+            [ow + w * 2 -w - ow, -l - ol, h],
+            [ow + w * 2 -w - ow, -l, h],
+            [ow + w * 2 -w, -l, h + oh],
+            [ow + w * 2 -w, -l - ol, h + oh],
+            [ow + w * 2 -w - ow, -l - ol, h + oh],
+            [ow + w * 2 -w - ow, -l, h + oh],
+            # orb TR
+            [ow + w * 2 -w, -l, h - oh - h * 2],
+            [ow + w * 2 -w, -l - ol, h - oh - h * 2],
+            [ow + w * 2 -w - ow, -l - ol, h - oh - h * 2],
+            [ow + w * 2 -w - ow, -l, h - oh - h * 2],
+            [ow + w * 2 -w, -l, h + oh - oh - h * 2],
+            [ow + w * 2 -w, -l - ol, h + oh - oh - h * 2],
+            [ow + w * 2 -w - ow, -l - ol, h + oh - oh - h * 2],
+            [ow + w * 2 -w - ow, -l, h + oh - oh - h * 2],
+            # orb TL
+            [-w, -l, h - oh - h * 2],
+            [-w, -l - ol, h - oh - h * 2],
+            [-w - ow, -l - ol, h - oh - h * 2],
+            [-w - ow, -l, h - oh - h * 2],
+            [-w, -l, h + oh - oh - h * 2],
+            [-w, -l - ol, h + oh - oh - h * 2],
+            [-w - ow, -l - ol, h + oh - oh - h * 2],
+            [-w - ow, -l, h + oh - oh - h * 2],
+        ], [
+            # point colors
+        ], [
+            # connections
+        ], [
+            # fills
+            # base
+            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 0, 1, 2, 3],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 4, 5, 1, 0],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 4, 5, 6, 7],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 7, 6, 2, 3],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 4, 0, 3, 7],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 1, 5, 6, 2],
+            # orb BL
+            [[get_blue(175, 20), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
+            [[get_blue(175, 20), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
+            [[get_blue(175, 20), outline_color], 4 + 8, 5 + 8, 6 + 8, 7 + 8],
+            [[get_blue(175, 20), outline_color], 7 + 8, 6 + 8, 2 + 8, 3 + 8],
+            [[get_blue(175, 20), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
+            [[get_blue(175, 20), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
+            # orb BR
+            [[get_green(175, 20), outline_color], 0 + 8 * 2, 1 + 8 * 2, 2 + 8 * 2, 3 + 8 * 2],
+            [[get_green(175, 20), outline_color], 4 + 8 * 2, 5 + 8 * 2, 1 + 8 * 2, 0 + 8 * 2],
+            [[get_green(175, 20), outline_color], 4 + 8 * 2, 5 + 8 * 2, 6 + 8 * 2, 7 + 8 * 2],
+            [[get_green(175, 20), outline_color], 7 + 8 * 2, 6 + 8 * 2, 2 + 8 * 2, 3 + 8 * 2],
+            [[get_green(175, 20), outline_color], 4 + 8 * 2, 0 + 8 * 2, 3 + 8 * 2, 7 + 8 * 2],
+            [[get_green(175, 20), outline_color], 1 + 8 * 2, 5 + 8 * 2, 6 + 8 * 2, 2 + 8 * 2],
+            # orb TR
+            [[get_gray(140, 20), outline_color], 0 + 8 * 3, 1 + 8 * 3, 2 + 8 * 3, 3 + 8 * 3],
+            [[get_gray(140, 20), outline_color], 4 + 8 * 3, 5 + 8 * 3, 1 + 8 * 3, 0 + 8 * 3],
+            [[get_gray(140, 20), outline_color], 4 + 8 * 3, 5 + 8 * 3, 6 + 8 * 3, 7 + 8 * 3],
+            [[get_gray(140, 20), outline_color], 7 + 8 * 3, 6 + 8 * 3, 2 + 8 * 3, 3 + 8 * 3],
+            [[get_gray(140, 20), outline_color], 4 + 8 * 3, 0 + 8 * 3, 3 + 8 * 3, 7 + 8 * 3],
+            [[get_gray(140, 20), outline_color], 1 + 8 * 3, 5 + 8 * 3, 6 + 8 * 3, 2 + 8 * 3],
+            # orb TL
+            [[get_red(140, 20), outline_color], 0 + 8 * 4, 1 + 8 * 4, 2 + 8 * 4, 3 + 8 * 4],
+            [[get_red(140, 20), outline_color], 4 + 8 * 4, 5 + 8 * 4, 1 + 8 * 4, 0 + 8 * 4],
+            [[get_red(140, 20), outline_color], 4 + 8 * 4, 5 + 8 * 4, 6 + 8 * 4, 7 + 8 * 4],
+            [[get_red(140, 20), outline_color], 7 + 8 * 4, 6 + 8 * 4, 2 + 8 * 4, 3 + 8 * 4],
+            [[get_red(140, 20), outline_color], 4 + 8 * 4, 0 + 8 * 4, 3 + 8 * 4, 7 + 8 * 4],
+            [[get_red(140, 20), outline_color], 1 + 8 * 4, 5 + 8 * 4, 6 + 8 * 4, 2 + 8 * 4],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return hammer
 
 
 #
