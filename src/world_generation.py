@@ -79,7 +79,7 @@ class Biome:
         self.tree_chances = {"forest": 8, "beach": 16, "swamp": 7, "jungle": 6, "savanna": 20}
         self.wood_types = {"savanna": "wood_sv"}
         self.fill_chances = {"forest": ("water", 3), "beach": ("water", 3), "swamp": ("water", 5), "jungle": ("water", 4),
-                             "savanna": ("water", 100), "volcano": ("lava", 3)}
+                             "savanna": ("water", 100), "volcsano": ("lava", 3)}
         self.flatnesses = {"forest": 7, "industry": 10, "beach": 10}
         self.biomes = list(self.blocks.keys())
 
@@ -88,9 +88,14 @@ class Biome:
         o2 = nordis(2, 2)
         return {
             "beach": {
-                "sand": (0, CH / 4 + o1),
-                "sandstone": (CH / 4 + o1, CH / 2 + o2),
-                "stone": (CH / 2 + o2, CH),
+                (0, CH / 4 + o1): "sand",
+                (CH / 4 + o1, CH / 2 + o2): "sandstone",
+                (CH / 2 + o2, CH): "stone",
+            },
+            "forest": {
+                (0, CH / 4 + o1): "dirt_f",
+                (CH / 4 + o1, CH / 2 + o2): "stone",
+                (CH / 2 + o2, CH): "stone",
             }
         }[biome]
 
@@ -118,7 +123,7 @@ def get_leaf_type(blockname):
 
 
 # list-based
-def world_modifications(data, metadata, screen, layer, biome, blockindex, blockname, abs_screen, block_names, Window):
+def dworld_modifications(data, metadata, screen, layer, biome, blockindex, blockname, abs_screen, block_names, Window):
     #g.wg.seed(111)
     horindex, verindex = blockindex % HL, blockindex // HL
     block_pos = (horindex * 30, verindex * 30)
@@ -351,7 +356,7 @@ def world_modifications(data, metadata, screen, layer, biome, blockindex, blockn
 
 
 # image-based
-def world_modifications(data, width, height):
+def dworld_modifications(data, width, height):
     def set(name, xpos, ypos):
         with suppress(IndexError):
             data[xpos][ypos] = Block(name)
@@ -374,7 +379,7 @@ def world_modifications(data, width, height):
 
 
 # chunk-based
-def world_modifications(chunk: (int, int), metadata: DictWithoutException, biome: str, chunk_pos: (int, int), r) -> list:
+def dworld_modifications(chunk: (int, int), metadata: DictWithoutException, biome: str, chunk_pos: (int, int), r) -> list:
     def set(pos, name):
         chunk[pos] = Block(name)
         metadata[pos] = {"light": 1}
@@ -543,7 +548,6 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
             if biome == "forest":
                 # chicken
                 if _chance(1 / 16):
-                    set("torch", x, y)
                     entity(["chicken", "mob", "moving"])
 
                 # top is free
