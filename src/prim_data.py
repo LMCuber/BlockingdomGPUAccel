@@ -969,7 +969,7 @@ for wood_name, data in winfo.items():
     flex = data["flex"]
     tinfo["axe"]["blocks"][wood_name] = flex * 0.003
 
-tool_names = sorted(list(tinfo.keys()) + ["staff"])
+tool_names = sorted(list(tinfo.keys()) + ["staff"] + ["maru"])
 unavailable_tool_names = ["bat", "sickle", "secateur", "pickaxe", "bow", "grappling-hook"]
 tinfo["sickle"]["blocks"] |= {wheat: 0.12 for wheat in wheats}
 

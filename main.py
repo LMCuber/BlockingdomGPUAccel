@@ -1343,8 +1343,8 @@ class World:
             self.terrain = SmartSurface((self.terrain_width * BS, self.terrain_height * BS), pygame.SRCALPHA)
             self.lighting = SmartSurface(self.terrain.get_size(), pygame.SRCALPHA)
             self.data = []
-            lnoise = self.linoise.linear(10, self.terrain_width, flatness=1)
-            biome = "beach"
+            lnoise = self.noise.linear(10, self.terrain_width, flatness=1)
+            biome = "forest"
             prim, sec = bio.blocks[biome]
             tert = "stone"
             for x in range(self.terrain_width):
@@ -1697,7 +1697,8 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sword", "maru", "kobuse"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
