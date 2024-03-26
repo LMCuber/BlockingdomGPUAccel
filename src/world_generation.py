@@ -88,10 +88,15 @@ class Biome:
         o2 = nordis(2, 2)
         return {
             "beach": {
-                "sand": (0, CH / 4 + o1),
-                "sandstone": (CH / 4 + o1, CH / 2 + o2),
-                "stone": (CH / 2 + o2, CH),
-            }
+                (0, CH / 4 + o1): "sand",
+                (CH / 4 + o1, CH / 2 + o2): "sandstone",
+                (CH / 2 + o2, CH): "stone",
+            },
+            "forest": {
+                (0, CH / 4 + o1): "dirt_f",
+                (CH / 4 + o1, CH / 2 + o2): "stone",
+                (CH / 2 + o2, CH): "stone",
+            },
         }[biome]
 
 

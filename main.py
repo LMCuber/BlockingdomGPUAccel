@@ -886,7 +886,7 @@ def generate_chunk(chunk_index, biome="beach", terrain_only=False):
                         name = "air"
                 elif y == 1:
                     name = "air"
-                    for layer_block, interval in layers.items():
+                    for interval, layer_block in layers.items():
                         if interval[0] <= rel_y <= interval[1]:
                             name = layer_block
                 elif y >= 2:
@@ -1338,7 +1338,6 @@ class World:
             self.lighting = SmartSurface(self.terrain.get_size(), pygame.SRCALPHA)
             self.data = []
             lnoise = self.noise.linear(10, self.terrain_width, flatness=1)
-            biome = "forest"
             prim, sec = bio.blocks[biome]
             tert = "stone"
             for x in range(self.terrain_width):
@@ -1691,7 +1690,8 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sword", "maru", "kobuse"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -4548,8 +4548,6 @@ async def main(debug, cprof=False):
         last_s = ticks()
         # dynamic stuff
         music_count = None
-        # static stuff
-        t = GoogletransTranslator()
         # counts
         g.stage = "home"
         # end signals
@@ -5156,7 +5154,7 @@ async def main(debug, cprof=False):
                         updated_chunks.append(target_chunk)
                         # create chunk if not existing yet
                         biome = choice(bio.biomes)
-                        biome = "beach"
+                        biome = "forest"
                         if target_chunk not in g.w.data:
                             surf_terrain = generate_chunk(target_chunk, biome=biome)
                         # elif target_chunk not in g.w.terrains:
@@ -5736,13 +5734,13 @@ async def main(debug, cprof=False):
                         block = gpure(g.player.block).upper()
                     else:
                         block = bshow(g.player.block).upper()
-                    write(win.renderer, "topleft", t | block, orbit_fonts[15], g.w.text_color, x, y + yo, tex=True)
+                    write(win.renderer, "topleft", block, orbit_fonts[15], g.w.text_color, x, y + yo, tex=True)
 
                 elif g.player.main == "tool" and g.player.tool:
                     # write tool name
                     x = tool_holders_x * S + tool_holders_width * S / 2
                     tool = tshow(g.player.tool).upper()
-                    write(win.renderer, "center", t | tool, orbit_fonts[inventory_font_size], g.w.text_color, x, y + yo, tex=True)
+                    write(win.renderer, "center", tool, orbit_fonts[inventory_font_size], g.w.text_color, x, y + yo, tex=True)
                     if is_gun(g.player.tool):
                         write(win.renderer, "center", f"{BULLET}", helvue_fonts[22], g.w.text_color, g.mouse[0] - visual.scope_yoffset, g.mouse[1] - 30)
                         write(win.renderer, "center", g.player.tool_ammo, orbit_fonts[16], g.w.text_color, g.mouse[0] + visual.scope_yoffset, g.mouse[1] - 30)

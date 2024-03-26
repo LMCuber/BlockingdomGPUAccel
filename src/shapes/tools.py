@@ -1,7 +1,6 @@
 from ..settings import *
 
 
-# constants
 # color definitions
 grays = [(x, x, x, 255) for x in range(1, 256)]
 browns = [(int(x * 0.6), int(x * 0.4), int(x * 0.2), 255) for x in range(1, 256)]
@@ -9,6 +8,7 @@ reds = [(x, 0, 0, 255) for x in range(1, 256)]
 greens = [(0, x, 0, 255) for x in range(1, 256)]
 blues = [(0, 0, x, 255) for x in range(1, 256)]
 yellows = [(x, x, 0, 255) for x in range(1, 256)]
+
 # funcs
 get_gray = lambda mu, sigma: grays[int(nordis(mu, sigma))]
 get_brown = lambda mu, sigma: browns[int(nordis(mu, sigma))]
@@ -17,6 +17,13 @@ get_green = lambda mu, sigma: greens[int(nordis(mu, sigma))]
 get_blue = lambda mu, sigma: blues[int(nordis(mu, sigma))]
 get_yellow = lambda mu, sigma: yellows[int(nordis(mu, sigma))]
 
+# constantized colors
+shigane = pygame.Color("#ECEFF4")
+kawagane = pygame.Color("#81A1C1")
+hagane = pygame.Color("#5E81AC")
+
+# constants
+katana_mult = 200
 
 # functions
 def get_crystal(type_, color=None):
@@ -702,4 +709,81 @@ def get_tool_crafter():
     # write(tool_crafter_img, "topleft", "wt% Fe", orbit_fonts[16], BLACK, 136, 8)
     # write(tool_crafter_img, "topleft", "wt% C", orbit_fonts[16], BLACK, 220, 8)
     pygame.image.save(tool_crafter_img, path("Images", "Surfaces", "tool-crafter.png"))
+
+
+def get_maru(base_color):
+    mult = katana_mult
+    w = 0.1
+    lu = w * 2
+    ld = lu * 1.3
+    t = w * 0.5
+    outline_color = BLACK
+    border_color = hagane
+    maru = Crystal(
+        win.renderer, [
+            [0, -lu - t, 0],
+            [w, -lu, 0],
+            [w, 0, 0],
+            [0, ld, 0],
+            [-w, 0, 0],
+            [-w, -lu, 0],
+        ], [
+            # point colors
+        ], [
+            # connections
+            [outline_color, 0, 1],
+            [outline_color, 1, 2],
+            [outline_color, 2, 3],
+            [outline_color, 3, 4],
+            [outline_color, 4, 5],
+            [outline_color, 5, 0],
+        ], [
+            # fills
+            [[hagane, border_color], 0, 1, 2, 3],
+            [[hagane, border_color], 3, 4, 5, 0],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return maru
+
+
+def get_kobuse(base_color):
+    mult = katana_mult
+    w = 0.1
+    lu = w * 2
+    ld = lu * 1.3
+    t = w * 0.5
+    base_color = hagane
+    border_color = hagane
+    outline_color = BLACK
+    kobuse = Crystal(
+        win.renderer, [
+            # base
+            [0, -lu - t, 0],
+            [w, -lu, 0],
+            [w, 0, 0],
+            [0, ld, 0],
+            [-w, 0, 0],
+            [-w, -lu, 0],
+            # inside
+            [w * 0.5, -lu - t * 0.5, 0],
+            [w * 0.5, 0, 0],
+            [0, ld * 0.5, 0],
+            [-w * 0.5, 0, 0],
+            [-w * 0.5, -lu - t * 0.5, 0],
+        ], [
+            # point colors
+        ], [
+            # connections
+        ], [
+            # fills
+            # base
+
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return kobuse
+
 # get_tool_crafter()
