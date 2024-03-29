@@ -18,12 +18,12 @@ get_blue = lambda mu, sigma: blues[int(nordis(mu, sigma))]
 get_yellow = lambda mu, sigma: yellows[int(nordis(mu, sigma))]
 
 # constantized colors
-shigane = pygame.Color("#ECEFF4")
-kawagane = pygame.Color("#81A1C1")
-hagane = pygame.Color("#5E81AC")
+hagane = pygame.Color("#F1F2EF")
+kawagane = pygame.Color("#E0B63A")
+shigane = pygame.Color("#CD361E")
 
 # constants
-katana_mult = 200
+katana_mult = 300
 
 # functions
 def get_crystal(type_, color=None):
@@ -697,7 +697,6 @@ def get_staff(base_color):
     return hammer
 
 
-#
 def get_tool_crafter():
     tool_crafter_img = timgload3("Images", "Midblits", "tool-crafter.png")
     w, h = 550, 350
@@ -718,7 +717,6 @@ def get_maru(base_color):
     ld = lu * 1.3
     t = w * 0.5
     outline_color = BLACK
-    border_color = hagane
     maru = Crystal(
         win.renderer, [
             [0, -lu - t, 0],
@@ -739,8 +737,8 @@ def get_maru(base_color):
             [outline_color, 5, 0],
         ], [
             # fills
-            [[hagane, border_color], 0, 1, 2, 3],
-            [[hagane, border_color], 3, 4, 5, 0],
+            [[hagane, hagane], 0, 1, 2, 3],
+            [[hagane, hagane], 3, 4, 5, 0],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -754,8 +752,6 @@ def get_kobuse(base_color):
     lu = w * 2
     ld = lu * 1.3
     t = w * 0.5
-    base_color = hagane
-    border_color = hagane
     outline_color = BLACK
     kobuse = Crystal(
         win.renderer, [
@@ -776,14 +772,190 @@ def get_kobuse(base_color):
             # point colors
         ], [
             # connections
+            [outline_color, 0, 1],
+            [outline_color, 1, 2],
+            [outline_color, 2, 3],
+            [outline_color, 3, 4],
+            [outline_color, 4, 5],
+            [outline_color, 5, 0],
+            [outline_color, 6, 7],
+            [outline_color, 7, 8],
+            [outline_color, 8, 9],
+            [outline_color, 9, 10],
         ], [
             # fills
             # base
-
+            [[hagane, hagane], 6, 1, 2, 7],
+            [[hagane, hagane], 7, 2, 3, 8],
+            [[hagane, hagane], 8, 3, 4, 9],
+            [[hagane, hagane], 5, 10, 9, 4],
+            [[shigane, shigane], 0, 6, 7, 8],
+            [[shigane, shigane], 0, 8, 9, 10],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
     )
     return kobuse
 
-# get_tool_crafter()
+
+def get_honsanmai(base_color):
+    mult = katana_mult
+    w = 0.1
+    lu = w * 2
+    ld = lu * 1.3
+    t = w * 0.5
+    rc = ld / w
+    outline_color = BLACK
+    honsanmai = Crystal(
+        win.renderer, [
+            # base
+            [0, -lu - t, 0],
+            [w, -lu, 0],
+            [w, 0, 0],
+            [0, ld, 0],
+            [-w, 0, 0],
+            [-w, -lu, 0],
+            # inside
+            [w * 0.5, -lu - t * 0.5, 0],
+            [w * 0.5, 0, 0],
+            [w * 0.5, w * 0.5 * rc, 0],
+            [-w * 0.5, w * 0.5 * rc, 0],
+            [-w * 0.5, 0, 0],
+            [-w * 0.5, -lu - t * 0.5, 0],
+        ], [
+            # point colors
+        ], [
+            # connections
+            [outline_color, 0, 1],
+            [outline_color, 1, 2],
+            [outline_color, 2, 3],
+            [outline_color, 3, 4],
+            [outline_color, 4, 5],
+            [outline_color, 5, 0],
+            [outline_color, 6, 8],
+            [outline_color, 11, 9],
+            [outline_color, 10, 7],
+        ], [
+            # fills
+            # base
+            [[kawagane, kawagane], 6, 1, 2, 8],
+            [[hagane, hagane], 10, 7, 8, 9],
+            [[hagane, hagane], 9, 8, 3],
+            [[kawagane, kawagane], 5, 11, 9, 4],
+            [[shigane, shigane], 11, 6, 7, 10],
+            [[shigane, shigane], 0, 6, 11],
+
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return honsanmai
+
+
+def get_shihozume(base_color):
+    mult = katana_mult
+    w = 0.1
+    lu = w * 2
+    ld = lu * 1.3
+    t = w * 0.5
+    rc = ld / w
+    outline_color = BLACK
+    shihozume = Crystal(
+        win.renderer, [
+            # base
+            [0, -lu - t, 0],
+            [w, -lu, 0],
+            [w, 0, 0],
+            [0, ld, 0],
+            [-w, 0, 0],
+            [-w, -lu, 0],
+            # inside
+            [w * 0.5, -lu - t * 0.5, 0],
+            [w * 0.5, -lu + t * 0.5, 0],
+            [w * 0.5, w * 0.5 * rc, 0],
+            [-w * 0.5, w * 0.5 * rc, 0],
+            [-w * 0.5, -lu + t * 0.5, 0],
+            [-w * 0.5, -lu - t * 0.5, 0],
+        ], [
+            # point colors
+        ], [
+            # connections
+            [outline_color, 0, 1],
+            [outline_color, 1, 2],
+            [outline_color, 2, 3],
+            [outline_color, 3, 4],
+            [outline_color, 4, 5],
+            [outline_color, 5, 0],
+            [outline_color, 6, 8],
+            [outline_color, 11, 9],
+            [outline_color, 10, 7],
+        ], [
+            # fills
+            # base
+            [[kawagane, kawagane], 6, 1, 2, 8],
+            [[shigane, shigane], 10, 7, 8, 9],
+            [[hagane, hagane], 9, 8, 3],
+            [[kawagane, kawagane], 5, 11, 9, 4],
+            [[kawagane, kawagane], 11, 6, 7, 10],
+            [[kawagane, kawagane], 0, 6, 11],
+
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return shihozume
+
+
+def get_makuri(base_color):
+    mult = katana_mult
+    w = 0.1
+    lu = w * 2
+    ld = lu * 1.3
+    t = w * 0.5
+    outline_color = BLACK
+    makuri = Crystal(
+        win.renderer, [
+            # base
+            [0, -lu - t, 0],
+            [w, -lu, 0],
+            [w, 0, 0],
+            [0, ld, 0],
+            [-w, 0, 0],
+            [-w, -lu, 0],
+            # inside
+            [w * 0.5, -lu + t * 0.5, 0],
+            [w * 0.5, 0, 0],
+            [0, ld * 0.5, 0],
+            [-w * 0.5, 0, 0],
+            [-w * 0.5, -lu + t * 0.5, 0],
+            [0, -lu, 0]
+        ], [
+            # point colors
+        ], [
+            # connections
+            [outline_color, 0, 1],
+            [outline_color, 1, 2],
+            [outline_color, 2, 3],
+            [outline_color, 3, 4],
+            [outline_color, 4, 5],
+            [outline_color, 5, 0],
+            [outline_color, 6, 7],
+            [outline_color, 7, 8],
+            [outline_color, 8, 9],
+            [outline_color, 9, 10],
+        ], [
+            # fills
+            # base
+            [[hagane, hagane], 6, 1, 2, 7],
+            [[hagane, hagane], 7, 2, 3, 8],
+            [[hagane, hagane], 4, 9, 8, 3],
+            [[hagane, hagane], 5, 10, 9, 4],
+            [[hagane, hagane], 0, 1, 6, 11],
+            [[hagane, hagane], 5, 0, 11, 10],
+            [[shigane, shigane], 11, 6, 7, 8],
+            [[shigane, shigane], 10, 11, 8, 9],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return makuri

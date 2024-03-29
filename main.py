@@ -1698,7 +1698,7 @@ class PlayWidgets:
         befriend_iterable(self.keybind_buttons)
         # other widgets
         # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sword", "maru", "kobuse"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
