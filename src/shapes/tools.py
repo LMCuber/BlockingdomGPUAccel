@@ -90,7 +90,6 @@ def get_sword(base_color):
             [uw, uxo + ul, -uh],
             [-uw, uxo + ul, -uh],
 
-            # the polygons
             # PASS
         ], [
             # point colors
@@ -145,6 +144,87 @@ def get_sword(base_color):
     ]
     """
     return sword
+
+
+def get_katana(base_color):
+    mult = 140
+    gw, gl, gh = 0.07, 0.6, 0.04
+    num_p = 5
+    pw = 0.1
+    pl = 0.05
+    ps = (gl - pl * num_p) / (num_p + 1)
+    bw, bl, bh = gw, gl * 3, gh
+    # pattern
+    pattern = []
+    for yo in range(num_p):
+        tip = (yo + 1) * ps + yo * pl
+        pattern.extend([
+            (0, tip, gh),
+            (pw / 2, tip + 0.5 * pl, bh),
+            (0, tip + pl, bh),
+            (-pw / 2, tip + 0.5 * pl, bh),
+        ])
+    pattern_fills = [
+        [[WHITE, WHITE], 0 + 8 + n * 4, 1 + 8 + n * 4, 2 + 8 + n * 4, 3 + 8 + n * 4] for n in range(num_p)
+    ]
+    # rest
+    base_color = (235, 235, 235, 255)
+    outline_color = (20, 20, 20, 255)
+    katana = Crystal(
+        win.renderer, [
+            # base
+            [-gw, 0, gh],
+            [gw, 0, gh],
+            [gw, gl, gh],
+            [-gw, gl, gh],
+            [-gw, 0, -gh],
+            [gw, 0, -gh],
+            [gw, gl, -gh],
+            [-gw, gl, -gh],
+            *pattern,
+            [-bw, -bl, bh],
+            [bw, -bl, bh],
+            [bw, 0, bh],
+            [-bw, 0, bh],
+            [-bw, -bl, -bh],
+            [bw, -bl, -bh],
+            [bw, 0, -bh],
+            [-bw, 0, -bh],
+        ], [
+            # point colors
+        ], [
+            # lines
+        ], [
+            # fills
+            # [[grays[30], WHITE], 0, 1, 2, 3],
+            [[grays[30]], 4, 5, 1, 0],
+            [[grays[30]], 4, 5, 6, 7],
+            [[grays[30]], 7, 6, 2, 3],
+            [[grays[30]], 4, 0, 3, 7],
+            [[grays[30]], 1, 5, 6, 2],
+            *pattern_fills,
+            [[grays[240]], 4 + 8 + len(pattern), 5 + 8 + len(pattern), 1 + 8 + len(pattern), 0 + 8 + len(pattern)],
+            [[grays[240]], 4 + 8 + len(pattern), 5 + 8 + len(pattern), 6 + 8 + len(pattern), 7 + 8 + len(pattern)],
+            [[grays[240]], 7 + 8 + len(pattern), 6 + 8 + len(pattern), 2 + 8 + len(pattern), 3 + 8 + len(pattern)],
+            [[grays[240]], 4 + 8 + len(pattern), 0 + 8 + len(pattern), 3 + 8 + len(pattern), 7 + 8 + len(pattern)],
+            [[grays[240]], 1 + 8 + len(pattern), 5 + 8 + len(pattern), 6 + 8 + len(pattern), 2 + 8 + len(pattern)],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    """
+    sxo, syo = -w, -l
+    sw, sl, sh = w / 2, w / 2, h
+    sword_atom_shapes = [
+        [[0, 0, 1], [1, 0, 1], [0, 1, 1]],
+        [[1, 0, 1], [2, 0, 1], [2, 1, 1]],
+        [[1, 0, 1], [1, 2, 1], [0, 1, 1]],
+        [[0, 1, 1], [2, 1, 1], [1, 2, 1]],
+        [[0, 1, 1], [1, 2, 1], [0, 2, 1]],
+        [[2, 1, 1], [2, 2, 1], [1, 2, 1]]
+    ]
+    """
+    return katana
 
 
 def get_axe(base_color):
