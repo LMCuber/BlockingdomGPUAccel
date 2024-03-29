@@ -7,7 +7,9 @@ import time
 import pickle
 import json
 import threading
-import noise
+# import noise
+# from perlin_noise import PerlinNoise
+import opensimplex as osimp
 import asyncio
 from copy import deepcopy
 from colorsys import rgb_to_hls, hls_to_rgb
@@ -22,6 +24,7 @@ from src.shapes.tools import *
 from src.shapes import tools
 from src.controller import *
 from src.entities import *
+from src.perlin import *
 
 
 class SmartSurface(pygame.Surface):
@@ -477,10 +480,6 @@ def toggle_main():
     visual.bow_index = 0
 
 
-def custom_language(lang):
-    g.w.language = lang
-
-
 def all_main_widgets():
     return all_home_sprites + all_home_world_world_buttons + all_home_world_static_buttons + all_home_settings_buttons
 
@@ -838,7 +837,7 @@ def diffuse_light(og_block, chunk_data):
     diffuse(og_block)
 
 
-def generate_chunk(chunk_index, biome="beach", terrain_only=False):
+def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     # init NOW
     x, y = chunk_index
     entities = []
@@ -849,6 +848,7 @@ def generate_chunk(chunk_index, biome="beach", terrain_only=False):
     chunk_pos = (x * CW, y * CH)
     g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
     biome = biome if biome is not None else choice(list(bio.blocks.keys()))
+    y_offsets = g.w.linoise.linear(0, CW)
     if not terrain_only:
         chunk_data = {}
         # per chunk
@@ -859,7 +859,7 @@ def generate_chunk(chunk_index, biome="beach", terrain_only=False):
                 height = g.w.last_heights[y]
             else:
                 height = bio.heights.get(biome, 4)
-            lnoise = g.w.noise.linear(height, length, flatness, start=height)
+            lnoise = g.w.linoise.linear(height, length, flatness, start=height)
             lnoise = [max(1, n) for n in lnoise]
             g.w.last_heights[y] = lnoise[-1]
         prim, sec = bio.blocks[biome]
@@ -867,7 +867,10 @@ def generate_chunk(chunk_index, biome="beach", terrain_only=False):
         # - generation -
         depth = ore_chance = 0
         for rel_x in range(CW):
-            y_offset = int(noise.pnoise1((x * CW + rel_x) * 0.1, repeat=10000000) * 5)
+            noise_input = x * CW + rel_x
+            # y_offset = int(noise.pnoise1(noise_input * 0.1, repeat=10000000) * 5)
+            y_offset = y_offsets[rel_x]
+            y_offset = int(perlin.valueAt(noise_input * 0.1 + 1000) * 10)
             if y == 1:
                 layers = bio.get_layers(biome)
             for rel_y in range(CH):
@@ -891,8 +894,10 @@ def generate_chunk(chunk_index, biome="beach", terrain_only=False):
                             name = layer_block
                 elif y >= 2:
                     mult = 0.1
-                    depth = noise.pnoise2(*[t * mult for t in target_pos], octaves=2)
-                    ore_chance = noise.pnoise2(*[t * mult for t in target_pos], octaves=10)
+                    # depth = noise.pnoise2(*[t * mult for t in target_pos], octaves=2)
+                    # ore_chance = noise.pnoise2(*[t * mult for t in target_pos], octaves=10)
+                    depth = 0
+                    ore_chance = 0
                     if depth >= 0:
                         name = tert
                         if chance(1 / 100):
@@ -902,8 +907,9 @@ def generate_chunk(chunk_index, biome="beach", terrain_only=False):
                 if name:
                     chunk_data[target_pos] = Block(name, target_pos, ore_chance)
         # world mods
-        entities, late_chunk_data = world_modifications(chunk_data, g.w.metadata[chunk_index], biome, chunk_pos, g.w.wgr)
-        entities, late_chunk_data = [], {}
+        entities, late_chunk_data = world_modifications(chunk_data, g.w.metadata[chunk_index], biome, chunk_pos, g.w.rng)
+        # entities, late_chunk_data = [], {}
+        # pprint(late_chunk_data)
         g.w.late_chunk_data |= late_chunk_data
     else:
         chunk_data = g.w.data[chunk_index]
@@ -1172,11 +1178,11 @@ class World:
         self.name = None
         self.linked = False
         self.boss_scene = False
-        self.wgr = Random(112)
-        self.noise = Noise()
+        self.rng = Random(112)
+        self.linoise = Noise()
+        # self.noise = PerlinNoise()
         self.last_chunks = []
         # game settings
-        self.language = "english"
         self.player_model_color = GRAY
         # day-night cycle
         self.hound_round = False
@@ -1338,6 +1344,7 @@ class World:
             self.lighting = SmartSurface(self.terrain.get_size(), pygame.SRCALPHA)
             self.data = []
             lnoise = self.noise.linear(10, self.terrain_width, flatness=1)
+            biome = "forest"
             prim, sec = bio.blocks[biome]
             tert = "stone"
             for x in range(self.terrain_width):
@@ -1946,43 +1953,6 @@ class PlayWidgets:
             return
         shutil.copytree(pth, path(".game_data", "texture_packs", tex), dirs_exist_ok=True)
         MessageboxOk(win.renderer, "Texture pack loaded succesfully.", **pw.widget_kwargs)
-
-    @staticmethod
-    def download_language_command():
-        test_subject = "dirt"
-        def download(e):
-            e = e.lower()
-            def download_language():
-                g.set_loading("language", True)
-                try:
-                    t.init(e)
-                    test_subject
-                except translatepy.exceptions.UnknownLanguage:
-                    MessageboxOk(win.renderer, f"Unknown language <{e}>", **pw.widget_kwargs)
-                else:
-                    # downloading translations
-                    len_translations = len(g.w.all_assets) + len(iter_overwriteables())
-                    dictionary = {}
-                    for asset in g.w.all_assets:
-                        if asset != test_subject:
-                            dictionary[asset] = asset.replace("-", " ").replace("_", " ")
-                            g.loading_language_perc += 1 / len_translations * 100
-                    for widget in iter_overwriteables():
-                        dictionary[widget.text] = widget.text
-                    for mwidget in all_home:
-                        dictionary[mwidget.text] = mwidget.text
-                    # german corections
-                    if e == "german":
-                        dictionary["lives"] = "Leben"
-                        dictionary["FPS"] = "FPS"
-                    # saving translations to a json file
-                    with open(path(".game_data", "languages", f"{e}.json"), "w") as f:
-                        json.dump(dictionary, f, indent=4)
-                    # if e not in g.p.downloaded_languages:
-                    #     g.p.downloaded_languages.append(e)
-                g.set_loading("language", False)
-            CThread(target=download_language).start()
-        Entry(win.renderer, "Enter the language to be downloaded:", download, **pw.entry_kwargs)
 
     @staticmethod
     def set_home_stage_worlds_command():
@@ -4230,7 +4200,7 @@ class StaticButton(StaticWidget):
             self.orange += 0.06 * -self.orange
         # draw
         fill_rect(win.renderer, LIGHT_GRAY, self.rect)
-        fill_rect(win.renderer, ORANGE, (self.rect.x, self.rect.y, self.orange, self.height))
+        fill_rect(win.renderer, DARKISH_GREEN, (self.rect.x, self.rect.y, self.orange, self.height))
         draw_quad(win.renderer, BLACK,
             (self.rect.x, self.rect.y),
             (self.rect.x + self.sw, self.rect.y + self.height),
@@ -4464,6 +4434,7 @@ visual = Visual()
 ui = UI()
 pw = PlayWidgets()
 g.w = World()
+perlin = Perlin(g.w.rng)
 
 # le button
 _a, _b = 23, 25
@@ -4474,7 +4445,6 @@ button_daw = StaticButton("Delete All Worlds", (_a * 4 + _b, win.height - 80),  
 button_c =   StaticButton("Credits",           (35, 130),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.show_credits_command,            visible_when=pw.is_worlds_static)
 button_i =   StaticButton("Intro",             (35, 170),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.intro_command,                   visible_when=pw.is_worlds_static)
 button_ct =  StaticButton("Custom Textures",   (35, 210),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.custom_textures_command,         visible_when=pw.is_worlds_static)
-button_dl =  StaticButton("Download Language", (35, 250),                            all_home_settings_buttons,     LIGHT_BROWN, anchor="topleft",               command=pw.download_language_command,       visible_when=pw.is_worlds_static)
 button_s =   StaticButton("Settings",          (win.width / 2, win.height / 2),      all_home_sprites,              WHITE, anchor="center", size="main",         command=pw.set_home_stage_settings_command, visible_when=pw.is_home)
 button_w =   StaticButton("Worlds",            (win.width / 2, win.height / 2 + 50), all_home_sprites,              WHITE, anchor="center", size="main",         command=pw.set_home_stage_worlds_command,   visible_when=pw.is_home)
 
@@ -4494,6 +4464,8 @@ controller.next_protocol |= {
 
 # L O A D I N G  T H E  G A M E ----------------------------------------------------------------------- #
 # load le button
+make_sure_dir_exists(path(".game_data", "worlds"))
+make_sure_dir_exists(path(".game_data", "tempfiles"))
 for y, world_file in enumerate(os.listdir(path(".game_data", "worlds"))):
     world_name, _ = os.path.splitext(world_file)
     part = WorldPartition(name=world_name)
@@ -4643,7 +4615,6 @@ async def main(debug, cprof=False):
             # g.dt = g.clock.tick() / (1000 / g.def_fps_cap)
             if g.stage == "play":
                 win.space.step(1 / pw.fps_cap.value)
-            #t.init(g.w.language)
 
             # global dynamic variables
             g.p.anim_fps = pw.anim_fps.value / g.fps_cap
@@ -4936,9 +4907,6 @@ async def main(debug, cprof=False):
 
                                 elif event.key == K_p:
                                     g.player.cust_username()
-
-                                elif event.key == K_l:
-                                    Entry(win.renderer, "Enter language:", custom_language, **pw.entry_kwargs)
 
                                 elif event.key == K_c:
                                     Entry(win.renderer, "Enter your command:", player_command, **pw.entry_kwargs)
@@ -5531,8 +5499,8 @@ async def main(debug, cprof=False):
                                         if g.player.block == "fire":
                                             g.w.data[target_chunk][abs_pos] = [g.w.data[target_chunk][abs_pos], "fire"]
 
-                if not thread_active:
-                    Thread(target=update_light, daemon=True).start()
+                # if not thread_active:
+                #     Thread(target=update_light, daemon=True).start()
 
                 # player collision with blocks
                 for yo in range(-2, 3):
@@ -6254,6 +6222,5 @@ async def main(debug, cprof=False):
 if __name__ == "__main__":
     # main(debug=g.debug)
     asyncio.run(main(debug=g.debug))
-    # import cP =
-    rofile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="cumtime")
+    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="cumtime")
     # import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")
