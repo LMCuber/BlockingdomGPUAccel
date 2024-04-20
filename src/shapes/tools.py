@@ -40,6 +40,11 @@ def get_crystal(type_, color=None):
     return bcc
 
 
+def get_cube(base_color):
+    poly = Crystal(win.renderer, "cube.obj", [], [], [], (940, 300), 140, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=True)
+    return poly
+
+
 def get_sword(base_color):
     mult = 140
     w, l, h = 0.12, 0.8, 0.03
@@ -148,16 +153,16 @@ def get_sword(base_color):
 
 def get_katana(base_color):
     mult = 140
-    gw, gl, gh = 0.07, 0.6, 0.04
+    gw, gl, gh = 0.07, 0.5, 0.04
     num_p = 5
     pw = 0.1
     pl = 0.05
     ps = (gl - pl * num_p) / (num_p + 1)
-    bw, bl, bh = gw, gl * 3, gh
+    bw, bl, bh = gw, gl * 2, gh
     # pattern
     pattern = []
     for yo in range(num_p):
-        tip = (yo + 1) * ps + yo * pl
+        tip = (yo + 1) * ps + yo * pl + bl
         pattern.extend([
             (0, tip, gh),
             (pw / 2, tip + 0.5 * pl, bh),
@@ -173,23 +178,23 @@ def get_katana(base_color):
     katana = Crystal(
         win.renderer, [
             # base
-            [-gw, 0, gh],
-            [gw, 0, gh],
-            [gw, gl, gh],
-            [-gw, gl, gh],
-            [-gw, 0, -gh],
-            [gw, 0, -gh],
-            [gw, gl, -gh],
-            [-gw, gl, -gh],
+            [-gw, bl, gh],
+            [gw, bl, gh],
+            [gw, bl + gl, gh],
+            [-gw, bl + gl, gh],
+            [-gw, bl, -gh],
+            [gw, bl, -gh],
+            [gw, bl + gl, -gh],
+            [-gw, bl + gl, -gh],
             *pattern,
             [-bw, -bl, bh],
             [bw, -bl, bh],
-            [bw, 0, bh],
-            [-bw, 0, bh],
+            [bw, bl, bh],
+            [-bw, bl, bh],
             [-bw, -bl, -bh],
             [bw, -bl, -bh],
-            [bw, 0, -bh],
-            [-bw, 0, -bh],
+            [bw, bl, -bh],
+            [-bw, bl, -bh],
         ], [
             # point colors
         ], [

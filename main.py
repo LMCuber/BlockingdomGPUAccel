@@ -1698,7 +1698,7 @@ class PlayWidgets:
         befriend_iterable(self.keybind_buttons)
         # other widgets
         # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -1827,6 +1827,7 @@ class PlayWidgets:
 
     @staticmethod
     def next_piece_command():
+        return
         music_path = get_rand_track(path("assets", "Audio", "Music", "Background"))
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.play()
@@ -1983,8 +1984,14 @@ class Animations:
         self.rects = {}
         self.data = {
             "_Default": {
-                "jump": {"frames": 4},
                 "run": {"frames": 4},
+                "idle": {"frames": 1},
+                "jump": {"frames": 1},
+            },
+
+            "_DefaultDeprecated": {
+                "run": {"frames": 4},
+                "jump": {"frames": 4},
             },
 
             "Katana": {
@@ -2821,6 +2828,7 @@ class Player(SmartVector):
             fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
         except KeyError:
             # the default animation is "run"
+            print(anim.imgs[self.anim_skin])
             fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
         if self.anim_type != "run":
             # process animation speed from anim.data[]
@@ -3779,13 +3787,27 @@ class OrbParticle:
 
 
 class ShatterParticle(Scrollable):
-    def __init__(self, entity, area):
+    def __init__(self, entity, area, blood=False):
         super().__init__(g)
+        self.blood = blood
         self.entity = entity
-        self.area = area
-        self.image = entity.image
-        self.x, self.y = entity._rect.center
-        self._rect = pygame.Rect((0, 0), area[2:])
+        #
+        if not self.blood:
+            self.area = area
+            self.image = entity.image
+            self._rect = pygame.Rect((0, 0), self.area[2:])
+            self.width, self.height = area[2:]
+            self.x, self.y = entity._rect.center
+        else:
+            self.width, self.height = 2, 2
+            surf = pygame.Surface((self.width, self.height))
+            surf.fill(RED)
+            self.image = T(surf)
+            self.area = pygame.Rect(0, 0, self.width, self.height)
+            self._rect = self.image.get_rect()
+            self.x = rand(entity._rect.left, entity._rect.right)
+            self.y = rand(entity._rect.top, entity._rect.bottom)
+        #
         self._rect.center = self.x, self.y
         self._rects = entity.final_rects
         self.syvel = self.yvel = randf(-3.5, -4)
@@ -3793,7 +3815,6 @@ class ShatterParticle(Scrollable):
         self.energy = self.yvel
         # self.xvel = 0
         self.xvel = randf(-0.5, 0.5)
-        self.width, self.height = area[2:]
         self.drops = entity.drops
         self.bounces = 0
         self.last = ticks()
@@ -3814,12 +3835,18 @@ class ShatterParticle(Scrollable):
         self._rect.topleft = (int(self.x), int(self.y))
         win.renderer.blit(self.image, self.rect, area=self.area)
         if ticks() - self.last >= 1250:
-            # drop the loot (only the first time)
-            if self.entity not in g.w.entities[self.entity.chunk_index]:
-                return
-            g.w.entities[self.entity.chunk_index].remove(self.entity)
-            for drop, amount in self.entity.drops.items():
-                all_drops.append(Drop(drop, self.entity._rect, amount))
+            # drop the loot (only the first time) (and only when is kein blood particle)
+            if not self.blood:
+                if self.entity not in g.w.entities[self.entity.chunk_index]:
+                    return
+                g.w.entities[self.entity.chunk_index].remove(self.entity)
+                for drop, amount in self.entity.drops.items():
+                    all_drops.append(Drop(drop, self.entity._rect, amount))
+
+
+class BloodParticle(ShatterParticle):
+    def __init__(self, entity):
+        super().__init__(entity, None, blood=True)
 
 
 class OrbMatrix:
@@ -5396,6 +5423,11 @@ async def main(debug, cprof=False):
                             ]
                             entity.dialogue = False
                             # win.target_zoom = (3, 3)
+                        # check whether enemy has been hit this frame and add blood effect
+                        if entity.taking_damage:
+                            entity.set_final_rects()
+                            for _ in range(10):
+                                group(BloodParticle(entity), all_other_particles)
                         # check whether the entity is dead and drop the loot
                         if entity.dead and not entity.dying:
                             # shatter particles

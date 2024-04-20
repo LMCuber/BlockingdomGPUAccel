@@ -457,10 +457,13 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                 self.die()
             else:
                 self.hp -= amount
+    
+    def set_final_rects(self):
+        self.final_rects = self.get_cols(return_type="_rect")
 
     def die(self):
         self.dead = True
-        self.final_rects = self.get_cols(return_type="_rect")
+        self.set_final_rects()
 
 
 # M O B S ------------------------------------------------------------------------------------------------ #

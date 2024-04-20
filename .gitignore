@@ -2,3 +2,4 @@
 .vscode
 .game_data
 build
+__pycache__
