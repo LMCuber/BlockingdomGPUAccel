@@ -1,0 +1,670 @@
+CAUTION - CPROFILE WAS ACTIVE
+         32943336 function calls (32943055 primitive calls) in 16.664 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+     3261    0.012    0.000   16.683    0.005 base_events.py:1910(_run_once)
+        1    0.000    0.000   16.664   16.664 {built-in method builtins.exec}
+        1    0.000    0.000   16.664   16.664 <string>:1(<module>)
+        1    0.000    0.000   16.664   16.664 runners.py:160(run)
+        3    0.000    0.000   16.663    5.554 base_events.py:651(run_until_complete)
+        3    0.000    0.000   16.663    5.554 windows_events.py:318(run_forever)
+        3    0.002    0.001   16.663    5.554 base_events.py:627(run_forever)
+        1    0.000    0.000   16.663   16.663 runners.py:86(run)
+     3266    0.003    0.000   16.652    0.005 events.py:86(_run)
+     3266    0.010    0.000   16.648    0.005 {method 'run' of '_contextvars.Context' objects}
+     3256    3.146    0.001   16.626    0.005 main.py:4469(main)
+     ----------------------------------------------------------------
+   198726    0.319    0.000    9.484    0.000 entities.py:174(update)
+   579179    4.617    0.000    7.834    0.000 entities.py:264(get_cols)
+   198726    0.369    0.000    5.912    0.000 entities.py:211(collide)
+   198726    0.054    0.000    3.035    0.000 entities.py:483(spec_update)
+   198726    0.329    0.000    2.981    0.000 entities.py:246(jump_over_obstacles)
+  5289501    1.333    0.000    1.333    0.000 settings.py:511(correct_tile)
+     3255    0.936    0.000    0.966    0.000 {method 'tick' of 'pygame.time.Clock' objects}
+  5269699    0.649    0.000    0.813    0.000 prim_data.py:311(is_hard)
+     3255    0.034    0.000    0.720    0.000 pgwidgets.py:851(draw_and_update_widgets)
+     1092    0.514    0.000    0.579    0.001 pgwidgets.py:707(update)
+  2388850    0.498    0.000    0.498    0.000 entities.py:11(Rect)
+     3751    0.002    0.000    0.496    0.000 pgbasics.py:1268(_func)
+      992    0.001    0.000    0.492    0.000 main.py:4127(update)
+      992    0.425    0.000    0.490    0.000 main.py:4174(spec_update)
+     3075    0.006    0.000    0.315    0.000 main.py:2119(update)
+     3075    0.004    0.000    0.289    0.000 main.py:2129(move_accordingly)
+   198726    0.122    0.000    0.265    0.000 entities.py:240(check_chunk_borders)
+     3075    0.036    0.000    0.235    0.000 main.py:2534(adventure_move)
+   780980    0.144    0.000    0.220    0.000 pgbasics.py:1066(centerx)
+   794904    0.219    0.000    0.219    0.000 entities.py:169(update__rect)
+     3255    0.210    0.000    0.210    0.000 {built-in method pygame.event.get}
+   777905    0.141    0.000    0.209    0.000 pgbasics.py:1074(centery)
+   504300    0.154    0.000    0.191    0.000 main.py:2173(_rect)
+  1642556    0.171    0.000    0.171    0.000 {method 'colliderect' of 'pygame.rect.Rect' objects}
+  2605676    0.165    0.000    0.165    0.000 pgwidgets.py:617(__bool__)
+  2224192    0.164    0.000    0.164    0.000 prim_data.py:322(is_bg)
+    86100    0.058    0.000    0.159    0.000 main.py:2169(rect)
+     9225    0.050    0.000    0.155    0.000 main.py:2509(get_cols)
+       29    0.006    0.000    0.155    0.005 main.py:855(generate_chunk)
+     2373    0.113    0.000    0.140    0.000 pgbasics.py:614(write)
+  1874986    0.133    0.000    0.133    0.000 {built-in method math.floor}
+    83869    0.084    0.000    0.084    0.000 {method 'copy' of 'dict' objects}
+        1    0.008    0.008    0.083    0.083 main.py:1093(save)
+   198726    0.082    0.000    0.082    0.000 entities.py:399(animate)
+     6930    0.020    0.000    0.078    0.000 pgwidgets.py:830(iter_widgets)
+    62049    0.029    0.000    0.077    0.000 random.py:341(choice)
+   777905    0.076    0.000    0.076    0.000 entities.py:332(width)
+    79794    0.055    0.000    0.075    0.000 settings.py:499(pos_to_tile)
+   841086    0.074    0.000    0.074    0.000 entities.py:336(height)
+        1    0.038    0.038    0.072    0.072 {built-in method _pickle.dump}
+     7639    0.045    0.000    0.061    0.000 prim_data.py:101(__init__)
+   198726    0.060    0.000    0.060    0.000 entities.py:383(draw)
+       29    0.003    0.000    0.056    0.002 main.py:937(generate_lighting)
+   123125    0.040    0.000    0.052    0.000 basics.py:682(__getitem__)
+   683864    0.051    0.000    0.051    0.000 settings.py:438(player)
+     3082    0.003    0.000    0.050    0.000 pgwidgets.py:818(no_widgets)
+     6930    0.018    0.000    0.048    0.000 {built-in method builtins.sorted}
+      107    0.042    0.000    0.048    0.000 pgwidgets.py:441(update)
+    70122    0.029    0.000    0.044    0.000 random.py:242(_randbelow_with_getrandbits)
+     3075    0.011    0.000    0.039    0.000 main.py:2935(update)
+501988/501967    0.038    0.000    0.038    0.000 {built-in method builtins.len}
+   504301    0.036    0.000    0.036    0.000 main.py:2153(size)
+    14874    0.032    0.000    0.033    0.000 __init__.py:361(__rect_reduce)
+     4041    0.031    0.000    0.031    0.000 {method 'blit' of 'pygame.surface.Surface' objects}
+   160684    0.019    0.000    0.030    0.000 pgwidgets.py:831(<lambda>)
+       29    0.001    0.000    0.030    0.001 world_generation.py:483(world_modifications)
+     2400    0.028    0.000    0.028    0.000 {method 'render' of 'pygame.font.Font' objects}
+   198726    0.027    0.000    0.027    0.000 entities.py:436(display_hp)
+    74/51    0.000    0.000    0.027    0.001 threading.py:1016(_bootstrap)
+    74/51    0.000    0.000    0.027    0.001 threading.py:1056(_bootstrap_inner)
+   413792    0.027    0.000    0.027    0.000 {built-in method builtins.isinstance}
+       96    0.000    0.000    0.026    0.000 world_generation.py:514(entity)
+    74/51    0.000    0.000    0.026    0.001 threading.py:999(run)
+        1    0.000    0.000    0.026    0.026 main.py:681(create)
+       96    0.000    0.000    0.026    0.000 entities.py:477(__init__)
+       96    0.012    0.000    0.026    0.000 entities.py:72(__init__)
+     3075    0.009    0.000    0.025    0.000 space.py:557(step)
+   203963    0.022    0.000    0.025    0.000 {built-in method builtins.getattr}
+   208044    0.023    0.000    0.023    0.000 {method 'append' of 'list' objects}
+        1    0.000    0.000    0.021    0.021 pgwidgets.py:842(destroy_widgets)
+    66838    0.014    0.000    0.020    0.000 pgbasics.py:1103(bottom)
+   129165    0.020    0.000    0.020    0.000 {built-in method builtins.round}
+     9585    0.019    0.000    0.019    0.000 {built-in method pygame.key.get_pressed}
+      179    0.016    0.000    0.016    0.000 imgtools.py:8(T)
+    62859    0.010    0.000    0.016    0.000 main.py:451(non_bg)
+     3261    0.002    0.000    0.015    0.000 windows_events.py:443(select)
+       74    0.000    0.000    0.015    0.000 threading.py:973(start)
+   164985    0.015    0.000    0.015    0.000 {built-in method builtins.hasattr}
+     3075    0.014    0.000    0.014    0.000 {built-in method pymunk._chipmunk.cpSpaceStep}
+      407    0.004    0.000    0.014    0.000 pgwidgets.py:879(process_widget_events)
+     3262    0.005    0.000    0.013    0.000 windows_events.py:761(_poll)
+     3075    0.002    0.000    0.013    0.000 main.py:2133(draw)
+   198726    0.013    0.000    0.013    0.000 entities.py:429(regenerate)
+     3267    0.003    0.000    0.012    0.000 base_events.py:785(call_soon)
+       96    0.011    0.000    0.012    0.000 entities.py:351(init_images)
+     3111    0.002    0.000    0.012    0.000 {built-in method builtins.any}
+    65082    0.012    0.000    0.012    0.000 {method 'insert' of 'list' objects}
+     3075    0.007    0.000    0.012    0.000 main.py:2515(scroll)
+   123125    0.011    0.000    0.011    0.000 {function DictWithoutException.__getitem__ at 0x00000194269D7880}
+     4052    0.001    0.000    0.011    0.000 main.py:1333(bimg)
+     3075    0.003    0.000    0.011    0.000 main.py:2160(rect_draw)
+     8073    0.002    0.000    0.011    0.000 random.py:332(randint)
+     3082    0.006    0.000    0.010    0.000 pgwidgets.py:819(<genexpr>)
+       44    0.000    0.000    0.010    0.000 pgwidgets.py:100(disable)
+    84612    0.010    0.000    0.010    0.000 {method 'items' of 'dict' objects}
+     5239    0.009    0.000    0.009    0.000 pgbasics.py:218(fill_rect)
+     3267    0.006    0.000    0.009    0.000 base_events.py:814(_call_soon)
+     8073    0.004    0.000    0.009    0.000 random.py:291(randrange)
+     2935    0.003    0.000    0.009    0.000 main.py:1703(show_fps_command)
+      205    0.000    0.000    0.009    0.000 pgbasics.py:508(darken)
+    15717    0.009    0.000    0.009    0.000 {built-in method pygame.mouse.get_pos}
+       74    0.000    0.000    0.009    0.000 threading.py:637(wait)
+       74    0.000    0.000    0.008    0.000 threading.py:323(wait)
+     3075    0.008    0.000    0.008    0.000 main.py:2862(draw)
+     9225    0.004    0.000    0.008    0.000 main.py:2164(_rect_draw)
+     2919    0.001    0.000    0.008    0.000 main.py:1273(text_color)
+    69140    0.008    0.000    0.008    0.000 {method 'replace' of 'str' objects}
+  444/296    0.006    0.000    0.008    0.000 {method 'acquire' of '_thread.lock' objects}
+     3752    0.006    0.000    0.008    0.000 pgbasics.py:1273(__getattr__)
+    90902    0.007    0.000    0.007    0.000 {method 'getrandbits' of '_random.Random' objects}
+     3255    0.002    0.000    0.007    0.000 pgbasics.py:478(set_volume)
+    70122    0.007    0.000    0.007    0.000 {method 'bit_length' of 'int' objects}
+        5    0.000    0.000    0.007    0.001 main.py:209(mousebuttondown_event)
+        5    0.001    0.000    0.007    0.001 main.py:185(disable_needed_widgets)
+       74    0.007    0.000    0.007    0.000 {built-in method _thread.start_new_thread}
+     3076    0.005    0.000    0.006    0.000 main.py:2775(animate)
+     7268    0.002    0.000    0.006    0.000 settings.py:442(mouse)
+     3265    0.006    0.000    0.006    0.000 {built-in method _overlapped.GetQueuedCompletionStatus}
+     2935    0.001    0.000    0.006    0.000 main.py:47(__call__)
+    12300    0.004    0.000    0.006    0.000 main.py:2209(block)
+        1    0.000    0.000    0.006    0.006 pgbasics.py:816(__init__)
+     2919    0.004    0.000    0.006    0.000 pgbasics.py:448(contrast_color)
+        1    0.003    0.003    0.006    0.006 pgbasics.py:987(get_vertices_from_obj)
+    36624    0.006    0.000    0.006    0.000 {built-in method pygame.time.get_ticks}
+        1    0.000    0.000    0.005    0.005 main.py:733(settings)
+     6510    0.004    0.000    0.005    0.000 tasks.py:653(sleep)
+       20    0.000    0.000    0.004    0.000 pgwidgets.py:93(enable)
+     3075    0.003    0.000    0.004    0.000 prim_data.py:266(bshow)
+       27    0.000    0.000    0.004    0.000 main.py:40(update)
+        1    0.000    0.000    0.004    0.004 main.py:1170(__init__)
+     2919    0.004    0.000    0.004    0.000 pgbasics.py:213(draw_rect)
+      180    0.001    0.000    0.004    0.000 pgwidgets.py:838(iter_buttons)
+        1    0.000    0.000    0.004    0.004 main.py:1995(__init__)
+    39975    0.003    0.000    0.003    0.000 main.py:2217(blocki)
+       58    0.003    0.000    0.003    0.000 main.py:54(__init__)
+      846    0.000    0.000    0.003    0.000 main.py:4201(process_event)
+     1092    0.003    0.000    0.003    0.000 threading.py:1533(enumerate)
+     1085    0.003    0.000    0.003    0.000 pgwidgets.py:679(tooltip_rect)
+     7605    0.003    0.000    0.003    0.000 {built-in method pygame.mouse.get_pressed}
+        1    0.000    0.000    0.003    0.003 main.py:666(new_world)
+     8647    0.002    0.000    0.003    0.000 random.py:494(uniform)
+     2180    0.002    0.000    0.003    0.000 main.py:1068(is_drawable)
+      205    0.000    0.000    0.003    0.000 pgbasics.py:685(pg_to_pil)
+        1    0.000    0.000    0.003    0.003 imgtools.py:81(timgload)
+        7    0.003    0.000    0.003    0.000 {built-in method pygame.image.load}
+     3255    0.002    0.000    0.003    0.000 pgbasics.py:483(get_volume)
+      205    0.000    0.000    0.002    0.000 ImageEnhance.py:83(__init__)
+        1    0.000    0.000    0.002    0.002 inspect.py:1251(getsourcelines)
+     3076    0.002    0.000    0.002    0.000 {built-in method pygame.mixer_music.set_volume}
+     3267    0.002    0.000    0.002    0.000 events.py:36(__init__)
+     7670    0.002    0.000    0.002    0.000 {method 'collidepoint' of 'pygame.rect.Rect' objects}
+     3227    0.002    0.000    0.002    0.000 pgwidgets.py:116(draw)
+      205    0.000    0.000    0.002    0.000 Image.py:2977(frombytes)
+      205    0.000    0.000    0.002    0.000 pilbasics.py:69(pil_to_pg)
+     8867    0.002    0.000    0.002    0.000 {built-in method math.sin}
+     3261    0.001    0.000    0.002    0.000 base_events.py:734(time)
+      992    0.002    0.000    0.002    0.000 pgbasics.py:223(draw_quad)
+      464    0.001    0.000    0.002    0.000 perlin.py:8(valueAt)
+    18450    0.002    0.000    0.002    0.000 main.py:1261(blocks)
+     3258    0.001    0.000    0.002    0.000 settings.py:450(mouses)
+        1    0.000    0.000    0.002    0.002 inspect.py:1063(findsource)
+      792    0.000    0.000    0.002    0.000 main.py:4063(update)
+      215    0.000    0.000    0.002    0.000 world_generation.py:497(set)
+    14595    0.002    0.000    0.002    0.000 pgbasics.py:449(<genexpr>)
+      992    0.001    0.000    0.001    0.000 main.py:4124(draw)
+     7670    0.001    0.000    0.001    0.000 {built-in method fromkeys}
+      410    0.000    0.000    0.001    0.000 Image.py:2936(new)
+      936    0.001    0.000    0.001    0.000 pgwidgets.py:626(update)
+     3449    0.001    0.000    0.001    0.000 {built-in method builtins.min}
+    24219    0.001    0.000    0.001    0.000 {built-in method _operator.index}
+      205    0.001    0.000    0.001    0.000 Image.py:726(tobytes)
+     1984    0.001    0.000    0.001    0.000 pgbasics.py:238(fill_triangle)
+     3075    0.001    0.000    0.001    0.000 settings.py:458(mod)
+        2    0.001    0.001    0.001    0.001 {method 'readlines' of '_io._IOBase' objects}
+      205    0.000    0.000    0.001    0.000 ImageEnhance.py:26(enhance)
+      205    0.000    0.000    0.001    0.000 Image.py:3361(blend)
+     6462    0.001    0.000    0.001    0.000 {built-in method pygame.key.get_mods}
+       35    0.000    0.000    0.001    0.000 basics.py:804(linear)
+      384    0.001    0.000    0.001    0.000 {method 'to_surface' of 'pygame.mask.Mask' objects}
+     6150    0.001    0.000    0.001    0.000 pgbasics.py:1040(width)
+     3255    0.001    0.000    0.001    0.000 {built-in method pygame.mixer_music.get_busy}
+     2401    0.001    0.000    0.001    0.000 {built-in method builtins.setattr}
+     3075    0.001    0.000    0.001    0.000 space.py:370(add)
+     3752    0.001    0.000    0.001    0.000 {built-in method builtins.vars}
+     6537    0.001    0.000    0.001    0.000 {method 'get_fps' of 'pygame.time.Clock' objects}
+       15    0.000    0.000    0.001    0.000 main.py:1389(modify)
+     3255    0.001    0.000    0.001    0.000 {built-in method pygame.mixer_music.get_volume}
+     3075    0.001    0.000    0.001    0.000 {method 'move_to' of 'pygame.rect.Rect' objects}
+     3262    0.001    0.000    0.001    0.000 {built-in method math.ceil}
+        1    0.000    0.000    0.001    0.001 linecache.py:36(getlines)
+        1    0.000    0.000    0.001    0.001 linecache.py:80(updatecache)
+    10791    0.001    0.000    0.001    0.000 {method 'random' of '_random.Random' objects}
+     3341    0.001    0.000    0.001    0.000 {method 'append' of 'collections.deque' objects}
+       74    0.000    0.000    0.001    0.000 threading.py:882(__init__)
+     3268    0.001    0.000    0.001    0.000 {method 'clear' of 'list' objects}
+     2919    0.001    0.000    0.001    0.000 main.py:1277(dnc_color)
+     6150    0.001    0.000    0.001    0.000 {method 'clear' of 'set' objects}
+    12035    0.001    0.000    0.001    0.000 {built-in method builtins.callable}
+     3752    0.001    0.000    0.001    0.000 pgbasics.py:1267(_function)
+      792    0.000    0.000    0.001    0.000 main.py:4070(preview)
+  587/586    0.000    0.000    0.001    0.000 pgwidgets.py:69(_exec_command)
+     6510    0.001    0.000    0.001    0.000 tasks.py:641(__sleep0)
+      100    0.001    0.000    0.001    0.000 {method 'fill' of 'pygame.surface.Surface' objects}
+       25    0.000    0.000    0.001    0.000 pgwidgets.py:376(process_event)
+     3111    0.001    0.000    0.001    0.000 {method 'get' of 'dict' objects}
+     7736    0.001    0.000    0.001    0.000 {method 'copy' of 'pygame.rect.Rect' objects}
+        7    0.000    0.000    0.001    0.000 world_generation.py:510(struct)
+        6    0.000    0.000    0.001    0.000 imgtools.py:123(imgload3)
+     1092    0.000    0.000    0.001    0.000 pgwidgets.py:137(update)
+        1    0.001    0.001    0.001    0.001 main.py:1237(__getstate__)
+      205    0.000    0.000    0.001    0.000 Image.py:804(frombytes)
+     7137    0.001    0.000    0.001    0.000 {built-in method builtins.abs}
+     6150    0.001    0.000    0.001    0.000 main.py:1265(tools)
+     3263    0.001    0.000    0.001    0.000 {built-in method time.monotonic}
+      205    0.001    0.000    0.001    0.000 {built-in method PIL._imaging.blend}
+     6150    0.001    0.000    0.001    0.000 pgbasics.py:1044(height)
+      205    0.000    0.000    0.001    0.000 Image.py:2535(getchannel)
+      820    0.000    0.000    0.001    0.000 Image.py:527(_new)
+      205    0.000    0.000    0.001    0.000 Image.py:1863(putalpha)
+       74    0.000    0.000    0.001    0.000 threading.py:616(set)
+     3076    0.001    0.000    0.001    0.000 {method 'upper' of 'str' objects}
+        1    0.001    0.001    0.001    0.001 main.py:2113(__getstate__)
+     3266    0.001    0.000    0.001    0.000 {method 'popleft' of 'collections.deque' objects}
+     3255    0.001    0.000    0.001    0.000 main.py:1686(<lambda>)
+        1    0.000    0.000    0.001    0.001 __init__.py:226(compile)
+        1    0.000    0.000    0.001    0.001 __init__.py:280(_compile)
+      332    0.001    0.000    0.001    0.000 {built-in method pygame.transform.flip}
+        4    0.001    0.000    0.001    0.000 {built-in method _io.open}
+     3075    0.001    0.000    0.001    0.000 pgbasics.py:1070(centerx)
+        1    0.000    0.000    0.001    0.001 inspect.py:1232(getblock)
+     3925    0.001    0.000    0.001    0.000 {method 'split' of 'str' objects}
+        1    0.000    0.000    0.001    0.001 _compiler.py:740(compile)
+     3075    0.001    0.000    0.001    0.000 pgbasics.py:1099(bottom)
+     3075    0.001    0.000    0.001    0.000 main.py:2478(drops)
+        1    0.000    0.000    0.001    0.001 pgwidgets.py:317(__init__)
+      234    0.001    0.000    0.001    0.000 {built-in method pygame.image.tobytes}
+     3276    0.001    0.000    0.001    0.000 base_events.py:539(_check_closed)
+       74    0.000    0.000    0.001    0.000 threading.py:1043(_set_tstate_lock)
+        1    0.000    0.000    0.001    0.001 runners.py:57(__enter__)
+        2    0.000    0.000    0.001    0.000 runners.py:131(_lazy_init)
+       96    0.000    0.000    0.001    0.000 world_generation.py:86(get_layers)
+       96    0.001    0.000    0.001    0.000 {built-in method pygame.mask.from_surface}
+      221    0.000    0.000    0.001    0.000 basics.py:458(nordis)
+        1    0.000    0.000    0.000    0.000 events.py:821(new_event_loop)
+     3116    0.000    0.000    0.000    0.000 main.py:2767(anim_direc)
+        1    0.000    0.000    0.000    0.000 events.py:714(new_event_loop)
+        1    0.000    0.000    0.000    0.000 windows_events.py:313(__init__)
+      792    0.000    0.000    0.000    0.000 main.py:4067(draw)
+        1    0.000    0.000    0.000    0.000 proactor_events.py:632(__init__)
+     3154    0.000    0.000    0.000    0.000 pgbasics.py:34(<lambda>)
+       74    0.000    0.000    0.000    0.000 threading.py:424(notify_all)
+     1230    0.000    0.000    0.000    0.000 Image.py:835(load)
+      205    0.000    0.000    0.000    0.000 {built-in method pygame.image.fromstring}
+      410    0.000    0.000    0.000    0.000 {built-in method PIL._imaging.fill}
+        1    0.000    0.000    0.000    0.000 proactor_events.py:783(_make_self_pipe)
+        1    0.000    0.000    0.000    0.000 socket.py:617(socketpair)
+        4    0.000    0.000    0.000    0.000 pgbasics.py:595(lerp)
+       74    0.000    0.000    0.000    0.000 threading.py:394(notify)
+     2187    0.000    0.000    0.000    0.000 {method 'values' of 'dict' objects}
+     3075    0.000    0.000    0.000    0.000 main.py:3072(update)
+     1547    0.000    0.000    0.000    0.000 basics.py:577(chance)
+      938    0.000    0.000    0.000    0.000 pgwidgets.py:686(process_event)
+        1    0.000    0.000    0.000    0.000 runners.py:61(__exit__)
+        1    0.000    0.000    0.000    0.000 runners.py:64(close)
+      321    0.000    0.000    0.000    0.000 tokenize.py:569(_generate_tokens_from_c_tokenizer)
+       74    0.000    0.000    0.000    0.000 threading.py:588(__init__)
+        1    0.000    0.000    0.000    0.000 pgwidgets.py:20(__init__)
+     3273    0.000    0.000    0.000    0.000 base_events.py:2005(get_debug)
+        1    0.000    0.000    0.000    0.000 _parser.py:969(parse)
+      407    0.000    0.000    0.000    0.000 pgwidgets.py:247(process_event)
+      7/1    0.000    0.000    0.000    0.000 _parser.py:452(_parse_sub)
+     1314    0.000    0.000    0.000    0.000 {method '__exit__' of '_thread.RLock' objects}
+      205    0.000    0.000    0.000    0.000 Image.py:390(_getdecoder)
+     3256    0.000    0.000    0.000    0.000 main.py:1776(next_piece_command)
+      615    0.000    0.000    0.000    0.000 Image.py:2915(_check_size)
+      804    0.000    0.000    0.000    0.000 pgwidgets.py:620(process_event)
+     11/4    0.000    0.000    0.000    0.000 _parser.py:512(_parse)
+     3261    0.000    0.000    0.000    0.000 proactor_events.py:881(_process_events)
+      221    0.000    0.000    0.000    0.000 random.py:551(gauss)
+      205    0.000    0.000    0.000    0.000 Image.py:413(_getencoder)
+     4052    0.000    0.000    0.000    0.000 main.py:650(is_bg)
+        2    0.000    0.000    0.000    0.000 {built-in method numpy.array}
+     3075    0.000    0.000    0.000    0.000 main.py:2731(off_screen)
+      148    0.000    0.000    0.000    0.000 {method 'release' of '_thread.lock' objects}
+        5    0.000    0.000    0.000    0.000 {built-in method builtins.print}
+        1    0.000    0.000    0.000    0.000 {method 'connect' of '_socket.socket' objects}
+     3075    0.000    0.000    0.000    0.000 main.py:2475(update_effects)
+        1    0.000    0.000    0.000    0.000 main.py:671(destroy_ewn)
+        1    0.000    0.000    0.000    0.000 pgwidgets.py:131(destroy)
+     3075    0.000    0.000    0.000    0.000 main.py:2393(achieve)
+      148    0.000    0.000    0.000    0.000 {built-in method _thread.allocate_lock}
+        1    0.000    0.000    0.000    0.000 _compiler.py:573(_code)
+        1    0.000    0.000    0.000    0.000 main.py:667(init_world_data)
+      464    0.000    0.000    0.000    0.000 perlin.py:32(__ease)
+        7    0.000    0.000    0.000    0.000 {built-in method pygame.transform.scale_by}
+       73    0.000    0.000    0.000    0.000 pgwidgets.py:103(zoom)
+      205    0.000    0.000    0.000    0.000 {method 'encode' of 'ImagingEncoder' objects}
+       26    0.000    0.000    0.000    0.000 {built-in method pygame.draw.circle}
+     16/1    0.000    0.000    0.000    0.000 _compiler.py:37(_compile)
+     1230    0.000    0.000    0.000    0.000 Image.py:499(__init__)
+        1    0.000    0.000    0.000    0.000 tokenize.py:445(open)
+      410    0.000    0.000    0.000    0.000 Image.py:1321(getbands)
+     1230    0.000    0.000    0.000    0.000 {method 'pixel_access' of 'ImagingCore' objects}
+      804    0.000    0.000    0.000    0.000 pgwidgets.py:190(process_event)
+       74    0.000    0.000    0.000    0.000 {built-in method _thread._set_sentinel}
+        5    0.000    0.000    0.000    0.000 basics.py:1028(__init__)
+     2255    0.000    0.000    0.000    0.000 Image.py:523(mode)
+      320    0.000    0.000    0.000    0.000 __init__.py:447(_make)
+       74    0.000    0.000    0.000    0.000 threading.py:277(__init__)
+      615    0.000    0.000    0.000    0.000 Image.py:511(width)
+      205    0.000    0.000    0.000    0.000 {method 'getband' of 'ImagingCore' objects}
+      377    0.000    0.000    0.000    0.000 world_generation.py:488(_chance)
+        1    0.000    0.000    0.000    0.000 proactor_events.py:685(close)
+      615    0.000    0.000    0.000    0.000 Image.py:515(height)
+      205    0.000    0.000    0.000    0.000 Image.py:593(_ensure_mutable)
+      148    0.000    0.000    0.000    0.000 threading.py:299(__enter__)
+      480    0.000    0.000    0.000    0.000 {method 'set_colorkey' of 'pygame.surface.Surface' objects}
+       20    0.000    0.000    0.000    0.000 cp1252.py:22(decode)
+      205    0.000    0.000    0.000    0.000 {method 'putband' of 'ImagingCore' objects}
+       47    0.000    0.000    0.000    0.000 threading.py:855(_maintain_shutdown_locks)
+        1    0.000    0.000    0.000    0.000 inspect.py:944(getsourcefile)
+      546    0.000    0.000    0.000    0.000 main.py:1855(is_worlds_static)
+     1845    0.000    0.000    0.000    0.000 Image.py:519(size)
+        5    0.000    0.000    0.000    0.000 proactor_events.py:790(_loop_self_reading)
+       20    0.000    0.000    0.000    0.000 {built-in method _codecs.charmap_decode}
+        1    0.000    0.000    0.000    0.000 tokenize.py:352(detect_encoding)
+        2    0.000    0.000    0.000    0.000 {method 'size' of 'pygame.font.Font' objects}
+      148    0.000    0.000    0.000    0.000 threading.py:314(_is_owned)
+      148    0.000    0.000    0.000    0.000 threading.py:302(__exit__)
+      134    0.000    0.000    0.000    0.000 pgwidgets.py:293(process_event)
+       78    0.000    0.000    0.000    0.000 _weakrefset.py:85(add)
+      728    0.000    0.000    0.000    0.000 main.py:1851(is_worlds_worlds)
+        1    0.000    0.000    0.000    0.000 main.py:4037(__init__)
+        1    0.000    0.000    0.000    0.000 pgwidgets.py:353(init_keyboard)
+       77    0.000    0.000    0.000    0.000 _weakrefset.py:39(_remove)
+        3    0.000    0.000    0.000    0.000 windows_events.py:482(recv)
+       74    0.000    0.000    0.000    0.000 threading.py:837(_newname)
+        1    0.000    0.000    0.000    0.000 main.py:2488(rand_username)
+      207    0.000    0.000    0.000    0.000 {method 'remove' of 'list' objects}
+       10    0.000    0.000    0.000    0.000 <frozen ntpath>:107(join)
+        2    0.000    0.000    0.000    0.000 tokenize.py:376(read_or_stop)
+      572    0.000    0.000    0.000    0.000 {built-in method builtins.max}
+        2    0.000    0.000    0.000    0.000 {method 'readline' of '_io.BufferedReader' objects}
+        1    0.000    0.000    0.000    0.000 basics.py:138(rand_alien_name)
+      720    0.000    0.000    0.000    0.000 {method 'lerp' of 'pygame.color.Color' objects}
+      205    0.000    0.000    0.000    0.000 {method 'decode' of 'ImagingDecoder' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method nt._path_exists}
+        3    0.000    0.000    0.000    0.000 socket.py:500(close)
+      148    0.000    0.000    0.000    0.000 {method '__enter__' of '_thread.lock' objects}
+        3    0.000    0.000    0.000    0.000 socket.py:496(_real_close)
+        1    0.000    0.000    0.000    0.000 main.py:782(init_world)
+        1    0.000    0.000    0.000    0.000 proactor_events.py:773(_close_self_pipe)
+      205    0.000    0.000    0.000    0.000 {built-in method PIL._imaging.raw_decoder}
+       74    0.000    0.000    0.000    0.000 threading.py:1106(_delete)
+        3    0.000    0.000    0.000    0.000 {function socket.close at 0x00000194249E9E40}
+        1    0.000    0.000    0.000    0.000 main.py:721(start_generating)
+       74    0.000    0.000    0.000    0.000 threading.py:1036(_set_ident)
+       74    0.000    0.000    0.000    0.000 threading.py:311(_acquire_restore)
+      320    0.000    0.000    0.000    0.000 inspect.py:1189(tokeneater)
+       94    0.000    0.000    0.000    0.000 main.py:498(all_main_widgets)
+      205    0.000    0.000    0.000    0.000 Image.py:124(isImageType)
+       77    0.000    0.000    0.000    0.000 threading.py:1483(current_thread)
+       29    0.000    0.000    0.000    0.000 main.py:65(__reduce__)
+       16    0.000    0.000    0.000    0.000 {method 'sort' of 'list' objects}
+        3    0.000    0.000    0.000    0.000 socket.py:221(__init__)
+        1    0.000    0.000    0.000    0.000 pgbasics.py:751(get_binary_cursor)
+      228    0.000    0.000    0.000    0.000 {built-in method _thread.get_ident}
+      279    0.000    0.000    0.000    0.000 entities.py:370(set_yvel)
+       27    0.000    0.000    0.000    0.000 main.py:1698(get_fps)
+       27    0.000    0.000    0.000    0.000 main.py:2758(set_anim)
+      148    0.000    0.000    0.000    0.000 threading.py:1234(daemon)
+      464    0.000    0.000    0.000    0.000 perlin.py:36(__lerp)
+      123    0.000    0.000    0.000    0.000 _parser.py:168(__getitem__)
+       35    0.000    0.000    0.000    0.000 <frozen codecs>:319(decode)
+        5    0.000    0.000    0.000    0.000 threading.py:1270(setDaemon)
+       29    0.000    0.000    0.000    0.000 main.py:71(_tobytes)
+        1    0.000    0.000    0.000    0.000 socket.py:288(accept)
+        7    0.000    0.000    0.000    0.000 pgwidgets.py:693(init_slider_stuff)
+      205    0.000    0.000    0.000    0.000 {method 'setimage' of 'ImagingDecoder' objects}
+        9    0.000    0.000    0.000    0.000 pgwidgets.py:127(_kill)
+      205    0.000    0.000    0.000    0.000 {built-in method PIL._imaging.raw_encoder}
+        1    0.000    0.000    0.000    0.000 {built-in method nt.stat}
+      205    0.000    0.000    0.000    0.000 {method 'setimage' of 'ImagingEncoder' objects}
+      720    0.000    0.000    0.000    0.000 basics.py:548(fromperc)
+       35    0.000    0.000    0.000    0.000 {built-in method builtins.sum}
+     21/7    0.000    0.000    0.000    0.000 _parser.py:178(getwidth)
+      320    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x00007FFFA2B368F0}
+       35    0.000    0.000    0.000    0.000 <frozen ntpath>:179(splitroot)
+        1    0.000    0.000    0.000    0.000 cursors.py:717(compile)
+       96    0.000    0.000    0.000    0.000 world_generation.py:491(get)
+       14    0.000    0.000    0.000    0.000 world_generation.py:485(_rand)
+       74    0.000    0.000    0.000    0.000 threading.py:1354(_make_invoke_excepthook)
+      127    0.000    0.000    0.000    0.000 {method 'add' of 'set' objects}
+      206    0.000    0.000    0.000    0.000 {method 'get_size' of 'pygame.surface.Surface' objects}
+       98    0.000    0.000    0.000    0.000 {method 'title' of 'str' objects}
+      196    0.000    0.000    0.000    0.000 {method '__exit__' of '_thread.lock' objects}
+        3    0.000    0.000    0.000    0.000 base_events.py:451(create_task)
+       69    0.000    0.000    0.000    0.000 contextlib.py:446(__exit__)
+      207    0.000    0.000    0.000    0.000 {method 'index' of 'tuple' objects}
+       74    0.000    0.000    0.000    0.000 threading.py:1040(_set_native_id)
+       35    0.000    0.000    0.000    0.000 {built-in method _codecs.utf_8_decode}
+       74    0.000    0.000    0.000    0.000 threading.py:308(_release_save)
+       77    0.000    0.000    0.000    0.000 {method 'discard' of 'set' objects}
+        1    0.000    0.000    0.000    0.000 _compiler.py:511(_compile_info)
+        3    0.000    0.000    0.000    0.000 windows_events.py:84(cancel)
+        1    0.000    0.000    0.000    0.000 runners.py:197(_cancel_all_tasks)
+        5    0.000    0.000    0.000    0.000 _parser.py:98(closegroup)
+      106    0.000    0.000    0.000    0.000 basics.py:143(<genexpr>)
+       47    0.000    0.000    0.000    0.000 {method 'difference_update' of 'set' objects}
+        5    0.000    0.000    0.000    0.000 {built-in method _warnings.warn}
+        2    0.000    0.000    0.000    0.000 {method '__exit__' of '_io._IOBase' objects}
+        1    0.000    0.000    0.000    0.000 tasks.py:43(all_tasks)
+        1    0.000    0.000    0.000    0.000 base_events.py:411(__init__)
+      110    0.000    0.000    0.000    0.000 {built-in method math.log}
+        3    0.000    0.000    0.000    0.000 {method 'WSARecv' of '_overlapped.Overlapped' objects}
+        1    0.000    0.000    0.000    0.000 {method 'bind' of '_socket.socket' objects}
+      205    0.000    0.000    0.000    0.000 {method 'join' of 'bytes' objects}
+        8    0.000    0.000    0.000    0.000 _compiler.py:243(_optimize_charset)
+        3    0.000    0.000    0.000    0.000 tasks.py:670(ensure_future)
+        2    0.000    0.000    0.000    0.000 windows_events.py:824(close)
+       43    0.000    0.000    0.000    0.000 _parser.py:261(get)
+        3    0.000    0.000    0.000    0.000 windows_events.py:714(_register)
+        3    0.000    0.000    0.000    0.000 base_events.py:182(_run_until_complete_cb)
+        3    0.000    0.000    0.000    0.000 windows_events.py:704(_register_with_iocp)
+        1    0.000    0.000    0.000    0.000 {method '_accept' of '_socket.socket' objects}
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        7    0.000    0.000    0.000    0.000 pgwidgets.py:435(inc_output)
+        5    0.000    0.000    0.000    0.000 main.py:311(mousebuttonup_event)
+        4    0.000    0.000    0.000    0.000 copyreg.py:107(_slotnames)
+       45    0.000    0.000    0.000    0.000 {method 'subsurface' of 'pygame.surface.Surface' objects}
+        2    0.000    0.000    0.000    0.000 enum.py:1562(__and__)
+        3    0.000    0.000    0.000    0.000 events.py:783(get_event_loop_policy)
+        2    0.000    0.000    0.000    0.000 random.py:126(__init__)
+      110    0.000    0.000    0.000    0.000 {built-in method math.cos}
+       74    0.000    0.000    0.000    0.000 {method 'remove' of 'collections.deque' objects}
+       38    0.000    0.000    0.000    0.000 _parser.py:176(append)
+       25    0.000    0.000    0.000    0.000 basics.py:529(clamp)
+        1    0.000    0.000    0.000    0.000 events.py:775(_init_event_loop_policy)
+        2    0.000    0.000    0.000    0.000 _weakrefset.py:63(__iter__)
+       55    0.000    0.000    0.000    0.000 _parser.py:240(__next)
+      110    0.000    0.000    0.000    0.000 {built-in method math.sqrt}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.__build_class__}
+        2    0.000    0.000    0.000    0.000 signal.py:56(signal)
+        1    0.000    0.000    0.000    0.000 {method 'listen' of '_socket.socket' objects}
+       20    0.000    0.000    0.000    0.000 pgbasics.py:1161(__eq__)
+       94    0.000    0.000    0.000    0.000 {method 'locked' of '_thread.lock' objects}
+        2    0.000    0.000    0.000    0.000 random.py:135(seed)
+        2    0.000    0.000    0.000    0.000 {built-in method pygame.draw.rect}
+      156    0.000    0.000    0.000    0.000 main.py:1694(show_stats_command)
+       74    0.000    0.000    0.000    0.000 {built-in method _thread.get_native_id}
+        3    0.000    0.000    0.000    0.000 windows_events.py:68(_cancel_overlapped)
+       21    0.000    0.000    0.000    0.000 pgwidgets.py:683(in_area)
+       96    0.000    0.000    0.000    0.000 pgbasics.py:1054(left)
+       14    0.000    0.000    0.000    0.000 {built-in method pygame.key.name}
+        1    0.000    0.000    0.000    0.000 inspect.py:904(getfile)
+        1    0.000    0.000    0.000    0.000 windows_events.py:419(__init__)
+        1    0.000    0.000    0.000    0.000 __init__.py:1517(debug)
+        1    0.000    0.000    0.000    0.000 coroutines.py:10(_is_debug_mode)
+       21    0.000    0.000    0.000    0.000 pgwidgets.py:86(startup_command)
+        1    0.000    0.000    0.000    0.000 pgbasics.py:187(circle)
+       34    0.000    0.000    0.000    0.000 _parser.py:164(__len__)
+        1    0.000    0.000    0.000    0.000 main.py:1291(dnc_minute_vel)
+        1    0.000    0.000    0.000    0.000 pgwidgets.py:82(replace_og)
+       33    0.000    0.000    0.000    0.000 _parser.py:256(match)
+        1    0.000    0.000    0.000    0.000 main.py:1295(set_dnc_colors)
+       62    0.000    0.000    0.000    0.000 {built-in method builtins.issubclass}
+        3    0.000    0.000    0.000    0.000 windows_events.py:55(__init__)
+        8    0.000    0.000    0.000    0.000 _compiler.py:216(_compile_charset)
+        1    0.000    0.000    0.000    0.000 {method 'close' of '_io.TextIOWrapper' objects}
+      102    0.000    0.000    0.000    0.000 {method 'join' of 'str' objects}
+        4    0.000    0.000    0.000    0.000 enum.py:726(__call__)
+        2    0.000    0.000    0.000    0.000 {built-in method _overlapped.CreateIoCompletionPort}
+        1    0.000    0.000    0.000    0.000 main.py:1287(dnc_second_vel)
+        1    0.000    0.000    0.000    0.000 __init__.py:1790(isEnabledFor)
+        1    0.000    0.000    0.000    0.000 socket.py:516(family)
+       80    0.000    0.000    0.000    0.000 threading.py:601(is_set)
+        3    0.000    0.000    0.000    0.000 {function _OverlappedFuture.cancel at 0x0000019424DAB420}
+        2    0.000    0.000    0.000    0.000 socket.py:100(_intenum_converter)
+        3    0.000    0.000    0.000    0.000 {method 'cancel' of '_overlapped.Overlapped' objects}
+        6    0.000    0.000    0.000    0.000 threading.py:1249(daemon)
+        5    0.000    0.000    0.000    0.000 _parser.py:86(opengroup)
+        1    0.000    0.000    0.000    0.000 <frozen _collections_abc>:804(get)
+        1    0.000    0.000    0.000    0.000 {method 'copy' of 'pygame.surface.Surface' objects}
+        2    0.000    0.000    0.000    0.000 signal.py:62(getsignal)
+        1    0.000    0.000    0.000    0.000 main.py:1281(dnc_length)
+        1    0.000    0.000    0.000    0.000 {built-in method nt.remove}
+       18    0.000    0.000    0.000    0.000 _parser.py:293(tell)
+        5    0.000    0.000    0.000    0.000 _compiler.py:398(_simple)
+        1    0.000    0.000    0.000    0.000 settings.py:490(group)
+        1    0.000    0.000    0.000    0.000 base_events.py:697(close)
+        2    0.000    0.000    0.000    0.000 events.py:816(set_event_loop)
+       69    0.000    0.000    0.000    0.000 contextlib.py:440(__init__)
+        1    0.000    0.000    0.000    0.000 _weakrefset.py:27(__exit__)
+        4    0.000    0.000    0.000    0.000 signal.py:36(_enum_to_int)
+        2    0.000    0.000    0.000    0.000 {function Random.seed at 0x000001942482BC40}
+        1    0.000    0.000    0.000    0.000 inspect.py:981(getmodule)
+        1    0.000    0.000    0.000    0.000 basics.py:801(__init__)
+       58    0.000    0.000    0.000    0.000 pgwidgets.py:370(<genexpr>)
+        8    0.000    0.000    0.000    0.000 {built-in method _asyncio._get_running_loop}
+        6    0.000    0.000    0.000    0.000 enum.py:1544(_get_value)
+        1    0.000    0.000    0.000    0.000 <frozen os>:680(__getitem__)
+        2    0.000    0.000    0.000    0.000 tokenize.py:382(find_cookie)
+       58    0.000    0.000    0.000    0.000 pgwidgets.py:371(<genexpr>)
+        6    0.000    0.000    0.000    0.000 pgwidgets.py:373(<genexpr>)
+        8    0.000    0.000    0.000    0.000 _parser.py:372(_escape)
+        6    0.000    0.000    0.000    0.000 {built-in method sys.set_asyncgen_hooks}
+       15    0.000    0.000    0.000    0.000 pgwidgets.py:372(<genexpr>)
+        3    0.000    0.000    0.000    0.000 coroutines.py:32(iscoroutine)
+        1    0.000    0.000    0.000    0.000 {method 'getsockname' of '_socket.socket' objects}
+       45    0.000    0.000    0.000    0.000 {built-in method nt.fspath}
+        6    0.000    0.000    0.000    0.000 _weakrefset.py:75(__contains__)
+        1    0.000    0.000    0.000    0.000 cursors.py:57(__init__)
+       69    0.000    0.000    0.000    0.000 contextlib.py:443(__enter__)
+        1    0.000    0.000    0.000    0.000 inspect.py:747(unwrap)
+        4    0.000    0.000    0.000    0.000 {method 'setblocking' of '_socket.socket' objects}
+        6    0.000    0.000    0.000    0.000 base_events.py:620(_check_running)
+        5    0.000    0.000    0.000    0.000 futures.py:299(_get_loop)
+        4    0.000    0.000    0.000    0.000 {method 'match' of 're.Pattern' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method time.get_clock_info}
+        1    0.000    0.000    0.000    0.000 _parser.py:449(_uniq)
+        6    0.000    0.000    0.000    0.000 base_futures.py:13(isfuture)
+        1    0.000    0.000    0.000    0.000 basics.py:898(mean)
+       29    0.000    0.000    0.000    0.000 {method 'get_rect' of 'pygame.surface.Surface' objects}
+       13    0.000    0.000    0.000    0.000 _parser.py:83(groups)
+       18    0.000    0.000    0.000    0.000 _parser.py:113(__init__)
+        1    0.000    0.000    0.000    0.000 main.py:1234(get_partition)
+        1    0.000    0.000    0.000    0.000 {method 'copy' of 'list' objects}
+        6    0.000    0.000    0.000    0.000 base_events.py:1990(_set_coroutine_origin_tracking)
+        1    0.000    0.000    0.000    0.000 <frozen os>:754(encodekey)
+        1    0.000    0.000    0.000    0.000 {method 'clear' of 'collections.deque' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method _signal.set_wakeup_fd}
+       10    0.000    0.000    0.000    0.000 {method 'find' of 'bytearray' objects}
+        4    0.000    0.000    0.000    0.000 inspect.py:291(ismodule)
+        1    0.000    0.000    0.000    0.000 <frozen codecs>:309(__init__)
+        3    0.000    0.000    0.000    0.000 inspect.py:951(<genexpr>)
+        2    0.000    0.000    0.000    0.000 events.py:707(set_event_loop)
+        1    0.000    0.000    0.000    0.000 proactor_events.py:885(_stop_accept_futures)
+       18    0.000    0.000    0.000    0.000 pgbasics.py:1062(right)
+        1    0.000    0.000    0.000    0.000 events.py:671(__init__)
+        1    0.000    0.000    0.000    0.000 _weakrefset.py:53(_commit_removals)
+        4    0.000    0.000    0.000    0.000 signal.py:24(_int_to_enum)
+        1    0.000    0.000    0.000    0.000 runners.py:48(__init__)
+        2    0.000    0.000    0.000    0.000 {built-in method _signal.signal}
+        1    0.000    0.000    0.000    0.000 socket.py:522(type)
+        1    0.000    0.000    0.000    0.000 _parser.py:231(__init__)
+        3    0.000    0.000    0.000    0.000 inspect.py:468(istraceback)
+        7    0.000    0.000    0.000    0.000 {method 'lower' of 'str' objects}
+       19    0.000    0.000    0.000    0.000 {built-in method builtins.ord}
+        1    0.000    0.000    0.000    0.000 _compiler.py:467(_get_charset_prefix)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+        1    0.000    0.000    0.000    0.000 {built-in method _sre.compile}
+        2    0.000    0.000    0.000    0.000 _weakrefset.py:72(__len__)
+        4    0.000    0.000    0.000    0.000 enum.py:1129(__new__)
+        3    0.000    0.000    0.000    0.000 {method 'set_alpha' of 'pygame.surface.Surface' objects}
+        4    0.000    0.000    0.000    0.000 {built-in method _contextvars.copy_context}
+        3    0.000    0.000    0.000    0.000 _weakrefset.py:37(__init__)
+        1    0.000    0.000    0.000    0.000 inspect.py:1180(__init__)
+        5    0.000    0.000    0.000    0.000 {method 'fileno' of '_socket.socket' objects}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:645(parent)
+        1    0.000    0.000    0.000    0.000 {built-in method _winapi.CloseHandle}
+        4    0.000    0.000    0.000    0.000 {method 'get' of 'mappingproxy' objects}
+        4    0.000    0.000    0.000    0.000 {method 'pop' of 'dict' objects}
+        5    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 base_events.py:561(shutdown_asyncgens)
+        3    0.000    0.000    0.000    0.000 {built-in method sys.get_asyncgen_hooks}
+        1    0.000    0.000    0.000    0.000 _weakrefset.py:21(__enter__)
+        6    0.000    0.000    0.000    0.000 {built-in method _asyncio._set_running_loop}
+        1    0.000    0.000    0.000    0.000 _compiler.py:436(_get_literal_prefix)
+        2    0.000    0.000    0.000    0.000 settings.py:481(set_loading_world)
+        1    0.000    0.000    0.000    0.000 {built-in method _socket.getdefaulttimeout}
+        3    0.000    0.000    0.000    0.000 inspect.py:478(isframe)
+        2    0.000    0.000    0.000    0.000 main.py:1709(checkb_sf_exit_command)
+        2    0.000    0.000    0.000    0.000 inspect.py:299(ismethod)
+        3    0.000    0.000    0.000    0.000 inspect.py:954(<genexpr>)
+        8    0.000    0.000    0.000    0.000 {method 'get_width' of 'pygame.surface.Surface' objects}
+        5    0.000    0.000    0.000    0.000 _compiler.py:31(_combine_flags)
+        1    0.000    0.000    0.000    0.000 main.py:1165(__init__)
+        2    0.000    0.000    0.000    0.000 main.py:2237(tool)
+        3    0.000    0.000    0.000    0.000 {method 'keys' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 _weakrefset.py:17(__init__)
+        1    0.000    0.000    0.000    0.000 base_events.py:2008(set_debug)
+        1    0.000    0.000    0.000    0.000 __init__.py:234(_acquireLock)
+        2    0.000    0.000    0.000    0.000 {method 'result' of '_asyncio.Future' objects}
+        6    0.000    0.000    0.000    0.000 {built-in method _thread.daemon_threads_allowed}
+        1    0.000    0.000    0.000    0.000 main.py:1251(use_default_assets)
+        9    0.000    0.000    0.000    0.000 base_events.py:730(is_running)
+        9    0.000    0.000    0.000    0.000 {method 'get_height' of 'pygame.surface.Surface' objects}
+        3    0.000    0.000    0.000    0.000 {method 'result' of '_asyncio.Task' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method time.time}
+        4    0.000    0.000    0.000    0.000 {method 'index' of 'range' objects}
+        1    0.000    0.000    0.000    0.000 _parser.py:953(fix_flags)
+        1    0.000    0.000    0.000    0.000 main.py:2396(set_moving_mode)
+        1    0.000    0.000    0.000    0.000 tokenize.py:488(generate_tokens)
+        1    0.000    0.000    0.000    0.000 __init__.py:243(_releaseLock)
+        1    0.000    0.000    0.000    0.000 <frozen codecs>:186(__init__)
+        4    0.000    0.000    0.000    0.000 main.py:1859(is_home)
+        2    0.000    0.000    0.000    0.000 inspect.py:492(iscode)
+        1    0.000    0.000    0.000    0.000 __init__.py:1776(getEffectiveLevel)
+        3    0.000    0.000    0.000    0.000 {method 'add_done_callback' of '_asyncio.Future' objects}
+        2    0.000    0.000    0.000    0.000 <frozen codecs>:260(__init__)
+        2    0.000    0.000    0.000    0.000 {method 'update' of 'dict' objects}
+        2    0.000    0.000    0.000    0.000 _compiler.py:570(isstring)
+        3    0.000    0.000    0.000    0.000 windows_events.py:429(_check_closed)
+        5    0.000    0.000    0.000    0.000 cursors.py:90(<genexpr>)
+        5    0.000    0.000    0.000    0.000 _parser.py:172(__setitem__)
+        2    0.000    0.000    0.000    0.000 inspect.py:295(isclass)
+        1    0.000    0.000    0.000    0.000 linecache.py:52(checkcache)
+        2    0.000    0.000    0.000    0.000 inspect.py:371(isfunction)
+        1    0.000    0.000    0.000    0.000 pgwidgets.py:15(__pre_init__)
+        1    0.000    0.000    0.000    0.000 <frozen os>:748(check_str)
+        1    0.000    0.000    0.000    0.000 {method 'remove' of 'set' objects}
+        1    0.000    0.000    0.000    0.000 {method 'startswith' of 'str' objects}
+        3    0.000    0.000    0.000    0.000 threading.py:1629(main_thread)
+        1    0.000    0.000    0.000    0.000 main.py:674(Global)
+        1    0.000    0.000    0.000    0.000 base_events.py:586(shutdown_default_executor)
+        1    0.000    0.000    0.000    0.000 windows_events.py:871(__del__)
+        1    0.000    0.000    0.000    0.000 pgwidgets.py:638(check_event)
+        5    0.000    0.000    0.000    0.000 {method 'get_loop' of '_asyncio.Future' objects}
+        3    0.000    0.000    0.000    0.000 {method 'add_done_callback' of '_asyncio.Task' objects}
+        2    0.000    0.000    0.000    0.000 {method 'decode' of 'bytes' objects}
+        1    0.000    0.000    0.000    0.000 {method 'startswith' of 'bytes' objects}
+        1    0.000    0.000    0.000    0.000 main.py:675(__init__)
+        3    0.000    0.000    0.000    0.000 base_events.py:689(stop)
+        3    0.000    0.000    0.000    0.000 {method 'done' of '_asyncio.Future' objects}
+        3    0.000    0.000    0.000    0.000 {method 'remove_done_callback' of '_asyncio.Task' objects}
+        4    0.000    0.000    0.000    0.000 {method 'done' of '_asyncio.Task' objects}
+        1    0.000    0.000    0.000    0.000 {method 'seek' of '_io.BufferedReader' objects}
+        1    0.000    0.000    0.000    0.000 {method 'pop' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 _parser.py:77(__init__)
+        1    0.000    0.000    0.000    0.000 contextlib.py:772(__init__)
+        1    0.000    0.000    0.000    0.000 basics.py:486(c1dl)
+        3    0.000    0.000    0.000    0.000 {method 'cancelled' of '_asyncio.Task' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method _signal.getsignal}
+        2    0.000    0.000    0.000    0.000 _compiler.py:428(_get_iscased)
+        1    0.000    0.000    0.000    0.000 __init__.py:1369(disable)
+        3    0.000    0.000    0.000    0.000 {method 'exception' of '_asyncio.Task' objects}
+        1    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 main.py:1909(set_home_stage_worlds_command)
+        1    0.000    0.000    0.000    0.000 {method 'cancelled' of '_asyncio.Future' objects}
+        1    0.000    0.000    0.000    0.000 {method 'gettimeout' of '_socket.socket' objects}
+        1    0.000    0.000    0.000    0.000 {method 'acquire' of '_thread.RLock' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method time.perf_counter}
+        1    0.000    0.000    0.000    0.000 {method 'extend' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method sys.getrecursionlimit}
+        1    0.000    0.000    0.000    0.000 contextlib.py:778(__exit__)
+        1    0.000    0.000    0.000    0.000 windows_events.py:440(set_loop)
+        1    0.000    0.000    0.000    0.000 {method 'release' of '_thread.RLock' objects}
+        1    0.000    0.000    0.000    0.000 {method 'clear' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.id}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.iter}
+        1    0.000    0.000    0.000    0.000 contextlib.py:775(__enter__)
+        1    0.000    0.000    0.000    0.000 base_events.py:720(is_closed)

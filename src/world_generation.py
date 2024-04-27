@@ -479,7 +479,7 @@ def dworld_modifications(chunk: (int, int), metadata: DictWithoutException, biom
 
 
 # chunk-based v2
-# real (finfal version, at least for now)
+# real (finfallataloaeer332l version, I assert)
 def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
     # funcs
     def _rand(x, y):
@@ -547,7 +547,7 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
             # forest
             if biome == "forest":
                 # chicken
-                if _chance(1 / 16):
+                if _chance(1 / 1):
                     entity(["chicken", "mob", "moving"])
 
                 # top is free

@@ -296,6 +296,8 @@ class Game:
         self.mouse_delta = (0, 0)
         self.selected_widget = None
         self.disabled_widgets = False
+        self.num_entities = 0
+        self.num_blocks = 0
         # surfaces
         self.night_sky = pygame.Surface(win.size)
         self.menu_surf = pygame.Surface(win.size); self.menu_surf.set_alpha(100)
