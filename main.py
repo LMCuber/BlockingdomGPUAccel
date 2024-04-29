@@ -273,11 +273,6 @@ def mousebuttondown_event(button):
                                                             and mbr.y <= g.mouse[1] <= mbr.bottom)):
                         stop_midblit()
 
-            if not g.skin_menu_rect.collidepoint(g.mouse):
-                g.skin_menu = False
-                for button in pw.skin_buttons:
-                    button.disable()
-
     elif button == 3:
         if g.stage == "play":
             if g.player.main == "block":
@@ -1253,12 +1248,6 @@ class World:
         self.surf_assets = a.surf_assets
 
     @property
-    def player_model(self):
-        ret = pygame.Surface([s * g.skin_scale_mult for s in g.player.size])
-        ret.fill(self.player_model_color)
-        return ret
-
-    @property
     def blocks(self):
         return self.tex_assets["blocks"]
 
@@ -1544,7 +1533,6 @@ class Play:
         self.starting_worldbutton_pos = c1dl(self.next_worldbutton_pos)
         self.new_world_count = 0
         self.loaded_world_count = 0
-        self.unlocked_skins = []
         self.loading_times = SmartList()
         self.anim_fps = 0.0583
         self.volume = 0.2
@@ -1683,7 +1671,7 @@ class PlayWidgets:
         befriend_iterable(self.keybind_buttons)
         # other widgets
         # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -1716,9 +1704,6 @@ class PlayWidgets:
         for chunk_index, lighting in g.w.lightings.items():
             lighting.alpha = alpha
 
-    def color_skin_button(self):
-        g.pending_entries.append(Entry(win.renderer, "Enter RGB or HEX color code", self.color_skin, disabled=True, add=False, **pw.entry_kwargs))
-
     @staticmethod
     def color_skin(code):
         try:
@@ -1727,51 +1712,6 @@ class PlayWidgets:
             MessageboxOk(win.renderer, "Invalid color.", **pw.widget_kwargs)
         else:
             g.w.player_model_color = color
-
-    @staticmethod
-    def new_player_skin():
-        # finalizing skin
-        longest_sprs_len = max([len(g.skin_data(bt)["sprs"]) for bt in g.skins])
-        g.player.images = [SmartSurface((win.size), pygame.SRCALPHA) for _ in range(longest_sprs_len if longest_sprs_len > 0 else 1)]
-        _bg = SmartSurface(g.player.size); _bg.fill(g.w.player_model_color)
-        for image in g.player.images:
-            image.blit(_bg, [s / 2 for s in image.get_size()])
-        if not g.player.images:
-            g.player.images = [SmartSurface(g.player.size)]; g.player.images[0].fill(GRAY)
-        for anim in range(longest_sprs_len):
-            for bt in g.skins:
-                if g.skin_data(bt).get("name", True) is not None:
-                    try:
-                        skin_img = pygame.transform.scale_by(g.skin_data(bt)["sprs"][anim], 1 / g.skin_scale_mult)
-                    except IndexError:
-                        skin_img = pygame.transform.scale_by(g.skin_data(bt)["sprs"][anim % 4], 1 / g.skin_scale_mult)
-                    finally:
-                        _sp = g.skin_data(bt)["offset"]
-                        skin_pos = [s / 2 for s in win.size]
-                        skin_pos[0] -= g.player.size[0] / 2
-                        skin_pos[1] -= g.player.size[1] / 2
-                        skin_pos[0] += _sp[0] * g.fppp + 1
-                        skin_pos[1] += _sp[1] * g.fppp + 1
-                        g.player.images[anim].blit(skin_img, skin_pos)
-        # cropping
-        rects = [pg_to_pil(image).getbbox() for image in g.player.images]
-        x1 = min([rect[0] for rect in rects])
-        y1 = min([rect[1] for rect in rects])
-        x2 = max([rect[2] for rect in rects])
-        y2 = max([rect[3] for rect in rects])
-        rect = pil_rect2pg((x1, y1, x2, y2))
-        # image initialization
-        p_imgs = [image.subsurface(rect) for image in g.player.images]
-        g.player.flip_images(p_imgs)
-        g.player.images = g.player.right_images
-        g.player.rect = g.player.images[0].get_rect(center=g.player.rect.center)
-        g.player.width, g.player.height = g.player.images[0].get_size()
-        del g.player.images
-        # lasts
-        g.skin_menu = False
-        for button in iter_buttons():
-            if getattr(button, "text", None) == "Color":
-                button.destroy()
 
     @staticmethod
     def next_piece_command():
@@ -2085,7 +2025,6 @@ class Player(SmartVector):
         self.still = True
         self.in_air = True
         self.invisible = False
-        self.skin = None
         self.stats = {}
         self.spin_angle = 0
         self.eating = False
@@ -5986,7 +5925,7 @@ async def main(debug, cprof=False):
                     win.renderer.blit(tool_crafter_img, mbr)
                     # render the sword
                     g.mb.sword.ox, g.mb.sword.oy = mbr.topleft
-                    g.mb.sword.ox += 60
+                    g.mb.sword.ox += 160
                     g.mb.sword.oy += 200
                     g.mb.sword.update()
                     # tool crafter button
@@ -6061,26 +6000,6 @@ async def main(debug, cprof=False):
                         win.renderer.blit(g.player.food_pie["image"], g.player.food_pie["rect"])
                         if pw.show_hitboxes:
                             (win.renderer, GREEN, g.player.food_pie["rect"], 1)
-
-                # skin menu filling
-                if g.skin_menu:
-                    # background (filling)
-                    win.renderer.blit(g.skin_menu_surf, (win.width / 2, win.height / 2))
-                    win.renderer.blit(g.w.player_model, (win.width / 2, win.height / 2))
-                    # skins (showcase)
-                    for bt in g.skins:
-                        if g.skin_data(bt)["sprs"]:
-                            try:
-                                g.skin_anims[bt] += g.skin_anim_speed
-                                skin_img = g.skin_data(bt)["sprs"][int(g.skin_anims[bt])]
-                                skin_pos = g.skin_data(bt)["offset"]
-                                win.renderer.blit(skin_img, (g.player_model_pos[0] + skin_pos[0] * g.skin_fppp, g.player_model_pos[1] + skin_pos[1] * g.skin_fppp))
-                            except IndexError:
-                                g.skin_anims[bt] = 0
-                                g.skin_anims[bt] += g.skin_anim_speed
-                                skin_img = g.skin_data(bt)["sprs"][int(g.skin_anims[bt])]
-                                skin_pos = g.skin_data(bt)["offset"]
-                                win.renderer.blit(skin_img, (g.player_model_pos[0] + skin_pos[0] * g.skin_fppp, g.player_model_pos[1] + skin_pos[1] * g.skin_fppp))
 
                 if g.saving_structure:
                     write(win.renderer, "midtop", "structure", orbit_fonts[9], DARK_GREEN, win.width - 30, 50, tex=True)
@@ -6197,5 +6116,5 @@ async def main(debug, cprof=False):
 
 if __name__ == "__main__":
     # main(debug=g.debug)
-    # asyncio.run(main(debug=g.debug))
-    import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="tottime")
+    asyncio.run(main(debug=g.debug))
+    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="tottime")

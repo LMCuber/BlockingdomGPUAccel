@@ -45,6 +45,57 @@ def get_cube(base_color):
     return poly
 
 
+def get_sphere(base_color):
+    # calculations
+    vertices = []
+    num_lon = 16
+    num_lat = 16
+    r = 1
+    point_r = 1
+    mult = 150
+    for j in range(num_lat + 1):  # the + 1 does the bottom tip
+        lat = j / num_lat * pi
+        for i in range(num_lon):  # the + 1 is omitted with the laahnjituudessè because well performance reasons less vertices -> less calculations per frame
+            lon = i / num_lon * (2 * pi)
+            z = r * sin(lat) * cos(lon)
+            x = r * sin(lat) * sin(lon)
+            y = -r * cos(lat)
+            vertex = (x, y, z)
+            if vertex not in vertices:
+                vertices.append(vertex)
+    # fills
+    fills = []
+    # tip (triangles)
+    fills.extend([
+        [[[rand(0, 255)] * 4, rand_rgba()], 0, n, (n + 1) if n < num_lon else 1]
+        for n in range(1, num_lon + 1)
+    ])
+    # body (quads)
+    for y in range(num_lat - 2):
+        fills.extend([
+            [[[rand(0, 255)] * 4, rand_rgba()], y * num_lon + n, *((y * num_lon + n + 1, y * num_lon + n + num_lon + 1) if n < num_lon else (y * num_lon + 1, y * num_lon + num_lon + 1)), y * num_lon + n + num_lon]
+            for n in range(1, num_lon + 1)
+        ])
+    # bottom tip (triangles)
+    fills.extend([
+        [[[rand(0, 255)] * 4, rand_rgba()], (num_lat - 2) * num_lon + n, ((num_lat - 2) * num_lon + n + 1) if n < num_lon else ((num_lat - 2) * num_lon + 1), (num_lat - 1) * num_lon + 1]
+        for n in range(1, num_lon + 1)
+    ])
+    # object creation
+    sphere = Crystal(
+        win.renderer,
+        vertices, [
+
+        ], [
+            # lines
+        ],
+        fills,
+        (300, 300), mult, point_r, 0, 0, 0, 0.0035, 0.0035, 0.0035,
+        fill_as_connections=False,
+    )
+    return sphere
+
+
 def get_sword(base_color):
     mult = 140
     w, l, h = 0.12, 0.8, 0.03
