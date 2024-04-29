@@ -46,53 +46,58 @@ def get_cube(base_color):
 
 
 def get_sphere(base_color):
-    # calculations
-    vertices = []
-    num_lon = 16
-    num_lat = 16
-    r = 1
-    point_r = 1
-    mult = 150
-    for j in range(num_lat + 1):  # the + 1 does the bottom tip
-        lat = j / num_lat * pi
-        for i in range(num_lon):  # the + 1 is omitted with the laahnjituudessè because well performance reasons less vertices -> less calculations per frame
-            lon = i / num_lon * (2 * pi)
-            z = r * sin(lat) * cos(lon)
-            x = r * sin(lat) * sin(lon)
-            y = -r * cos(lat)
-            vertex = (x, y, z)
-            if vertex not in vertices:
-                vertices.append(vertex)
-    # fills
-    fills = []
-    # tip (triangles)
-    fills.extend([
-        [[[rand(0, 255)] * 4, rand_rgba()], 0, n, (n + 1) if n < num_lon else 1]
-        for n in range(1, num_lon + 1)
-    ])
-    # body (quads)
-    for y in range(num_lat - 2):
+    num_lon = 64
+    num_lat = 64
+    mult = 140
+    name = f"{num_lon}x{num_lat}.obj"
+    if os.path.isfile(path("src", "shapes", "spheres", name)):
+        sphere = Crystal(win.renderer, path("src", "shapes", "spheres", name), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False)
+    else:
+        # calculations
+        vertices = []
+        r = 1
+        point_r = 1
+        for j in range(num_lat + 1):  # the + 1 does the bottom tip
+            lat = j / num_lat * pi
+            for i in range(num_lon):  # the + 1 is omitted with the laahnjituudessè because well performance reasons less vertices -> less calculations per frame
+                lon = i / num_lon * (2 * pi)
+                z = r * sin(lat) * cos(lon)
+                x = r * sin(lat) * sin(lon)
+                y = -r * cos(lat)
+                vertex = (x, y, z)
+                if vertex not in vertices:
+                    vertices.append(vertex)
+        # fills
+        fills = []
+        # tip (triangles)
         fills.extend([
-            [[[rand(0, 255)] * 4, rand_rgba()], y * num_lon + n, *((y * num_lon + n + 1, y * num_lon + n + num_lon + 1) if n < num_lon else (y * num_lon + 1, y * num_lon + num_lon + 1)), y * num_lon + n + num_lon]
+            [[[rand(0, 255)] * 4, (0, 0, 0, 0)], 0, n, (n + 1) if n < num_lon else 1]
             for n in range(1, num_lon + 1)
         ])
-    # bottom tip (triangles)
-    fills.extend([
-        [[[rand(0, 255)] * 4, rand_rgba()], (num_lat - 2) * num_lon + n, ((num_lat - 2) * num_lon + n + 1) if n < num_lon else ((num_lat - 2) * num_lon + 1), (num_lat - 1) * num_lon + 1]
-        for n in range(1, num_lon + 1)
-    ])
-    # object creation
-    sphere = Crystal(
-        win.renderer,
-        vertices, [
+        # body (quads)
+        for y in range(num_lat - 2):
+            fills.extend([
+                [[[rand(0, 255)] * 4, (0, 0, 0, 0)], y * num_lon + n, *((y * num_lon + n + 1, y * num_lon + n + num_lon + 1) if n < num_lon else (y * num_lon + 1, y * num_lon + num_lon + 1)), y * num_lon + n + num_lon]
+                for n in range(1, num_lon + 1)
+            ])
+        # bottom tip (triangles)
+        fills.extend([
+            [[[rand(0, 255)] * 4, (0, 0, 0, 0)], (num_lat - 2) * num_lon + n, ((num_lat - 2) * num_lon + n + 1) if n < num_lon else ((num_lat - 2) * num_lon + 1), (num_lat - 1) * num_lon + 1]
+            for n in range(1, num_lon + 1)
+        ])
+        # object creation
+        sphere = Crystal(
+            win.renderer,
+            vertices, [
 
-        ], [
-            # lines
-        ],
-        fills,
-        (300, 300), mult, point_r, 0, 0, 0, 0.0035, 0.0035, 0.0035,
-        fill_as_connections=False,
-    )
+            ], [
+                # lines
+            ],
+            fills,
+            (300, 300), mult, point_r, 0, 0, 0, 0.0035, 0.0035, 0.0035,
+            fill_as_connections=False,
+        )
+    sphere.save_to_file(path("src", "shapes", "spheres", name))
     return sphere
 
 

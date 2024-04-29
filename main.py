@@ -3732,6 +3732,7 @@ class ShatterParticle(Scrollable):
                 g.w.entities[self.entity.chunk_index].remove(self.entity)
                 for drop, amount in self.entity.drops.items():
                     all_drops.append(Drop(drop, self.entity._rect, amount))
+            all_other_particles.remove(self)
 
 
 class BloodParticle(ShatterParticle):
