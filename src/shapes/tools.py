@@ -46,8 +46,8 @@ def get_cube(base_color):
 
 
 def get_sphere(base_color):
-    num_lon = 64
-    num_lat = 64
+    num_lon = 16
+    num_lat = 16
     mult = 140
     name = f"{num_lon}x{num_lat}.obj"
     if os.path.isfile(path("src", "shapes", "spheres", name)):

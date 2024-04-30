@@ -190,11 +190,13 @@ def disable_needed_widgets():
                     if not widget.rect.collidepoint(g.mouse):
                         faulty = True
                         for friend in widget.friends:
-                            if friend.rect.collidepoint(g.mouse):
-                                faulty = False
-                                break
+                            if not friend.disabled:
+                                if friend.rect.collidepoint(g.mouse):
+                                    faulty = False
+                                    break
                         else:
                             faulty = True
+                        if widget.text == "Keybinds": test(friend.rect)
                         if faulty:
                             if not widget.disable_type:
                                 if widget.as_child:
@@ -1670,8 +1672,8 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -1876,7 +1878,7 @@ class Animations:
         self.data = {
             "_Default": {
                 "run": {"frames": 4},
-                "idle": {"frames": 1},
+                "idle": {"frames": 4},
                 "jump": {"frames": 1},
             },
 
@@ -1907,6 +1909,12 @@ class Animations:
                 "run": {"frames": 4, "speed": 4},
                 "jump": {"frames": 4, "speed": 6}
             },
+
+            "Samurai": {
+                "idle": {"frames": 1, "speed": 1},
+                "run": {"frames": 8, "speed": 4},
+                "jump": {"frames": 1, "speed": 1}
+            }
         }
         # anim imgs
         base = path("assets", "Images", "Player_Animations")
@@ -4601,6 +4609,7 @@ async def main(debug, cprof=False):
                             # e = g.w.entities[(-1, 0)][0]
                             # e.take_damage(40)
                             ...
+                            g.player.anim_skin = {"Monk": "_Default", "_Default": "Samurai", "Samurai": "Monk"}[g.player.anim_skin]
 
                         # actual gameplay events
                         if g.stage == "play":
