@@ -41,7 +41,7 @@ def get_crystal(type_, color=None):
 
 
 def get_cube(base_color):
-    poly = Crystal(win.renderer, "cube.obj", [], [], [], (940, 300), 140, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=True)
+    poly = Crystal(win.renderer, "cube.obj", [], [], [], (940, 300), 140, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=True, normals=True)
     return poly
 
 
@@ -98,6 +98,12 @@ def get_sphere(base_color):
             fill_as_connections=False,
         )
     sphere.save_to_file(path("src", "shapes", "spheres", name))
+    return sphere
+
+
+def get_sphere(base_color):
+    mult = 140
+    sphere = Crystal(win.renderer, path("obj", "obj", "Hexagon.obj"), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=True)
     return sphere
 
 
