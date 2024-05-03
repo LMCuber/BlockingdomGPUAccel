@@ -196,7 +196,6 @@ def disable_needed_widgets():
                                     break
                         else:
                             faulty = True
-                        if widget.text == "Keybinds": test(friend.rect)
                         if faulty:
                             if not widget.disable_type:
                                 if widget.as_child:
@@ -1602,6 +1601,7 @@ class PlayWidgets:
             "checkboxes": SmartList([
                 Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "FPS",                                          tooltip="Shows the amount of frames per second",                          **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Player Hitboxes",                              tooltip="Shows the player hitboxes",                                      **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",                 **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "Screenshake",                                  tooltip="Screenshake can be disruptive for photosensitive players",       **_menu_checkbox_kwargs, checked=True),
@@ -1630,21 +1630,22 @@ class PlayWidgets:
             Label(win.renderer, "Death", (DPX, DPY - 64), **_death_screen_widget_kwargs),
             Button(win.renderer, "Play Again", command=self.quit_death_screen_command, pos=(DPX, DPY), **_death_screen_widget_kwargs)
         ])
-        self.death_cause =        self.death_screen_widgets         .find(lambda x: x.text == "Death")
-        self.keybinds =           self.menu_widgets["buttons"]      .find(lambda x: x.text == "Keybinds")
-        self.fps_cap =            self.menu_widgets["sliders"]      .find(lambda x: x.text == "FPS Cap")
-        self.show_fps =           self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "FPS")
-        self.show_stats =         self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Stats")
-        self.show_hitboxes =      self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Hitboxes")
-        self.show_chunk_borders = self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Chunk Borders")
-        self.screenshake =        self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Screenshake")
-        self.entities =           self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Entities")
-        self.generation_mode =    self.menu_widgets["togglebuttons"].find(lambda x: x.text == "Instant")
-        self.anim_fps =           self.menu_widgets["sliders"]      .find(lambda x: x.text == "Animation")
-        self.lag =                self.menu_widgets["sliders"]      .find(lambda x: x.text == "Camera Lag")
-        self.volume =             self.menu_widgets["sliders"]      .find(lambda x: x.text == "Volume")
-        self.max_entities =       self.menu_widgets["sliders"]      .find(lambda x: x.text == "Entities")
-        self.texture_pack =       self.menu_widgets["buttons"]      .find(lambda x: x.text == "Textures")
+        self.death_cause =               self.death_screen_widgets         .find(lambda x: x.text == "Death")
+        self.keybinds =                  self.menu_widgets["buttons"]      .find(lambda x: x.text == "Keybinds")
+        self.fps_cap =                   self.menu_widgets["sliders"]      .find(lambda x: x.text == "FPS Cap")
+        self.show_fps =                  self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "FPS")
+        self.show_stats =                self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Stats")
+        self.show_player_hitboxes =      self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Player Hitboxes")
+        self.show_hitboxes =             self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Hitboxes")
+        self.show_chunk_borders =        self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Chunk Borders")
+        self.screenshake =               self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Screenshake")
+        self.entities =                  self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Entities")
+        self.generation_mode =           self.menu_widgets["togglebuttons"].find(lambda x: x.text == "Instant")
+        self.anim_fps =                  self.menu_widgets["sliders"]      .find(lambda x: x.text == "Animation")
+        self.lag =                       self.menu_widgets["sliders"]      .find(lambda x: x.text == "Camera Lag")
+        self.volume =                    self.menu_widgets["sliders"]      .find(lambda x: x.text == "Volume")
+        self.max_entities =              self.menu_widgets["sliders"]      .find(lambda x: x.text == "Entities")
+        self.texture_pack =              self.menu_widgets["buttons"]      .find(lambda x: x.text == "Textures")
         #
         self.iter_menu_widgets = sum(self.menu_widgets.values(), [])
         befriend_iterable(self.iter_menu_widgets)
@@ -1874,7 +1875,7 @@ class Animations:
         self.rects = {}
         self.data = {
             "_Default": {
-                "run": {"frames": 4},
+                "run": {"frames": 8},
                 "idle": {"frames": 4},
                 "jump": {"frames": 1},
             },
@@ -1932,75 +1933,18 @@ class Animations:
                     self.rects[weapon][anim_type] = self.imgs[weapon][anim_type]["images"][0].get_rect()
             except KeyError:
                 raise
-        self.rects = {
-            "Roninette": pygame.Rect((0, 0, 17 * 3, 19 * 3)),
-        }
+
 
 class Player(SmartVector):
     def __init__(self):
-        # images and rects
-        self.anim_info = {
-            "idle": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_idle.png", frames=7),
-                "speed": 1,
-                "size": (20 * S, 19 * S),
-                "face": (6 * S, 2 * S, 10 * S, 8 * S),
-            },
-
-            "run": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_run.png", frames=8),
-                "speed": 1.6,
-                "size": (20 * S, 19 * S),
-            },
-
-            "jump": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_jump.png", frames=4),
-                "speed": 1,
-                "size": (15 * S, 16 * S),
-            },
-
-            "dslash": {
-                # "images": imgload3("assets", "Images", "Spritesheets", "player_dslash.png", frames=4),
-                "images": imgload3("assets", "Images", "Player_Animations", "Staff", "ground.png", frames=13),
-                "speed": 3.5,
-                "size": (26 * S, 20 * S),
-                "xo": 5 * S
-            },
-
-            "uslash": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_uslash.png", frames=4),
-                "speed": 2.5,
-                "size": (25 * S, 19 * S),
-            },
-
-            "hslash": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_hslash.png", frames=8),
-                "speed": 2.5,
-                "size": (26 * S, 26 * S),
-                "offset": (0, -5 * 3)
-            }
-        }
         # animation data
-        _i = self.anim_info["idle"]
-        self.player_icon = T(pygame.transform.scale_by(_i["images"][0].subsurface(_i["face"]), 2))
-        self.player_icon_rect = self.player_icon.get_rect(center=player_border_rect.center)
-        for name, data in self.anim_info.items():
-            surfs = data["images"]
-            self.anim_info[name]["images"] = [T(img) for img in surfs]
-            self.anim_info[name]["fimages"] = [T(pygame.transform.flip(img, True, False)) for img in surfs]
-        self.anim_skin = "Monk"
+        self.anim_skin = "_Default"
         self.anim_type = "idle"
         self.anim_queue = []
-        # for image in self.images:
-        #     image.fill(GRAY)
-        # self._rect = self.images[0].get_rect()
         # image initialization
         self.direc = "left"
         self.anim = 0
         self.up = True
-        # self.flip_images(self.images)
-        # self.left_images = [T(x) for x in self.left_images]
-        # self.right_images = [T(x) for x in self.right_images]
         self.animate()
         # rest
         self.x = 0
@@ -2055,8 +1999,6 @@ class Player(SmartVector):
         self.moved_x = 0
 
     def __getstate__(self):
-        del self.anim_info
-        del self.player_icon
         del self.image
         return self.__dict__
 
@@ -2066,8 +2008,6 @@ class Player(SmartVector):
         self.move_accordingly()
         self.off_screen()
         self.drops()
-        #self.update_fall_effect()
-        self.update_effects()
         self.achieve()
 
     def move_accordingly(self):
@@ -2086,7 +2026,8 @@ class Player(SmartVector):
         # rect.topleft = self.rect_draw.topleft
         # win.renderer.blit(img, rect)
         # post
-        if pw.show_hitboxes:
+        if pw.show_player_hitboxes or pw.show_hitboxes:
+            print(self.rect)
             draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
             # draw_rect(win.renderer, GREEN, self.rect_draw)
 
@@ -2096,9 +2037,7 @@ class Player(SmartVector):
 
     @property
     def size(self):
-        # size = anim.rects[self.anim_skin].size
-        # size = (self.image.width, self.image.height)
-        size = (25 * S, 24 * S)
+        size = anim.rects[self.anim_skin].size
         return size
 
     @property
@@ -2407,18 +2346,6 @@ class Player(SmartVector):
         #     self.food_pie = self.def_food_pie.copy()
         self.eating = True
 
-    def update_fall_effect(self):
-        for block in all_blocks:
-            if self.rect.colliderect(block.rect):
-                if bpure(block.name) == "water":
-                    self.fall_effect /= 5
-                    break
-        else:
-            self.fall_effect = self.yvel
-
-    def update_effects(self):
-        pass
-
     def drops(self):
         for drop in all_drops:
             if drop._rect.colliderect(self._rect):
@@ -2558,7 +2485,7 @@ class Player(SmartVector):
                 self.xvel -= xdacc
                 self.xvel = max(0, self.xvel)
 
-        dx = (self.xvel + self.extra_xvel)
+        dx = self.xvel + self.extra_xvel
         self.centerx += dx
         cols = self.get_cols(rects_only=False)
         for col in cols:
@@ -2723,7 +2650,6 @@ class Player(SmartVector):
             fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
         except KeyError:
             # the default animation is "run"
-            print(anim.imgs[self.anim_skin])
             fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
         if self.anim_type != "run":
             # process animation speed from anim.data[]
@@ -3385,8 +3311,6 @@ class Projectile(Scrollable):
     def draw(self):  # projectile draw
         if not self.invisible:
             win.renderer.blit(self.image, self.rect)
-            if pw.show_hitboxes:
-                (win.renderer, RED, self.rect, 1)
 
     @property
     def dx(self):
@@ -3922,15 +3846,11 @@ class InfoBox:
         # self image
         self.image = pygame.Surface([s + self.padding for s in self.font.size(text)], pygame.SRCALPHA)
         br = 10
-        (self.image, LIGHT_GRAY, (0, 0, *self.image.get_size()), 0, br)
-        (self.image, DARK_GRAY, (0, 0, *self.image.get_size()), 3, br)
         self.rect = self.image.get_rect(topleft=self.pos)
         self.width, self.height = self.rect.size
         # continue image
         self.con_image = pygame.Surface((80, 30), pygame.SRCALPHA)
         br = 10
-        (self.con_image, LIGHT_GRAY, (0, 0, *self.con_image.get_size()), 0, br)
-        (self.con_image, DARK_GRAY, (0, 0, *self.con_image.get_size()), 3, br)
         self.con_rect = self.con_image.get_rect(topright=(self.rect.right, self.rect.bottom))
         # rest
         self.alpha = 0
