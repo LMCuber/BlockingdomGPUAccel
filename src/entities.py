@@ -244,6 +244,8 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             self.relocate_to = (chunk_x, chunk_y)
 
     def jump_over_obstacles(self, yvel=-3):
+        if rand(1, 2000) == 1:
+            self.take_damage(50)
         m = 1 if self.xvel >= 0 else -1
         h = 2 * BS
         _ahead = Rect(self._rect.x + m * 10, self._rect.y - self._rect.height, self._rect.width, h)

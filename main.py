@@ -1877,7 +1877,8 @@ class Animations:
             "_Default": {
                 "run": {"frames": 8},
                 "idle": {"frames": 4},
-                "jump": {"frames": 1},
+                "jump": {"frames": 1, "offset": (1, 0)},
+                "punch": {"frames": 4, "speed": 0.1},
             },
 
             "_DefaultDeprecated": {
@@ -1935,7 +1936,7 @@ class Animations:
                 raise
 
 
-class Player(SmartVector):
+class Player:
     def __init__(self):
         # animation data
         self.anim_skin = "_Default"
@@ -1949,7 +1950,6 @@ class Player(SmartVector):
         # rest
         self.x = 0
         self.y = 0
-        self.width, self.height = self.size
         # self._rect = self.image.get_rect(center=win.center)
         self.fre_vel = 3
         self.adv_xvel = 2
@@ -1997,6 +1997,7 @@ class Player(SmartVector):
         self.broken_blocks = dd(int)
         self.main = "block"
         self.moved_x = 0
+        self.circle = T(circle(self.size[0] * 0.08, RED))
 
     def __getstate__(self):
         del self.image
@@ -2015,21 +2016,38 @@ class Player(SmartVector):
             self.adventure_move()
 
     def draw(self):  # player draw
-        # pre
-        pass
-        # intra
-        # win.renderer.blit(self.image, self.rect_draw)
         win.renderer.blit(self.image, self.rect_draw)
-        # get the weapon the player is primarily
-        # img = anim.imgs["Staff"]["run"][self.anim_direc][int(self.anim)]
-        # rect = anim.rects["Staff"]["run"]
-        # rect.topleft = self.rect_draw.topleft
-        # win.renderer.blit(img, rect)
-        # post
         if pw.show_player_hitboxes or pw.show_hitboxes:
-            print(self.rect)
             draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
-            # draw_rect(win.renderer, GREEN, self.rect_draw)
+            circle_rect = pygame.Rect(0, 0, self.circle.width, self.circle.height)
+            circle_rect.center = self.rect_draw.center
+            win.renderer.blit(self.circle, circle_rect)
+            
+
+    @property  # player _rect
+    def _rect(self):
+        ret = pygame.Rect(0, 0, *self.size)
+        ret.center = (self.x, self.y)
+        return ret
+    
+    @property
+    def rect(self):
+        ret = pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self.size)
+        return ret
+    
+    @property
+    def _rect_draw(self):
+        ret = pygame.Rect(0, 0, *self.ci_size)
+        xo, yo = anim.data[self.anim_skin][self.anim_type].get("offset", (0, 0))
+        xo *= S * self.sign
+        yo *= S * self.sign
+        ret.center = (self.x + xo, self.y)
+        return ret
+    
+    @property
+    def rect_draw(self):
+        ret = pygame.Rect(self._rect_draw.x - g.scroll[0], self._rect_draw.y - g.scroll[1], *self.ci_size)
+        return ret
 
     @property
     def sign(self):
@@ -2037,25 +2055,19 @@ class Player(SmartVector):
 
     @property
     def size(self):
-        size = anim.rects[self.anim_skin].size
-        return size
+        return (14 * S, 23 * S)
 
     @property
-    def rect_draw(self):
-        return pygame.Rect(self._rect_draw.x - g.scroll[0], self._rect_draw.y - g.scroll[1], *self._rect_draw.size)
-
+    def ci_size(self):
+        return (self.image.width, self.image.height)
+    
     @property
-    def _rect_draw(self):
-        rect = pygame.Rect(self._rect.topleft, (self.image.width, self.image.height))
-        return rect
-
+    def width(self):
+        return self.size[0]
+    
     @property
-    def rect(self):
-        return pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self._rect.size)
-
-    @property
-    def _rect(self):
-        return pygame.Rect(self.x, self.y, *self.size)
+    def height(self):
+        return self.size[1]
 
     @property
     def reverse_blocks(self):
@@ -2403,6 +2415,7 @@ class Player(SmartVector):
 
     # player move
     def adventure_move(self):
+        # cant walk if some of these are active
         if pw.keybinds_active:
             return
         # scroll
@@ -2486,7 +2499,9 @@ class Player(SmartVector):
                 self.xvel = max(0, self.xvel)
 
         dx = self.xvel + self.extra_xvel
-        self.centerx += dx
+        if self.anim_type == "punch":
+            dx /= 2
+        self.x += dx
         cols = self.get_cols(rects_only=False)
         for col in cols:
             block, col = col
@@ -2494,9 +2509,9 @@ class Player(SmartVector):
             if not is_hard(block.name):
                 continue
             if self.xvel > 0:
-                self.right = col.left
+                self.x = col.left - self.width / 2
             if self.xvel < 0:
-                self.left = col.right
+                self.x = col.right + self.width / 2
 
         # ramp x-col
         for block, ramp in self.ramp_data:
@@ -2550,7 +2565,7 @@ class Player(SmartVector):
                 if self.yvel >= 2:
                     self.in_air = True
                 self.yvel = min(self.yvel, 8)
-                self.bottom += self.yvel
+                self.y += self.yvel
 
         # collision with the ground
         cols = self.get_cols(rects_only=False)
@@ -2560,7 +2575,7 @@ class Player(SmartVector):
             if not is_hard(block.name):
                 continue
             if self.yvel > 0:
-                self.bottom = col.top
+                self.y = col.top - self.height / 2
                 self.yvel = 0
                 self.in_air = False
                 if nbg == "slime":
@@ -2917,7 +2932,7 @@ class Visual:
                 # g.player.new_anim("uslash")
                 pass
             elif dy > 0:
-                g.player.new_anim("stab")
+                g.player.new_anim("punch")
         g.mouse_rel_log.clear()
 
     def swing_sword(self):
