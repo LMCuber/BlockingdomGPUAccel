@@ -1601,11 +1601,11 @@ class PlayWidgets:
             "checkboxes": SmartList([
                 Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "FPS",                                          tooltip="Shows the amount of frames per second",                          **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "Player Hitboxes",                              tooltip="Shows the player hitboxes",                                      **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Player Hitboxes",                              tooltip="Shows the player hitboxes",                                      **_menu_checkbox_kwargs, checked=True),
                 Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",                 **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "Screenshake",                                  tooltip="Screenshake can be disruptive for photosensitive players",       **_menu_checkbox_kwargs, checked=True),
-                Checkbox(win.renderer, "Entities",                                     toolptip="Updates the enemies",                                           **_menu_checkbox_kwargs, checked=True)
+                Checkbox(win.renderer, "Screenshake",                                  tooltip="Screenshake can be disruptive for photosensitive players",       **_menu_checkbox_kwargs, checked=False),
+                Checkbox(win.renderer, "Entities",                                     toolptip="Updates the enemies",                                           **_menu_checkbox_kwargs, checked=False)
             ]),
             "sliders": SmartList([
                 Slider(win.renderer,   "Resolution",    [", ".join([str(x) for x in r]) for r in resolutions], 0, tooltip="Set the resolution of the game in pixels",                          **_menu_slider_kwargs),
@@ -1680,6 +1680,10 @@ class PlayWidgets:
         for wt in self.menu_widgets:
             for widget in self.menu_widgets[wt]:
                 widget.disable()
+    
+    @property
+    def show_any_hitboxes(self):
+        return self.show_hitboxes or self.show_player_hitboxes
 
     # menu widget commands
     @staticmethod
@@ -2017,21 +2021,25 @@ class Player:
 
     def draw(self):  # player draw
         win.renderer.blit(self.image, self.rect_draw)
-        if pw.show_player_hitboxes or pw.show_hitboxes:
+        if pw.show_any_hitboxes:
             draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
+            # draw_rect(win.renderer, ORANGE, self.rect_draw)
+            with suppress(IndexError):
+                col = self.get_cols()[0]
+                print(self.y, self._rect, self.rect, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30), pygame.mouse.get_pos())
             circle_rect = pygame.Rect(0, 0, self.circle.width, self.circle.height)
             circle_rect.center = self.rect_draw.center
             win.renderer.blit(self.circle, circle_rect)
             
 
-    @property  # player _rect
+    @property  # player _rect; player urect
     def _rect(self):
         ret = pygame.Rect(0, 0, *self.size)
         ret.center = (self.x, self.y)
         return ret
     
     @property
-    def rect(self):
+    def rect(self):  # player rect play
         ret = pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self.size)
         return ret
     
@@ -2041,7 +2049,7 @@ class Player:
         xo, yo = anim.data[self.anim_skin][self.anim_type].get("offset", (0, 0))
         xo *= S * self.sign
         yo *= S * self.sign
-        ret.center = (self.x + xo, self.y)
+        ret.center = (self.x + xo, self.y + yo)
         return ret
     
     @property
@@ -2055,7 +2063,7 @@ class Player:
 
     @property
     def size(self):
-        return (14 * S, 23 * S)
+        return (14 * S, 23 * S + 1)
 
     @property
     def ci_size(self):
@@ -2390,10 +2398,22 @@ class Player:
         Entry(win.renderer, "Enter your new username:", set_username, **pw.entry_kwargs, default_text=("random", orbit_fonts[20]))
 
     def get_cols(self, rects_only=True, ramps=False):
+        ret = []
         if rects_only:
-            return [data[1] for data in ((self.block_data + self.ramp_data) if ramps else self.block_data) if self._rect.colliderect(data[1]) and is_hard(data[0].name)]
+            for data in ((self.block_data + self.ramp_data) if ramps else self.block_data):
+                if pw.show_any_hitboxes:
+                    rect = pygame.Rect(data[1].x - g.scroll[0], data[1].y - g.scroll[1], *data[1].size)
+                    # draw_rect(win.renderer, ORANGE, rect)
+                if self._rect.colliderect(data[1]) and is_hard(data[0].name):
+                    ret.append(data[1])
         else:
-            return [data for data in ((self.block_data + self.ramp_data) if ramps else self.block_data) if self._rect.colliderect(data[1])]
+            for data in ((self.block_data + self.ramp_data) if ramps else self.block_data):
+                if pw.show_any_hitboxes:
+                    rect = pygame.Rect(data[1].x - g.scroll[0], data[1].y - g.scroll[1], *data[1].size)
+                    # draw_rect(win.renderer, GREEN, rect)
+                if self._rect.colliderect(data[1]):
+                    ret.append(data)
+        return ret
 
     def scroll(self):
         # scrolling
@@ -2468,143 +2488,30 @@ class Player:
             self.y += self.to_dashy[0]
 
         # x-col
-        if not self.flinching:
-            if left or right:
-                if self.anim_type == "idle":
-                    self.anim_type = "run"
-            else:
-                if self.anim_type == "run":
-                    self.anim_type = "idle"
-            xacc = 2
-            xdacc = 1
-            dxvel = 2
-            data = {"speed": 2}
-            if left:
-                self.xvel -= xacc
-                self.xvel = max(self.xvel, -dxvel)
-                self.direc = "left"
-                if self.anim_type == "run":
-                    self.anim += g.p.anim_fps * data["speed"]
-            elif self.xvel < 0:
-                self.xvel += xdacc
-                self.xvel = min(0, self.xvel)
-            if right:
-                self.xvel += xacc
-                self.xvel = min(self.xvel, dxvel)
-                self.direc = "right"
-                if self.anim_type == "run":
-                    self.anim += g.p.anim_fps * data["speed"]
-            elif self.xvel > 0:
-                self.xvel -= xdacc
-                self.xvel = max(0, self.xvel)
-
-        dx = self.xvel + self.extra_xvel
-        if self.anim_type == "punch":
-            dx /= 2
-        self.x += dx
-        cols = self.get_cols(rects_only=False)
-        for col in cols:
-            block, col = col
-            nbg = non_bg(block.name)
-            if not is_hard(block.name):
-                continue
+        if left:
+            self.xvel = -2
+            self.direc = "left"
+        elif right:
+            self.xvel = 2
+            self.direc = "right"
+        else:
+            self.xvel = 0
+        self.x += self.xvel
+        for col in self.get_cols(rects_only=True):
             if self.xvel > 0:
                 self.x = col.left - self.width / 2
-            if self.xvel < 0:
+            elif self.xvel < 0:
                 self.x = col.right + self.width / 2
-
-        # ramp x-col
-        for block, ramp in self.ramp_data:
-            name = block.name
-            if self._rect.colliderect(ramp):
-                rel_x = self.x - ramp.x
-                if name.endswith("_deg0"):
-                    rel_y = rel_x + self.width
-                elif name.endswith("_deg270"):
-                    rel_y = ramp.height - rel_x
-                rel_y = min(rel_y, ramp.height)
-                rel_y = max(rel_y, 0)
-                target_y = ramp.y + ramp.height - rel_y
-                if self.bottom > target_y:
-                    self.bottom = target_y
-                    self.yvel = 0
-                    self.in_air = False
-            if pw.show_hitboxes:
-                rect = pygame.Rect(ramp.x - g.scroll[0], ramp.y - g.scroll[1], BS, BS)
-                draw_rect(win.renderer, RED, rect)
-
-        # y-movement
-        self.gravity_active = True
-        cols = self.get_cols(rects_only=False)
-        if "water" in [col[0].name for col in cols]:
-            if not self.entered_water:
-                self.last_entered_water = ticks()
-                self.entered_water = True
-            if ticks() - self.last_entered_water >= 50 and up:
-                self.y -= 1
-                self.gravity_active = False
-        else:
-            self.entered_water = False
-
-        # acceleration due to gravity
-        if not self.to_dashy[0]:
-            if self.gravity_active:
-                self.gravity = self.def_gravity
-                if up:
-                    if not self.in_air:
-                        if self.tool == "uranium_shovel":
-                            self.yvel = 2 * self.def_jump_yvel
-                        else:
-                            self.yvel = self.def_jump_yvel
-                        self.in_air = True
-                        self.anim_type = "jump"
-                    elif self.yvel >= 0:
-                        if self.tool == "uranium_shovel":
-                            self.gravity = self.def_gravity * 0.1
-                self.yvel += self.gravity
-                if self.yvel >= 2:
-                    self.in_air = True
-                self.yvel = min(self.yvel, 8)
-                self.y += self.yvel
-
-        # collision with the ground
-        cols = self.get_cols(rects_only=False)
-        for col in cols:
-            block, col = col
-            nbg = non_bg(block.name)
-            if not is_hard(block.name):
-                continue
+        
+        # y-col
+        self.yvel += self.gravity
+        self.y += self.yvel
+        for col in self.get_cols(rects_only=True):
             if self.yvel > 0:
-                self.y = col.top - self.height / 2
+                self.y = col.top - int(self.height / 2)
+                for col in self.get_cols(rects_only=True):
+                    draw_rect(win.renderer, GREEN, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30))
                 self.yvel = 0
-                self.in_air = False
-                if nbg == "slime":
-                    self.yvel = -3
-                    self.in_air = True
-                    break
-                if self.anim_type == "jump":
-                    self.anim_type = "idle"
-            elif self.yvel < 0:
-                self.top = col.bottom
-                self.yvel = 0
-
-        for block, wt in self.water_data:
-            name = block.name
-            rel_x = (self.centerx - wt.x) * S
-            if rel_x < 0:
-                rel_x = 0
-            elif rel_x > 15:
-                rel_x = 15
-            if self._rect.colliderect(wt):
-                if not block.collided:
-                    max_i = 20
-                    for i, x in enumerate(range(rel_x, -1, -1)):
-                        block.waters[x]["y"] = max_i - i
-                    for i, x in enumerate(range(rel_x, len(block.waters) - 1)):
-                        block.waters[x]["y"] = max_i - i
-                    block.collided = True
-            else:
-                block.collided = False
 
     def camel_move(self, camel):
         self.rect.centerx = camel.centerx - 10
@@ -4521,10 +4428,13 @@ async def main(debug, cprof=False):
                             # for p in all_other_particles:
                             #     p.switch()
                             pass
-
+                        
                         if event.key == pygame.K_1:
                             # win.target_zoom = (3, 3)
                             pass
+                        
+                        if event.key == pygame.K_w:
+                            g.player.yvel = g.player.def_jump_yvel
 
                         if event.key == K_q:  # debug so far until it gets a feature on its own
                             # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
@@ -5394,7 +5304,7 @@ async def main(debug, cprof=False):
                 # breaking blocks spritesheet rendering (if you see this fuck you)
 
                 # foregorund sprites (includes the player)
-                visual.update()
+                # visual.update()
                 g.player.update()
 
                 # all_foreground_sprites.draw(win.renderer)
