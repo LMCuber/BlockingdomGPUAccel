@@ -547,7 +547,7 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
             # forest
             if biome == "forest":
                 # chicken
-                if _chance(1 / 1):
+                if _chance(1 / 10):
                     entity(["chicken", "mob", "moving"])
 
                 # top is free

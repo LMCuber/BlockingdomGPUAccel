@@ -46,9 +46,9 @@ def get_cube(base_color):
 
 
 def get_sphere(base_color):
-    num_lon = 16
-    num_lat = 16
-    mult = 140
+    num_lon = 32
+    num_lat = 32
+    mult = 60
     name = f"{num_lon}x{num_lat}.obj"
     if os.path.isfile(path("src", "shapes", "spheres", name)):
         sphere = Crystal(win.renderer, path("src", "shapes", "spheres", name), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False)
@@ -101,10 +101,10 @@ def get_sphere(base_color):
     return sphere
 
 
-def get_sphere(base_color):
-    mult = 140
-    sphere = Crystal(win.renderer, path("obj", "obj", "Hexagon.obj"), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=True)
-    return sphere
+# def get_sphere(base_color):
+#     mult = 140
+#     sphere = Crystal(win.renderer, path("obj", "obj", "Hexagon.obj"), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=True)
+#     return sphere
 
 
 def get_sword(base_color):

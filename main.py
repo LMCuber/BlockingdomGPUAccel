@@ -1673,7 +1673,7 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere", "cube"] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
         # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
@@ -1882,7 +1882,7 @@ class Animations:
                 "run": {"frames": 8},
                 "idle": {"frames": 4},
                 "jump": {"frames": 1, "offset": (1, 0)},
-                "punch": {"frames": 4, "speed": 0.1},
+                "punch": {"frames": 4, "speed": 0.1, "offset": (9, 2)},
             },
 
             "_DefaultDeprecated": {
@@ -2023,10 +2023,10 @@ class Player:
         win.renderer.blit(self.image, self.rect_draw)
         if pw.show_any_hitboxes:
             draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
-            # draw_rect(win.renderer, ORANGE, self.rect_draw)
+            draw_rect(win.renderer, ORANGE, self.rect_draw)
             with suppress(IndexError):
                 col = self.get_cols()[0]
-                print(self.y, self._rect, self.rect, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30), pygame.mouse.get_pos())
+                # print(self.y, self._rect, self.rect, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30), pygame.mouse.get_pos())
             circle_rect = pygame.Rect(0, 0, self.circle.width, self.circle.height)
             circle_rect.center = self.rect_draw.center
             win.renderer.blit(self.circle, circle_rect)
@@ -2048,7 +2048,7 @@ class Player:
         ret = pygame.Rect(0, 0, *self.ci_size)
         xo, yo = anim.data[self.anim_skin][self.anim_type].get("offset", (0, 0))
         xo *= S * self.sign
-        yo *= S * self.sign
+        yo *= S
         ret.center = (self.x + xo, self.y + yo)
         return ret
     
@@ -2487,7 +2487,7 @@ class Player:
                 self.to_dashy[0] += self.to_dashy[1]
             self.y += self.to_dashy[0]
 
-        # x-col
+        # x-movement
         if left:
             self.xvel = -2
             self.direc = "left"
@@ -2496,6 +2496,14 @@ class Player:
             self.direc = "right"
         else:
             self.xvel = 0
+        # animation setting
+        if self.xvel:
+            if self.anim_type == "idle":
+                self.anim_type = "run"
+        else:
+            if self.anim_type == "run":
+                self.anim_type = "idle"
+        # x-col
         self.x += self.xvel
         for col in self.get_cols(rects_only=True):
             if self.xvel > 0:
@@ -2505,6 +2513,10 @@ class Player:
         
         # y-col
         self.yvel += self.gravity
+        # animation setting
+        if self.yvel > 3:
+            if self.anim_type in ("idle", "run"):
+                self.anim_type = "jump"
         self.y += self.yvel
         for col in self.get_cols(rects_only=True):
             if self.yvel > 0:
@@ -2512,6 +2524,16 @@ class Player:
                 for col in self.get_cols(rects_only=True):
                     draw_rect(win.renderer, GREEN, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30))
                 self.yvel = 0
+                if self.anim_type == "jump":
+                    self.anim_type = "idle"
+            elif self.yvel < 0:
+                self.y = col.bottom + int(self.height / 2)
+                self.yvel = 0
+    
+    def jump(self):
+        if self.anim_type != "jump":
+            g.player.yvel = g.player.def_jump_yvel
+            self.anim_type = "jump"
 
     def camel_move(self, camel):
         self.rect.centerx = camel.centerx - 10
@@ -2573,9 +2595,7 @@ class Player:
         except KeyError:
             # the default animation is "run"
             fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
-        if self.anim_type != "run":
-            # process animation speed from anim.data[]
-            self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
+        self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
         try:
             # try animating the index given the [fdi]
             fdi[int(self.anim)]
@@ -4434,7 +4454,7 @@ async def main(debug, cprof=False):
                             pass
                         
                         if event.key == pygame.K_w:
-                            g.player.yvel = g.player.def_jump_yvel
+                            g.player.jump()
 
                         if event.key == K_q:  # debug so far until it gets a feature on its own
                             # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
@@ -5163,7 +5183,7 @@ async def main(debug, cprof=False):
                             # check whether enemy has been hit this frame and add blood effect
                             if entity.taking_damage:
                                 entity.set_final_rects()
-                                for _ in range(10):
+                                for _ in range(1):
                                     group(BloodParticle(entity), all_other_particles)
                             # check whether the entity is dead and drop the loot
                             if entity.dead and not entity.dying:
@@ -5181,7 +5201,7 @@ async def main(debug, cprof=False):
                                 draw_rect(win.renderer, RED, entity.rect)
                                 write(win.renderer, "midbottom", entity.chunk_index, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
                             # collide with attacking player
-                            if g.player.anim_type in ("uslash", "dslash"):
+                            if g.player.anim_type in ("punch",):
                                 if entity._rect.colliderect(g.player._rect):
                                     entity.take_damage(1)
                                     if entity.demon:
