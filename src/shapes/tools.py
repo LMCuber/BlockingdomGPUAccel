@@ -470,6 +470,59 @@ def get_kunai(base_color):
     return kunai
 
 
+def get_spear(base_color):
+    mult = 230
+    w, l, h = 0.1, 0.55, 0.05
+    mw, ml, mh = .3 * w, .32 * l, .3 * h
+    gl = 0.75 * l
+    base_color = (235, 235, 235, 255)
+    outline_color = (255, 255, 255, 255)
+    spear = Crystal(
+        win.renderer, [
+            # base
+            [-w, 0, 0],
+            [0, 0, h],
+            [w, 0, 0],
+            [0, 0, -h],
+            # tip
+            [0, -l, 0],
+            # middle
+            [-mw, ml, 0],
+            [0, ml, mh],
+            [mw, ml, 0],
+            [0, ml, -mh],
+            # bottom
+            [-mw, ml + gl, 0],
+            [0, ml + gl, mh],
+            [mw, ml + gl, 0],
+            [0, ml + gl, -mh],
+        ], [
+            # point colors
+        ], [
+            # connections
+        ], [
+            # body and tip
+            [[grays[50], outline_color], 0, 4, 1],
+            [[grays[40], outline_color], 1, 4, 2],
+            [[grays[70], outline_color], 2, 4, 3],
+            [[grays[60], outline_color], 3, 4, 0],
+            # middle
+            [[grays[70], outline_color], 5, 0, 1, 6],
+            [[grays[60], outline_color], 6, 1, 2, 7],
+            [[grays[50], outline_color], 7, 2, 3, 8],
+            [[grays[40], outline_color], 8, 3, 0, 5],
+            # grip
+            [[browns[50], outline_color], 9, 5, 6, 10],
+            [[browns[40], outline_color], 10, 6, 7, 11],
+            [[browns[70], outline_color], 11, 7, 8, 12],
+            [[browns[60], outline_color], 12, 8, 5, 9],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return kunai
+
+
 def get_bow(base_color):
     mult = 230
     # base
