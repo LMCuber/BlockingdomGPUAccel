@@ -101,10 +101,10 @@ def get_sphere(base_color):
     return sphere
 
 
-# def get_sphere(base_color):
-#     mult = 140
-#     sphere = Crystal(win.renderer, path("obj", "obj", "Hexagon.obj"), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=True)
-#     return sphere
+def get_sphere(base_color):
+    mult = 15
+    sphere = Crystal(win.renderer, r"C:\Users\leopc\Downloads\Flintlock Weapons Pack by @TheTeaGuns\OBJ\Musketoon.obj", [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=False)
+    return sphere
 
 
 def get_sword(base_color):
@@ -167,49 +167,30 @@ def get_sword(base_color):
             # base
             [[base_color, outline_color], 0, 1, 2, 3],
             [[base_color, outline_color], 4, 5, 1, 0],
-            [[base_color, outline_color], 4, 5, 6, 7],
-            [[base_color, outline_color], 7, 6, 2, 3],
+            [[base_color, outline_color], 5, 4, 7, 6],
+            [[base_color, outline_color], 3, 2, 6, 7],
             [[base_color, outline_color], 4, 0, 3, 7],
             [[base_color, outline_color], 1, 5, 6, 2],
-
-            # # tip
-            # [[base_color, outline_color], 0 + 8, 1 + 8, 2 + 8],
-            # [[base_color, outline_color], 3 + 8, 4 + 8, 5 + 8],
-            # [[base_color, outline_color], 3 + 8, 0 + 8, 2 + 8, 5 + 8],
-            # [[base_color, outline_color], 0 + 8, 3 + 8, 4 + 8, 1 + 8],
-            # [[base_color, outline_color], 5 + 8, 4 + 8, 1 + 8, 2 + 8],
 
             # guard
             [[browns[90], outline_color], 0 + 14, 1 + 14, 2 + 14, 3 + 14],
             [[browns[80], outline_color], 4 + 14, 5 + 14, 1 + 14, 0 + 14],
-            [[browns[70], outline_color], 4 + 14, 5 + 14, 6 + 14, 7 + 14],
-            [[browns[110], outline_color], 7 + 14, 6 + 14, 2 + 14, 3 + 14],
+            [[browns[70], outline_color], 5 + 14, 4 + 14, 7 + 14, 6 + 14],
+            [[browns[110], outline_color], 3 + 14, 6 + 14, 2 + 14, 3 + 14],
             [[browns[120], outline_color], 4 + 14, 0 + 14, 3 + 14, 7 + 14],
             [[browns[100], outline_color], 1 + 14, 5 + 14, 6 + 14, 2 + 14],
 
             # grip
             [[browns[150], outline_color], 0 + 22, 1 + 22, 2 + 22, 3 + 22],
             [[browns[140], outline_color], 4 + 22, 5 + 22, 1 + 22, 0 + 22],
-            [[browns[160], outline_color], 4 + 22, 5 + 22, 6 + 22, 7 + 22],
-            [[browns[170], outline_color], 7 + 22, 6 + 22, 2 + 22, 3 + 22],
+            [[browns[160], outline_color], 5 + 22, 4 + 22, 7 + 22, 6 + 22],
+            [[browns[170], outline_color], 3 + 22, 2 + 22, 6 + 22, 7 + 22],
             [[browns[130], outline_color], 4 + 22, 0 + 22, 3 + 22, 7 + 22],
             [[browns[120], outline_color], 1 + 22, 5 + 22, 6 + 22, 2 + 22],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
     )
-    """
-    sxo, syo = -w, -l
-    sw, sl, sh = w / 2, w / 2, h
-    sword_atom_shapes = [
-        [[0, 0, 1], [1, 0, 1], [0, 1, 1]],
-        [[1, 0, 1], [2, 0, 1], [2, 1, 1]],
-        [[1, 0, 1], [1, 2, 1], [0, 1, 1]],
-        [[0, 1, 1], [2, 1, 1], [1, 2, 1]],
-        [[0, 1, 1], [1, 2, 1], [0, 2, 1]],
-        [[2, 1, 1], [2, 2, 1], [1, 2, 1]]
-    ]
-    """
     return sword
 
 
