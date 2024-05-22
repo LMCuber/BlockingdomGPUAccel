@@ -270,8 +270,7 @@ def mousebuttondown_event(button):
                             if rect.collidepoint(g.mouse):
                                 g.chest_pos = [p - 3 for p in rect.topleft]
                 elif not mbr.collidepoint(g.mouse):
-                    if not (g.midblit == "tool-crafter" and (mbr.x - pw.tool_crafter_selector.combo_width <= g.mouse[0] <= mbr.right
-                                                            and mbr.y <= g.mouse[1] <= mbr.bottom)):
+                    if not (g.midblit == "tool-crafter" and pw.tool_crafter_selector_range_rect.collidepoint(g.mouse)):
                         stop_midblit()
 
     elif button == 3:
@@ -1673,10 +1672,10 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        _tool_crafter_kwargs = {"text_color": WHITE, "font": orbit_fonts[15], "visible_when": lambda: g.midblit == "tool-crafter"}
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sword",], unavailable_tool_names, command=self.tool_crafter_selector_command, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), **_tool_crafter_kwargs)
-        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        # self.tool_crafter_rotate = ToggleButton(win.renderer, ("↺ 1", "↺ 2"), command=lambda: test(), font=arial_fonts[12], extension_offset=(-2, 0), **_tool_crafter_kwargs)
+        _tool_crafter_kwargs = {"text_color": WHITE, "visible_when": lambda: g.midblit == "tool-crafter", "height": 36, "width": 118}
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), **_tool_crafter_kwargs)
+        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_rotate = ToggleButton(win.renderer, ("rotate", "still"), command=self.tool_crafter_rotate_command, font=orbit_fonts[15], **_tool_crafter_kwargs)
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -1864,8 +1863,18 @@ class PlayWidgets:
     def tool_crafter_selector_command(tool):
         try:
             g.mb.sword = getattr(tools, f"get_{tool}")(g.mb.sword_color)
+            # g.mb.sword.xav = g.mb.sword.yav = g.mb.sword.zav = 0
         except AttributeError:
             MessageboxError(win.renderer, "Selected tool currently has no model view", as_child=True, **pw.widget_kwargs)
+    
+    @staticmethod
+    def tool_crafter_rotate_command(option):
+        g.mb.sword.rotate = option == "rotate"
+    
+    @property
+    def tool_crafter_selector_range_rect(self):
+        mbr = g.midblit_rect()
+        return pygame.Rect(mbr.x - pw.tool_crafter_selector.combo_width, mbr.y, pw.tool_crafter_selector.combo_width, pw.tool_crafter_selector.height * pw.tool_crafter_selector.num_combos)
 
 
 class Lattice:
@@ -4415,13 +4424,6 @@ async def main(debug, cprof=False):
             if not pygame.mixer.music.get_busy():
                 pw.next_piece_command()
 
-            # mouse log
-            if g.mb is not None and g.mb.sword is not None:
-                if g.mouses[0]:
-                    g.mb.sword.rotate = False
-                else:
-                    g.mb.sword.rotate = True
-
             # event loop
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -5795,6 +5797,10 @@ async def main(debug, cprof=False):
                 elif g.midblit == "tool-crafter":
                     # main
                     mbr = g.midblit_rect()
+                    # hitboxes
+                    if pw.show_hitboxes:
+                        draw_rect(win.renderer, RED, pw.tool_crafter_selector_range_rect)
+                    # rest
                     centerx = mbr.x + tool_crafter_sword_width + tool_crafter_metals_width / 2
                     win.renderer.blit(tool_crafter_img, mbr)
                     # render the sword
@@ -5803,7 +5809,8 @@ async def main(debug, cprof=False):
                     g.mb.sword.oy += 200
                     g.mb.sword.update()
                     # tool crafter button
-                    pw.tool_crafter_selector.rect.topleft = mbr.topleft
+                    pw.tool_crafter_selector.rect.topleft = (mbr.x + 3, mbr.y + 3)
+                    pw.tool_crafter_rotate.rect.topleft = (mbr.x + 3, mbr.y + 3 + pw.tool_crafter_selector.rect.height)
                     # draw the connections
                     num_atoms = sum(v.stoic for v in g.mb.crystals.values())
                     molar_ratia = {}
