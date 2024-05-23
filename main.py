@@ -27,6 +27,29 @@ from src.entities import *
 from src.perlin import *
 
 
+class SmartTextRender:
+    def __init__(self, func, font_size, pos, anchor, freq=500):
+        self.func = func
+        self.font_size = font_size
+        self.anchor = anchor
+        self.pos = pos
+        self.freq = freq
+        self.update()
+        self.last_update = ticks()
+    
+    def update(self):
+        self.text = self.func()
+        self.tex = T(orbit_fonts[self.font_size].render(self.text, True, BLACK))
+        self.rect = self.tex.get_rect()
+        setattr(self.rect, self.anchor, self.pos)
+        self.last_update = ticks()
+
+    def __call__(self):
+        if ticks() - self.last_update >= self.freq:
+            self.update()
+        return self.tex, self.rect
+
+
 class SmartSurface(pygame.Surface):
     def __init__(self, *args, **kwargs):
         og_args = list(args)
@@ -167,9 +190,10 @@ def disable_needed_widgets():
                     if not widget.rect.collidepoint(g.mouse):
                         faulty = True
                         for friend in widget.friends:
-                            if friend.rect.collidepoint(g.mouse):
-                                faulty = False
-                                break
+                            if not friend.disabled:
+                                if friend.rect.collidepoint(g.mouse):
+                                    faulty = False
+                                    break
                         else:
                             faulty = True
                         if faulty:
@@ -249,19 +273,6 @@ def mousebuttondown_event(button):
                     if not (g.midblit == "tool-crafter" and (mbr.x - pw.tool_crafter_selector.combo_width <= g.mouse[0] <= mbr.right
                                                             and mbr.y <= g.mouse[1] <= mbr.bottom)):
                         stop_midblit()
-
-            if not g.skin_menu_rect.collidepoint(g.mouse):
-                g.skin_menu = False
-                for button in pw.skin_buttons:
-                    button.disable()
-            else:
-                for button in pw.change_skin_buttons:
-                    if point_in_mask(g.mouse, button["mask"], button["rect"]):
-                        g.skin_indexes[button["name"][2:]] += 1 if button["name"][0] == "n" else -1
-                        if g.skin_indexes[button["name"][2:]] > len(g.skins[button["name"][2:]]) - 1:
-                            g.skin_indexes[button["name"][2:]] = 0
-                        elif g.skin_indexes[button["name"][2:]] < 0:
-                            g.skin_indexes[button["name"][2:]] = len(g.skins[button["name"][2:]]) - 1
 
     elif button == 3:
         if g.stage == "play":
@@ -842,9 +853,6 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     x, y = chunk_index
     entities = []
     # lighting.fill({2: DARK_GRAY}.get(y, SKY_BLUE))
-    fog = pygame.Surface((fog_w, fog_h))
-    fog.fill(BLACK)
-    fog.blit(fog_light, (0, 0))
     chunk_pos = (x * CW, y * CH)
     g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
     biome = biome if biome is not None else choice(list(bio.blocks.keys()))
@@ -1241,12 +1249,6 @@ class World:
         self.surf_assets = a.surf_assets
 
     @property
-    def player_model(self):
-        ret = pygame.Surface([s * g.skin_scale_mult for s in g.player.size])
-        ret.fill(self.player_model_color)
-        return ret
-
-    @property
     def blocks(self):
         return self.tex_assets["blocks"]
 
@@ -1532,7 +1534,6 @@ class Play:
         self.starting_worldbutton_pos = c1dl(self.next_worldbutton_pos)
         self.new_world_count = 0
         self.loaded_world_count = 0
-        self.unlocked_skins = []
         self.loading_times = SmartList()
         self.anim_fps = 0.0583
         self.volume = 0.2
@@ -1587,7 +1588,6 @@ class PlayWidgets:
         self.entry_kwargs  = {"pos": (DPX, DPY - 50), "font": orbit_fonts[20], "key_font": orbit_fonts[15]}
         self.menu_widgets = {
             "buttons": SmartList([
-                Button(win.renderer,   "Change Skin",   self.change_skin_command,     tooltip="Allows you to customize your player's appearance", **_menu_button_kwargs),
                 Button(win.renderer,   "Next Piece",    self.next_piece_command,      tooltip="Plays a different random theme piece",             **_menu_button_kwargs),
                 Button(win.renderer,   "Config",        self.show_config_command,     tooltip="Configure advanced game parameters",               **_menu_button_kwargs),
                 Button(win.renderer,   "Flag",          self.flag_command,            tooltip="Whenever teleported, spawn at current position",   **_menu_button_kwargs),
@@ -1600,15 +1600,12 @@ class PlayWidgets:
             ]),
             "checkboxes": SmartList([
                 Checkbox(win.renderer, "Stats",         self.show_stats_command,       checked=True, exit_command=self.checkb_sf_exit_command, tooltip="Shows the player's stats", **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "Time",          self.show_time_command,        tooltip="Shows the in-world time",                                        **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "FPS",                                          tooltip="Shows the amount of frames per second",                          **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "VSync",         self.show_vsync_command,       tooltip="Enables VSync; may or may not work", check_command=self.check_vsync_command, uncheck_command=self.uncheck_vsync_command, **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "Coordinates",   self.show_coordinates_command, tooltip="Shows the player's coordinates as (x, y)",                       **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Player Hitboxes",                              tooltip="Shows the player hitboxes",                                      **_menu_checkbox_kwargs, checked=True),
                 Checkbox(win.renderer, "Hitboxes",                                     tooltip="Shows hitboxes",                                                 **_menu_checkbox_kwargs),
                 Checkbox(win.renderer, "Chunk Borders",                                tooltip="Shows the chunk borders and their in-game ID's",                 **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "Screenshake",                                  tooltip="Screenshake can be disruptive for photosensitive players",       **_menu_checkbox_kwargs, checked=True),
-                Checkbox(win.renderer, "Fog",           self.fog_command,              tooltip="Fog effect for no reason at all",                                **_menu_checkbox_kwargs),
-                Checkbox(win.renderer, "Clouds",        lambda_none,                   tooltip="Clouds lel what did you expect",                                 **_menu_checkbox_kwargs),
+                Checkbox(win.renderer, "Screenshake",                                  tooltip="Screenshake can be disruptive for photosensitive players",       **_menu_checkbox_kwargs, checked=False),
+                Checkbox(win.renderer, "Entities",                                     toolptip="Updates the enemies",                                           **_menu_checkbox_kwargs, checked=False)
             ]),
             "sliders": SmartList([
                 Slider(win.renderer,   "Resolution",    [", ".join([str(x) for x in r]) for r in resolutions], 0, tooltip="Set the resolution of the game in pixels",                          **_menu_slider_kwargs),
@@ -1633,48 +1630,27 @@ class PlayWidgets:
             Label(win.renderer, "Death", (DPX, DPY - 64), **_death_screen_widget_kwargs),
             Button(win.renderer, "Play Again", command=self.quit_death_screen_command, pos=(DPX, DPY), **_death_screen_widget_kwargs)
         ])
-        self.death_cause =        self.death_screen_widgets         .find(lambda x: x.text == "Death")
-        self.keybinds =           self.menu_widgets["buttons"]      .find(lambda x: x.text == "Keybinds")
-        self.fps_cap =            self.menu_widgets["sliders"]      .find(lambda x: x.text == "FPS Cap")
-        self.show_fps =           self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "FPS")
-        self.show_stats =         self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Stats")
-        self.show_hitboxes =      self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Hitboxes")
-        self.show_chunk_borders = self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Chunk Borders")
-        self.vsync =              self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "VSync")
-        self.screenshake =        self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Screenshake")
-        self.clouds =             self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Clouds")
-        self.generation_mode =    self.menu_widgets["togglebuttons"].find(lambda x: x.text == "Instant")
-        self.anim_fps =           self.menu_widgets["sliders"]      .find(lambda x: x.text == "Animation")
-        self.lag =                self.menu_widgets["sliders"]      .find(lambda x: x.text == "Camera Lag")
-        self.volume =             self.menu_widgets["sliders"]      .find(lambda x: x.text == "Volume")
-        self.max_entities =       self.menu_widgets["sliders"]      .find(lambda x: x.text == "Entities")
-        self.texture_pack =       self.menu_widgets["buttons"]      .find(lambda x: x.text == "Textures")
+        self.death_cause =               self.death_screen_widgets         .find(lambda x: x.text == "Death")
+        self.keybinds =                  self.menu_widgets["buttons"]      .find(lambda x: x.text == "Keybinds")
+        self.fps_cap =                   self.menu_widgets["sliders"]      .find(lambda x: x.text == "FPS Cap")
+        self.show_fps =                  self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "FPS")
+        self.show_stats =                self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Stats")
+        self.show_player_hitboxes =      self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Player Hitboxes")
+        self.show_hitboxes =             self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Hitboxes")
+        self.show_chunk_borders =        self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Chunk Borders")
+        self.screenshake =               self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Screenshake")
+        self.entities =                  self.menu_widgets["checkboxes"]   .find(lambda x: x.text == "Entities")
+        self.generation_mode =           self.menu_widgets["togglebuttons"].find(lambda x: x.text == "Instant")
+        self.anim_fps =                  self.menu_widgets["sliders"]      .find(lambda x: x.text == "Animation")
+        self.lag =                       self.menu_widgets["sliders"]      .find(lambda x: x.text == "Camera Lag")
+        self.volume =                    self.menu_widgets["sliders"]      .find(lambda x: x.text == "Volume")
+        self.max_entities =              self.menu_widgets["sliders"]      .find(lambda x: x.text == "Entities")
+        self.texture_pack =              self.menu_widgets["buttons"]      .find(lambda x: x.text == "Textures")
         #
         self.iter_menu_widgets = sum(self.menu_widgets.values(), [])
         befriend_iterable(self.iter_menu_widgets)
-        # skin menu arrow buttons to change the skin
-        self.change_skin_buttons = []
-        for bt in g.skins:
-            self.change_skin_buttons.append({"name": "p-" + bt, "surf": rotozoom(triangle(height=30), 90, 1)})
-            self.change_skin_buttons[-1]["mask"] = pygame.mask.from_surface(self.change_skin_buttons[-1]["surf"])
-        for bt in g.skins:
-            self.change_skin_buttons.append({"name": "n-" + bt, "surf": rotozoom(triangle(height=30), 270, 1)})
-            self.change_skin_buttons[-1]["mask"] = pygame.mask.from_surface(self.change_skin_buttons[-1]["surf"])
-        xo, yo = 40, 100
-        sx = g.skin_menu_rect.x + xo
-        sy = g.skin_menu_rect.y + yo
-        x, y = sx, sy
-        for index, button in enumerate(self.change_skin_buttons):
-            if index == 4:
-                x = win.width - sx
-                y = sy
-            button["rect"] = button["surf"].get_rect(center=(x, y))
-            y += (g.skin_menu_rect.height - yo * 2) / 3
-        _skin_button_kwargs = {"width": 9 * g.skin_fppp, "height": 30, "bg_color": GRAY, "template": "menu widget", "special_flags": ["static"]}
-        self.skin_buttons = [
-            Button(win.renderer, "Color", self.color_skin_button, pos=(DPX, DPY + 90), **_skin_button_kwargs),
-            Button(win.renderer, "Done", self.new_player_skin, pos=(DPX, DPY + 120), click_effect=True, **_skin_button_kwargs)
-        ]
+        # assignments
+        self.show_fps_smart = SmartTextRender(self.get_fps, 12, (5, 5), "topleft")
 
         # keybind buttons
         self.keybinds_active = False
@@ -1693,83 +1669,47 @@ class PlayWidgets:
                 controller.button_protocol[button] = self.keybind_buttons[i + 1]
             except IndexError:
                 controller.button_protocol[button] = self.keybind_buttons[0]
-        d = Button(win.renderer, "Restore Defaults", self.restore_default_keybinds_command, pos=(win.centerx, (yo + 1) * h + 200), **self.keybind_button_kwargs)
+        d = Button(win.renderer, "Restore Defaults", self.restore_default_keybinds_confirm, pos=(win.centerx, (yo + 1) * h + 200), **self.keybind_button_kwargs)
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["kunai", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
+        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "kunai", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
             for widget in self.menu_widgets[wt]:
                 widget.disable()
+    
+    @property
+    def show_any_hitboxes(self):
+        return self.show_hitboxes or self.show_player_hitboxes
 
     # menu widget commands
     @staticmethod
     def show_stats_command():
         pass
+    
+    def get_fps(self):
+        fps = int(g.clock.get_fps())
+        ret = f"FPS: {fps} | Entities: {g.num_entities} | Particles: {len(all_other_particles)}"
+        return ret
 
-    @staticmethod
-    def show_fps_command(num_blocks, num_entities):
+    def show_fps_command(self):
         yo = 20
-        write(win.renderer, "topright", f"FPS: {int(g.clock.get_fps())}, 1% low: {g.bottom_1p_avg}", orbit_fonts[20], BLACK, win.width - 10, yo, tex=True)
+        # write(win.renderer, "topright", f"FPS: {self.show_fps_smart()[0]}, 1% low: {g.bottom_1p_avg}", orbit_fonts[20], BLACK, win.width - 10, yo, tex=True, ignore=False)
+        win.renderer.blit(*self.show_fps_smart())
         # write(win.renderer, "topright" , int(g.clock.get_fps()), orbit_fonts[20], BLACK, win.width - 10, 40)
-        write(win.renderer, "topright", f"{num_blocks} blocks", orbit_fonts[12], BLACK, win.width - 10, yo + 27, tex=True)
-        write(win.renderer, "topright", f"[{CW}x{CH} chunks | {V_CHUNKS}x{H_CHUNKS} view", orbit_fonts[12], BLACK, win.width - 10, yo + 47, tex=True)
-        write(win.renderer, "topright", f"{num_entities} entities", orbit_fonts[12], BLACK, win.width - 10, yo + 67, tex=True)
-
-    @staticmethod
-    def show_vsync_command():
-        write(win.renderer, "midtop", "vsync", orbit_fonts[9], RED, win.width - 26, 35)
-
-    @staticmethod
-    def check_vsync_command():
-        win.init(win.size, flags=pygame.SCALED, vsync=1, debug=g.debug)
-        # pnp_press_and_release()
-
-    @staticmethod
-    def uncheck_vsync_command():
-        win.init((BS * HL * S, BS * VL * S), debug=g.debug)
-        # pnp_press_and_release()
-
-    @staticmethod
-    def show_time_command():
-        if g.stage == "play":
-            fin = f"{int(g.w.dnc_index)} / {g.w.dnc_length}"
-            write(win.renderer, "topright", fin, orbit_fonts[20], g.w.text_color, win.width - 10, 70)
-
-    @staticmethod
-    def show_coordinates_command():
-        if g.stage == "play":
-            write(win.renderer, "topleft", str(g.player.coordinates), orbit_fonts[20], g.w.text_color, 10, 8)
 
     @staticmethod
     def checkb_sf_exit_command():
         g.menu = False
 
     @staticmethod
-    def fog_command():
-        g.fog_img.fill(BLACK)
-        g.fog_img.blit(g.fog_light, g.player.rect.center)
-        win.renderer.blit(g.fog_img, (0, 0), special_flags=pygame.BLEND_MULT)
-
-    @staticmethod
     def lighting_command(alpha):
         return
         for chunk_index, lighting in g.w.lightings.items():
             lighting.alpha = alpha
-
-    def change_skin_command(self):
-        g.menu = False
-        for widget in self.iter_menu_widgets:
-            widget.disable()
-        for button in self.skin_buttons:
-            button.enable()
-        g.skin_menu = True
-
-    def color_skin_button(self):
-        g.pending_entries.append(Entry(win.renderer, "Enter RGB or HEX color code", self.color_skin, disabled=True, add=False, **pw.entry_kwargs))
 
     @staticmethod
     def color_skin(code):
@@ -1781,52 +1721,8 @@ class PlayWidgets:
             g.w.player_model_color = color
 
     @staticmethod
-    def new_player_skin():
-        # finalizing skin
-        longest_sprs_len = max([len(g.skin_data(bt)["sprs"]) for bt in g.skins])
-        g.player.images = [SmartSurface((win.size), pygame.SRCALPHA) for _ in range(longest_sprs_len if longest_sprs_len > 0 else 1)]
-        _bg = SmartSurface(g.player.size); _bg.fill(g.w.player_model_color)
-        for image in g.player.images:
-            image.blit(_bg, [s / 2 for s in image.get_size()])
-        if not g.player.images:
-            g.player.images = [SmartSurface(g.player.size)]; g.player.images[0].fill(GRAY)
-        for anim in range(longest_sprs_len):
-            for bt in g.skins:
-                if g.skin_data(bt).get("name", True) is not None:
-                    try:
-                        skin_img = pygame.transform.scale_by(g.skin_data(bt)["sprs"][anim], 1 / g.skin_scale_mult)
-                    except IndexError:
-                        skin_img = pygame.transform.scale_by(g.skin_data(bt)["sprs"][anim % 4], 1 / g.skin_scale_mult)
-                    finally:
-                        _sp = g.skin_data(bt)["offset"]
-                        skin_pos = [s / 2 for s in win.size]
-                        skin_pos[0] -= g.player.size[0] / 2
-                        skin_pos[1] -= g.player.size[1] / 2
-                        skin_pos[0] += _sp[0] * g.fppp + 1
-                        skin_pos[1] += _sp[1] * g.fppp + 1
-                        g.player.images[anim].blit(skin_img, skin_pos)
-        # cropping
-        rects = [pg_to_pil(image).getbbox() for image in g.player.images]
-        x1 = min([rect[0] for rect in rects])
-        y1 = min([rect[1] for rect in rects])
-        x2 = max([rect[2] for rect in rects])
-        y2 = max([rect[3] for rect in rects])
-        rect = pil_rect2pg((x1, y1, x2, y2))
-        # image initialization
-        p_imgs = [image.subsurface(rect) for image in g.player.images]
-        g.player.flip_images(p_imgs)
-        g.player.images = g.player.right_images
-        g.player.rect = g.player.images[0].get_rect(center=g.player.rect.center)
-        g.player.width, g.player.height = g.player.images[0].get_size()
-        del g.player.images
-        # lasts
-        g.skin_menu = False
-        for button in iter_buttons():
-            if getattr(button, "text", None) == "Color":
-                button.destroy()
-
-    @staticmethod
     def next_piece_command():
+        return
         music_path = get_rand_track(path("assets", "Audio", "Music", "Background"))
         pygame.mixer.music.load(music_path)
         pygame.mixer.music.play()
@@ -1883,13 +1779,13 @@ class PlayWidgets:
         else:
             g.selected_widget = widget
 
+    def restore_default_keybinds_confirm(self):
+        MessageboxOkCancel(win.renderer, "Restore default keybinds? This will overwrite your current configuration.", self.restore_default_keybinds_command, **pw.widget_kwargs)
+    
     def restore_default_keybinds_command(self):
         for button in self.keybind_buttons:
             if hasattr(button, "_iden"):
                 change_keybind(button, button._iden, getattr(g.p, f"default_{button._iden}")[1])
-
-
-    # def __init__(self, surf, text, pos=_DEF_WIDGET_POS, width=None, height=None, bg_color=WIDGET_GRAY, text_color=BLACK, anchor="center", exit_command=None, visible_when=None, font=None, tooltip_font=None, friends=None, disabled=False, disable_type=False, template=None, add=True, special_flags=None, tooltip=None, appends=None, as_child=False, *args, **kwargs):
 
     @staticmethod
     def save_and_quit_command():
@@ -1983,8 +1879,15 @@ class Animations:
         self.rects = {}
         self.data = {
             "_Default": {
-                "jump": {"frames": 4},
+                "run": {"frames": 8},
+                "idle": {"frames": 4},
+                "jump": {"frames": 1, "offset": (1, 0)},
+                "punch": {"frames": 4, "speed": 0.1, "offset": (9, 2)},
+            },
+
+            "_DefaultDeprecated": {
                 "run": {"frames": 4},
+                "jump": {"frames": 4},
             },
 
             "Katana": {
@@ -2009,6 +1912,12 @@ class Animations:
                 "run": {"frames": 4, "speed": 4},
                 "jump": {"frames": 4, "speed": 6}
             },
+
+            "Samurai": {
+                "idle": {"frames": 1, "speed": 1},
+                "run": {"frames": 8, "speed": 4},
+                "jump": {"frames": 1, "speed": 1}
+            }
         }
         # anim imgs
         base = path("assets", "Images", "Player_Animations")
@@ -2029,80 +1938,22 @@ class Animations:
                     self.rects[weapon][anim_type] = self.imgs[weapon][anim_type]["images"][0].get_rect()
             except KeyError:
                 raise
-        self.rects = {
-            "Roninette": pygame.Rect((0, 0, 17 * 3, 19 * 3)),
-        }
 
-class Player(SmartVector):
+
+class Player:
     def __init__(self):
-        # images and rects
-        self.anim_info = {
-            "idle": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_idle.png", frames=7),
-                "speed": 1,
-                "size": (20 * S, 19 * S),
-                "face": (6 * S, 2 * S, 10 * S, 8 * S),
-            },
-
-            "run": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_run.png", frames=8),
-                "speed": 1.6,
-                "size": (20 * S, 19 * S),
-            },
-
-            "jump": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_jump.png", frames=4),
-                "speed": 1,
-                "size": (15 * S, 16 * S),
-            },
-
-            "dslash": {
-                # "images": imgload3("assets", "Images", "Spritesheets", "player_dslash.png", frames=4),
-                "images": imgload3("assets", "Images", "Player_Animations", "Staff", "ground.png", frames=13),
-                "speed": 3.5,
-                "size": (26 * S, 20 * S),
-                "xo": 5 * S
-            },
-
-            "uslash": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_uslash.png", frames=4),
-                "speed": 2.5,
-                "size": (25 * S, 19 * S),
-            },
-
-            "hslash": {
-                "images": imgload3("assets", "Images", "Spritesheets", "player_hslash.png", frames=8),
-                "speed": 2.5,
-                "size": (26 * S, 26 * S),
-                "offset": (0, -5 * 3)
-            }
-        }
         # animation data
-        _i = self.anim_info["idle"]
-        self.player_icon = T(pygame.transform.scale_by(_i["images"][0].subsurface(_i["face"]), 2))
-        self.player_icon_rect = self.player_icon.get_rect(center=player_border_rect.center)
-        for name, data in self.anim_info.items():
-            surfs = data["images"]
-            self.anim_info[name]["images"] = [T(img) for img in surfs]
-            self.anim_info[name]["fimages"] = [T(pygame.transform.flip(img, True, False)) for img in surfs]
-        self.anim_skin = "Monk"
+        self.anim_skin = "_Default"
         self.anim_type = "idle"
         self.anim_queue = []
-        # for image in self.images:
-        #     image.fill(GRAY)
-        # self._rect = self.images[0].get_rect()
         # image initialization
         self.direc = "left"
         self.anim = 0
         self.up = True
-        # self.flip_images(self.images)
-        # self.left_images = [T(x) for x in self.left_images]
-        # self.right_images = [T(x) for x in self.right_images]
         self.animate()
         # rest
         self.x = 0
         self.y = 0
-        self.width, self.height = self.size
         # self._rect = self.image.get_rect(center=win.center)
         self.fre_vel = 3
         self.adv_xvel = 2
@@ -2127,7 +1978,6 @@ class Player(SmartVector):
         self.still = True
         self.in_air = True
         self.invisible = False
-        self.skin = None
         self.stats = {}
         self.spin_angle = 0
         self.eating = False
@@ -2151,10 +2001,9 @@ class Player(SmartVector):
         self.broken_blocks = dd(int)
         self.main = "block"
         self.moved_x = 0
+        self.circle = T(circle(self.size[0] * 0.08, RED))
 
     def __getstate__(self):
-        del self.anim_info
-        del self.player_icon
         del self.image
         return self.__dict__
 
@@ -2164,8 +2013,6 @@ class Player(SmartVector):
         self.move_accordingly()
         self.off_screen()
         self.drops()
-        #self.update_fall_effect()
-        self.update_effects()
         self.achieve()
 
     def move_accordingly(self):
@@ -2173,20 +2020,42 @@ class Player(SmartVector):
             self.adventure_move()
 
     def draw(self):  # player draw
-        # pre
-        pass
-        # intra
-        # win.renderer.blit(self.image, self.rect_draw)
         win.renderer.blit(self.image, self.rect_draw)
-        # get the weapon the player is primarily
-        # img = anim.imgs["Staff"]["run"][self.anim_direc][int(self.anim)]
-        # rect = anim.rects["Staff"]["run"]
-        # rect.topleft = self.rect_draw.topleft
-        # win.renderer.blit(img, rect)
-        # post
-        if pw.show_hitboxes:
+        if pw.show_any_hitboxes:
             draw_rect(win.renderer, (120, 120, 120, 255), self.rect)
-            # draw_rect(win.renderer, GREEN, self.rect_draw)
+            draw_rect(win.renderer, ORANGE, self.rect_draw)
+            with suppress(IndexError):
+                col = self.get_cols()[0]
+                # print(self.y, self._rect, self.rect, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30), pygame.mouse.get_pos())
+            circle_rect = pygame.Rect(0, 0, self.circle.width, self.circle.height)
+            circle_rect.center = self.rect_draw.center
+            win.renderer.blit(self.circle, circle_rect)
+            
+
+    @property  # player _rect; player urect
+    def _rect(self):
+        ret = pygame.Rect(0, 0, *self.size)
+        ret.center = (self.x, self.y)
+        return ret
+    
+    @property
+    def rect(self):  # player rect play
+        ret = pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self.size)
+        return ret
+    
+    @property
+    def _rect_draw(self):
+        ret = pygame.Rect(0, 0, *self.ci_size)
+        xo, yo = anim.data[self.anim_skin][self.anim_type].get("offset", (0, 0))
+        xo *= S * self.sign
+        yo *= S
+        ret.center = (self.x + xo, self.y + yo)
+        return ret
+    
+    @property
+    def rect_draw(self):
+        ret = pygame.Rect(self._rect_draw.x - g.scroll[0], self._rect_draw.y - g.scroll[1], *self.ci_size)
+        return ret
 
     @property
     def sign(self):
@@ -2194,27 +2063,19 @@ class Player(SmartVector):
 
     @property
     def size(self):
-        # size = anim.rects[self.anim_skin].size
-        # size = (self.image.width, self.image.height)
-        size = (25 * S, 24 * S)
-        return size
+        return (14 * S, 23 * S + 1)
 
     @property
-    def rect_draw(self):
-        return pygame.Rect(self._rect_draw.x - g.scroll[0], self._rect_draw.y - g.scroll[1], *self._rect_draw.size)
-
+    def ci_size(self):
+        return (self.image.width, self.image.height)
+    
     @property
-    def _rect_draw(self):
-        rect = pygame.Rect(self._rect.topleft, (self.image.width, self.image.height))
-        return rect
-
+    def width(self):
+        return self.size[0]
+    
     @property
-    def rect(self):
-        return pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self._rect.size)
-
-    @property
-    def _rect(self):
-        return pygame.Rect(self.x, self.y, *self.size)
+    def height(self):
+        return self.size[1]
 
     @property
     def reverse_blocks(self):
@@ -2505,18 +2366,6 @@ class Player(SmartVector):
         #     self.food_pie = self.def_food_pie.copy()
         self.eating = True
 
-    def update_fall_effect(self):
-        for block in all_blocks:
-            if self.rect.colliderect(block.rect):
-                if bpure(block.name) == "water":
-                    self.fall_effect /= 5
-                    break
-        else:
-            self.fall_effect = self.yvel
-
-    def update_effects(self):
-        pass
-
     def drops(self):
         for drop in all_drops:
             if drop._rect.colliderect(self._rect):
@@ -2549,10 +2398,22 @@ class Player(SmartVector):
         Entry(win.renderer, "Enter your new username:", set_username, **pw.entry_kwargs, default_text=("random", orbit_fonts[20]))
 
     def get_cols(self, rects_only=True, ramps=False):
+        ret = []
         if rects_only:
-            return [data[1] for data in ((self.block_data + self.ramp_data) if ramps else self.block_data) if self._rect.colliderect(data[1]) and is_hard(data[0].name)]
+            for data in ((self.block_data + self.ramp_data) if ramps else self.block_data):
+                if pw.show_any_hitboxes:
+                    rect = pygame.Rect(data[1].x - g.scroll[0], data[1].y - g.scroll[1], *data[1].size)
+                    # draw_rect(win.renderer, ORANGE, rect)
+                if self._rect.colliderect(data[1]) and is_hard(data[0].name):
+                    ret.append(data[1])
         else:
-            return [data for data in ((self.block_data + self.ramp_data) if ramps else self.block_data) if self._rect.colliderect(data[1])]
+            for data in ((self.block_data + self.ramp_data) if ramps else self.block_data):
+                if pw.show_any_hitboxes:
+                    rect = pygame.Rect(data[1].x - g.scroll[0], data[1].y - g.scroll[1], *data[1].size)
+                    # draw_rect(win.renderer, GREEN, rect)
+                if self._rect.colliderect(data[1]):
+                    ret.append(data)
+        return ret
 
     def scroll(self):
         # scrolling
@@ -2574,6 +2435,7 @@ class Player(SmartVector):
 
     # player move
     def adventure_move(self):
+        # cant walk if some of these are active
         if pw.keybinds_active:
             return
         # scroll
@@ -2625,142 +2487,53 @@ class Player(SmartVector):
                 self.to_dashy[0] += self.to_dashy[1]
             self.y += self.to_dashy[0]
 
-        # x-col
-        if not self.flinching:
-            if left or right:
-                if self.anim_type == "idle":
-                    self.anim_type = "run"
-            else:
-                if self.anim_type == "run":
-                    self.anim_type = "idle"
-            xacc = 2
-            xdacc = 1
-            dxvel = 2
-            data = {"speed": 2}
-            if left:
-                self.xvel -= xacc
-                self.xvel = max(self.xvel, -dxvel)
-                self.direc = "left"
-                if self.anim_type == "run":
-                    self.anim += g.p.anim_fps * data["speed"]
-            elif self.xvel < 0:
-                self.xvel += xdacc
-                self.xvel = min(0, self.xvel)
-            if right:
-                self.xvel += xacc
-                self.xvel = min(self.xvel, dxvel)
-                self.direc = "right"
-                if self.anim_type == "run":
-                    self.anim += g.p.anim_fps * data["speed"]
-            elif self.xvel > 0:
-                self.xvel -= xdacc
-                self.xvel = max(0, self.xvel)
-
-        dx = (self.xvel + self.extra_xvel)
-        self.centerx += dx
-        cols = self.get_cols(rects_only=False)
-        for col in cols:
-            block, col = col
-            nbg = non_bg(block.name)
-            if not is_hard(block.name):
-                continue
-            if self.xvel > 0:
-                self.right = col.left
-            if self.xvel < 0:
-                self.left = col.right
-
-        # ramp x-col
-        for block, ramp in self.ramp_data:
-            name = block.name
-            if self._rect.colliderect(ramp):
-                rel_x = self.x - ramp.x
-                if name.endswith("_deg0"):
-                    rel_y = rel_x + self.width
-                elif name.endswith("_deg270"):
-                    rel_y = ramp.height - rel_x
-                rel_y = min(rel_y, ramp.height)
-                rel_y = max(rel_y, 0)
-                target_y = ramp.y + ramp.height - rel_y
-                if self.bottom > target_y:
-                    self.bottom = target_y
-                    self.yvel = 0
-                    self.in_air = False
-            if pw.show_hitboxes:
-                rect = pygame.Rect(ramp.x - g.scroll[0], ramp.y - g.scroll[1], BS, BS)
-                draw_rect(win.renderer, RED, rect)
-
-        # y-movement
-        self.gravity_active = True
-        cols = self.get_cols(rects_only=False)
-        if "water" in [col[0].name for col in cols]:
-            if not self.entered_water:
-                self.last_entered_water = ticks()
-                self.entered_water = True
-            if ticks() - self.last_entered_water >= 50 and up:
-                self.y -= 1
-                self.gravity_active = False
+        # x-movement
+        if left:
+            self.xvel = -2
+            self.direc = "left"
+        elif right:
+            self.xvel = 2
+            self.direc = "right"
         else:
-            self.entered_water = False
-
-        # acceleration due to gravity
-        if not self.to_dashy[0]:
-            if self.gravity_active:
-                self.gravity = self.def_gravity
-                if up:
-                    if not self.in_air:
-                        if self.tool == "uranium_shovel":
-                            self.yvel = 2 * self.def_jump_yvel
-                        else:
-                            self.yvel = self.def_jump_yvel
-                        self.in_air = True
-                        self.anim_type = "jump"
-                    elif self.yvel >= 0:
-                        if self.tool == "uranium_shovel":
-                            self.gravity = self.def_gravity * 0.1
-                self.yvel += self.gravity
-                if self.yvel >= 2:
-                    self.in_air = True
-                self.yvel = min(self.yvel, 8)
-                self.bottom += self.yvel
-
-        # collision with the ground
-        cols = self.get_cols(rects_only=False)
-        for col in cols:
-            block, col = col
-            nbg = non_bg(block.name)
-            if not is_hard(block.name):
-                continue
+            self.xvel = 0
+        # animation setting
+        if self.xvel:
+            if self.anim_type == "idle":
+                self.anim_type = "run"
+        else:
+            if self.anim_type == "run":
+                self.anim_type = "idle"
+        # x-col
+        self.x += self.xvel
+        for col in self.get_cols(rects_only=True):
+            if self.xvel > 0:
+                self.x = col.left - self.width / 2
+            elif self.xvel < 0:
+                self.x = col.right + self.width / 2
+        
+        # y-col
+        self.yvel += self.gravity
+        # animation setting
+        if self.yvel > 3:
+            if self.anim_type in ("idle", "run"):
+                self.anim_type = "jump"
+        self.y += self.yvel
+        for col in self.get_cols(rects_only=True):
             if self.yvel > 0:
-                self.bottom = col.top
+                self.y = col.top - int(self.height / 2)
+                for col in self.get_cols(rects_only=True):
+                    draw_rect(win.renderer, GREEN, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30))
                 self.yvel = 0
-                self.in_air = False
-                if nbg == "slime":
-                    self.yvel = -3
-                    self.in_air = True
-                    break
                 if self.anim_type == "jump":
                     self.anim_type = "idle"
             elif self.yvel < 0:
-                self.top = col.bottom
+                self.y = col.bottom + int(self.height / 2)
                 self.yvel = 0
-
-        for block, wt in self.water_data:
-            name = block.name
-            rel_x = (self.centerx - wt.x) * S
-            if rel_x < 0:
-                rel_x = 0
-            elif rel_x > 15:
-                rel_x = 15
-            if self._rect.colliderect(wt):
-                if not block.collided:
-                    max_i = 20
-                    for i, x in enumerate(range(rel_x, -1, -1)):
-                        block.waters[x]["y"] = max_i - i
-                    for i, x in enumerate(range(rel_x, len(block.waters) - 1)):
-                        block.waters[x]["y"] = max_i - i
-                    block.collided = True
-            else:
-                block.collided = False
+    
+    def jump(self):
+        if self.anim_type != "jump":
+            g.player.yvel = g.player.def_jump_yvel
+            self.anim_type = "jump"
 
     def camel_move(self, camel):
         self.rect.centerx = camel.centerx - 10
@@ -2822,9 +2595,7 @@ class Player(SmartVector):
         except KeyError:
             # the default animation is "run"
             fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
-        if self.anim_type != "run":
-            # process animation speed from anim.data[]
-            self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
+        self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
         try:
             # try animating the index given the [fdi]
             fdi[int(self.anim)]
@@ -3088,7 +2859,7 @@ class Visual:
                 # g.player.new_anim("uslash")
                 pass
             elif dy > 0:
-                g.player.new_anim("stab")
+                g.player.new_anim("punch")
         g.mouse_rel_log.clear()
 
     def swing_sword(self):
@@ -3482,8 +3253,6 @@ class Projectile(Scrollable):
     def draw(self):  # projectile draw
         if not self.invisible:
             win.renderer.blit(self.image, self.rect)
-            if pw.show_hitboxes:
-                (win.renderer, RED, self.rect, 1)
 
     @property
     def dx(self):
@@ -3779,13 +3548,27 @@ class OrbParticle:
 
 
 class ShatterParticle(Scrollable):
-    def __init__(self, entity, area):
+    def __init__(self, entity, area, blood=False):
         super().__init__(g)
+        self.blood = blood
         self.entity = entity
-        self.area = area
-        self.image = entity.image
-        self.x, self.y = entity._rect.center
-        self._rect = pygame.Rect((0, 0), area[2:])
+        #
+        if not self.blood:
+            self.area = area
+            self.image = entity.image
+            self._rect = pygame.Rect((0, 0), self.area[2:])
+            self.width, self.height = area[2:]
+            self.x, self.y = entity._rect.center
+        else:
+            self.width, self.height = 2, 2
+            surf = pygame.Surface((self.width, self.height))
+            surf.fill(RED)
+            self.image = T(surf)
+            self.area = pygame.Rect(0, 0, self.width, self.height)
+            self._rect = self.image.get_rect()
+            self.x = rand(entity._rect.left, entity._rect.right)
+            self.y = rand(entity._rect.top, entity._rect.bottom)
+        #
         self._rect.center = self.x, self.y
         self._rects = entity.final_rects
         self.syvel = self.yvel = randf(-3.5, -4)
@@ -3793,7 +3576,6 @@ class ShatterParticle(Scrollable):
         self.energy = self.yvel
         # self.xvel = 0
         self.xvel = randf(-0.5, 0.5)
-        self.width, self.height = area[2:]
         self.drops = entity.drops
         self.bounces = 0
         self.last = ticks()
@@ -3803,27 +3585,30 @@ class ShatterParticle(Scrollable):
         self.yvel += self.yacc
         self.y += self.yvel
         self._rect.topleft = (int(self.x), int(self.y))
-        for _rect in self._rects:
-            if self._rect.colliderect(_rect):
-                self.y = _rect.top - self.height
-                self.energy *= 0.6
-                self.yvel = self.energy
-                self.bounces += 1
-                if self.bounces == 4:
-                    all_other_particles.remove(self)
+        # for _rect in self._rects:
+        #     if self._rect.colliderect(_rect):
+        #         self.y = _rect.top - self.height
+        #         self.energy *= 0.6
+        #         self.yvel = self.energy
+        #         self.bounces += 1
+        #         if self.bounces == 4:
+        #             all_other_particles.remove(self)
         self._rect.topleft = (int(self.x), int(self.y))
         win.renderer.blit(self.image, self.rect, area=self.area)
         if ticks() - self.last >= 1250:
-            # drop the loot (only the first time)
-            if self.entity not in g.w.entities[self.entity.chunk_index]:
-                return
-            g.w.entities[self.entity.chunk_index].remove(self.entity)
-            for drop, amount in self.entity.drops.items():
-                all_drops.append(Drop(drop, self.entity._rect, amount))
+            # drop the loot (only the first time) (and only when is kein blood particle)
+            if not self.blood:
+                if self.entity not in g.w.entities[self.entity.chunk_index]:
+                    return
+                g.w.entities[self.entity.chunk_index].remove(self.entity)
+                for drop, amount in self.entity.drops.items():
+                    all_drops.append(Drop(drop, self.entity._rect, amount))
+            all_other_particles.remove(self)
 
 
-class BloodParticle(Scrollable):
-    def __init__(self, )
+class BloodParticle(ShatterParticle):
+    def __init__(self, entity):
+        super().__init__(entity, None, blood=True)
 
 
 class OrbMatrix:
@@ -4003,15 +3788,11 @@ class InfoBox:
         # self image
         self.image = pygame.Surface([s + self.padding for s in self.font.size(text)], pygame.SRCALPHA)
         br = 10
-        (self.image, LIGHT_GRAY, (0, 0, *self.image.get_size()), 0, br)
-        (self.image, DARK_GRAY, (0, 0, *self.image.get_size()), 3, br)
         self.rect = self.image.get_rect(topleft=self.pos)
         self.width, self.height = self.rect.size
         # continue image
         self.con_image = pygame.Surface((80, 30), pygame.SRCALPHA)
         br = 10
-        (self.con_image, LIGHT_GRAY, (0, 0, *self.con_image.get_size()), 0, br)
-        (self.con_image, DARK_GRAY, (0, 0, *self.con_image.get_size()), 3, br)
         self.con_rect = self.con_image.get_rect(topright=(self.rect.right, self.rect.bottom))
         # rest
         self.alpha = 0
@@ -4590,8 +4371,6 @@ async def main(debug, cprof=False):
         ...
         # cantaloop
         while running:
-
-
             # group(Spark(list(pygame.mouse.get_pos()), rand(0, 360), 2, WHITE, 3), all_other_particles)
             # init dynamic constants
             mouse = pygame.mouse.get_pos()
@@ -4669,10 +4448,13 @@ async def main(debug, cprof=False):
                             # for p in all_other_particles:
                             #     p.switch()
                             pass
-
+                        
                         if event.key == pygame.K_1:
                             # win.target_zoom = (3, 3)
                             pass
+                        
+                        if event.key == pygame.K_w:
+                            g.player.jump()
 
                         if event.key == K_q:  # debug so far until it gets a feature on its own
                             # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
@@ -4689,6 +4471,7 @@ async def main(debug, cprof=False):
                             # e = g.w.entities[(-1, 0)][0]
                             # e.take_damage(40)
                             ...
+                            g.player.anim_skin = {"Monk": "_Default", "_Default": "Samurai", "Samurai": "Monk"}[g.player.anim_skin]
 
                         # actual gameplay events
                         if g.stage == "play":
@@ -5107,8 +4890,8 @@ async def main(debug, cprof=False):
                 #     bsprite.update()
                 # processing chunks
                 updated_chunks = []
-                num_blocks = 0
-                num_entities = 0
+                g.num_blocks = 0
+                g.num_entities = 0
                 # late chunk data
                 for chunk in g.w.late_chunk_data:
                     if chunk in g.w.data:
@@ -5274,7 +5057,7 @@ async def main(debug, cprof=False):
                                     block.finish_breaking = (target_chunk, abs_pos)
                             # g.player.ext_block_data.append([block, block._rect])
                             # calculate_light(target_chunk, abs_pos)
-                            num_blocks += 1
+                            g.num_blocks += 1
                             continue
                             name = block.name
                             nbg = non_bg(name)
@@ -5372,55 +5155,57 @@ async def main(debug, cprof=False):
                             # update block cache for collisions of the entities
                             if abs_pos in g.w.data[target_chunk]:
                                 g.w.block_data[target_chunk][block.pos] = block
-
-                # if light_tex is not None and light_rect is not None:
-                #     win.renderer.blit(light_tex, light_rect)
-                #     draw_rect(win.renderer, RED, light_rect)
-
+       
                 # update the entities
-                for chunk in updated_chunks:
-                    for i, entity in enumerate(g.w.entities[chunk][:]):
-                        # relocate entity to new chunk
-                        entity.check_chunk_borders()
-                        if entity.relocate_to is not None and entity.relocate_to in g.w.data:
-                            # print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
-                            g.w.entities[entity.chunk_index].remove(entity)
-                            g.w.entities[entity.relocate_to].append(entity)
-                            entity.chunk_index = entity.relocate_to
-                            entity.relocate_to = None
-                        # update the entity
-                        num_entities += 1
-                        entity.update(g.dt, pw.show_hitboxes, g.dialogue)
-                        # cool dialogue
-                        if entity.dialogue:
-                            g.dialogue = True
-                            g.scroll_orders = [
-                                entity._rect.centerx - entity.height / 2,
-                                entity._rect.centery - entity.width / 2
-                            ]
-                            entity.dialogue = False
-                            # win.target_zoom = (3, 3)
-                        # check whether the entity is dead and drop the loot
-                        if entity.dead and not entity.dying:
-                            # shatter particles
-                            n = 3
-                            w = roundn(entity.image.width / n, S)
-                            h = roundn(entity.image.height / n, S)
-                            for y in range(n):
-                                for x in range(n):
-                                    area = pygame.Rect(x * w, y * h, w, h)
-                                    group(ShatterParticle(entity, area), all_other_particles)
-                            entity.dying = True
-                        # show hitboxes if selected by user
-                        if pw.show_hitboxes:
-                            draw_rect(win.renderer, RED, entity.rect)
-                            write(win.renderer, "midbottom", entity.chunk_index, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
-                        # collide with attacking player
-                        if g.player.anim_type in ("uslash", "dslash"):
-                            if entity._rect.colliderect(g.player._rect):
-                                entity.take_damage(1)
-                                if entity.demon:
-                                    entity.glitch()
+                if pw.entities:
+                    for chunk in updated_chunks:
+                        for i, entity in enumerate(g.w.entities[chunk][:]):
+                            # relocate entity to new chunk
+                            entity.check_chunk_borders()
+                            if entity.relocate_to is not None and entity.relocate_to in g.w.data:
+                                # print(f"\n\n\nrelocated from {entity.chunk_index} to {entity.relocate_to}\n\n\n")
+                                g.w.entities[entity.chunk_index].remove(entity)
+                                g.w.entities[entity.relocate_to].append(entity)
+                                entity.chunk_index = entity.relocate_to
+                                entity.relocate_to = None
+                            # update the entity
+                            g.num_entities += 1
+                            entity.update(g.dt, pw.show_hitboxes, g.dialogue)
+                            # cool dialogue
+                            if entity.dialogue:
+                                g.dialogue = True
+                                g.scroll_orders = [
+                                    entity._rect.centerx - entity.height / 2,
+                                    entity._rect.centery - entity.width / 2
+                                ]
+                                entity.dialogue = False
+                                # win.target_zoom = (3, 3)
+                            # check whether enemy has been hit this frame and add blood effect
+                            if entity.taking_damage:
+                                entity.set_final_rects()
+                                for _ in range(1):
+                                    group(BloodParticle(entity), all_other_particles)
+                            # check whether the entity is dead and drop the loot
+                            if entity.dead and not entity.dying:
+                                # shatter particles
+                                n = 3
+                                w = roundn(entity.image.width / n, S)
+                                h = roundn(entity.image.height / n, S)
+                                for y in range(n):
+                                    for x in range(n):
+                                        area = pygame.Rect(x * w, y * h, w, h)
+                                        group(ShatterParticle(entity, area), all_other_particles)
+                                entity.dying = True
+                            # show hitboxes if selected by user
+                            if pw.show_hitboxes:
+                                draw_rect(win.renderer, RED, entity.rect)
+                                write(win.renderer, "midbottom", entity.chunk_index, orbit_fonts[12], BLACK, entity.rect.centerx, entity.rect.top - 8, tex=True)
+                            # collide with attacking player
+                            if g.player.anim_type in ("punch",):
+                                if entity._rect.colliderect(g.player._rect):
+                                    entity.take_damage(1)
+                                    if entity.demon:
+                                        entity.glitch()
 
                 # breaking the blocks with tools
                 for block in g.w.to_break[:]:
@@ -5453,8 +5238,6 @@ async def main(debug, cprof=False):
                             )
                             color = ORANGE
                             draw_rect(win.renderer, color, rect)
-                            with suppress(AttributeError):
-                                write(win.renderer, "center", block.light, orbit_fonts[16], WHITE, *rect.center, tex=True)
                             hovering_rect = [r * S for r in rect]
                             if mouses:
                                 pass
@@ -5541,7 +5324,7 @@ async def main(debug, cprof=False):
                 # breaking blocks spritesheet rendering (if you see this fuck you)
 
                 # foregorund sprites (includes the player)
-                visual.update()
+                # visual.update()
                 g.player.update()
 
                 # all_foreground_sprites.draw(win.renderer)
@@ -5558,7 +5341,7 @@ async def main(debug, cprof=False):
 
                 # show fps
                 if pw.show_fps:
-                    pw.show_fps_command(num_blocks, num_entities)
+                    pw.show_fps_command()
 
                 # # processing lasts
                 # if ticks() - last_cloud >= rand(7_560, 14_000):
@@ -5687,7 +5470,7 @@ async def main(debug, cprof=False):
                 """
 
                 # P L A Y  B L I T S -------------------------------------------------------------------------- #
-                write(win.renderer, "bottomright", g.player.username, orbit_fonts[12], g.w.text_color, *g.player.rect.topleft, tex=True)
+                # write(win.renderer, "bottomright", g.player.username, orbit_fonts[12], g.w.text_color, *g.player.rect.topleft, tex=True)
                 # metal_detector_perc = floor((metal_detector + 0.5) * 100)
                 # write(win.renderer, "center", f"{metal_detector_perc}%", orbit_fonts[15], BLACK, g.player.rrect.centerx, g.player.rrect.centery - 60, border=WHITE)
                 # win.renderer.blit(g.bar_rgb_img.subsurface(0, 0, metal_detector_perc, g.bar_rgb_img.get_height()), (100, 100))
@@ -5706,16 +5489,17 @@ async def main(debug, cprof=False):
                         block = gpure(g.player.block).upper()
                     else:
                         block = bshow(g.player.block).upper()
-                    write(win.renderer, "topleft", block, orbit_fonts[15], g.w.text_color, x, y + yo, tex=True)
+                    # write(win.renderer, "topleft", block, orbit_fonts[15], g.w.text_color, x, y + yo, tex=True)
 
                 elif g.player.main == "tool" and g.player.tool:
                     # write tool name
                     x = tool_holders_x * S + tool_holders_width * S / 2
                     tool = tshow(g.player.tool).upper()
-                    write(win.renderer, "center", tool, orbit_fonts[inventory_font_size], g.w.text_color, x, y + yo, tex=True)
+                    # write(win.renderer, "center", tool, orbit_fonts[inventory_font_size], g.w.text_color, x, y + yo, tex=True)
                     if is_gun(g.player.tool):
-                        write(win.renderer, "center", f"{BULLET}", helvue_fonts[22], g.w.text_color, g.mouse[0] - visual.scope_yoffset, g.mouse[1] - 30)
-                        write(win.renderer, "center", g.player.tool_ammo, orbit_fonts[16], g.w.text_color, g.mouse[0] + visual.scope_yoffset, g.mouse[1] - 30)
+                        # write(win.renderer, "center", f"{BULLET}", helvue_fonts[22], g.w.text_color, g.mouse[0] - visual.scope_yoffset, g.mouse[1] - 30)
+                        # write(win.renderer, "center", g.player.tool_ammo, orbit_fonts[16], g.w.text_color, g.mouse[0] + visual.scope_yoffset, g.mouse[1] - 30)
+                        pass
                     # show info
                     if g.show_info:
                         info_xo = 10
@@ -5740,9 +5524,11 @@ async def main(debug, cprof=False):
                     blit_rect = pygame.Rect(x + 3, y + 3, BS, BS)
                     if block is not None:
                         if g.player.inventory_amounts[index] != float("inf"):
-                            write(win.renderer, "center", g.player.inventory_amounts[index], orbit_fonts[inventory_font_size], g.w.text_color, x + 17, y + 44, tex=True)
+                            # write(win.renderer, "center", g.player.inventory_amounts[index], orbit_fonts[inventory_font_size], g.w.text_color, x + 17, y + 44, tex=True)
+                            pass
                         else:
-                            write(win.renderer, "center", INF, arial_fonts[18], g.w.text_color, x + 17, y + 47, tex=True)
+                            # write(win.renderer, "center", INF, arial_fonts[18], g.w.text_color, x + 17, y + 47, tex=True)
+                            pass
                         win.renderer.blit(g.w.blocks[block], blit_rect)
                     if g.player.main == "block":
                         if index == g.player.blocki:
@@ -6011,7 +5797,7 @@ async def main(debug, cprof=False):
                     win.renderer.blit(tool_crafter_img, mbr)
                     # render the sword
                     g.mb.sword.ox, g.mb.sword.oy = mbr.topleft
-                    g.mb.sword.ox += 60
+                    g.mb.sword.ox += 160
                     g.mb.sword.oy += 200
                     g.mb.sword.update()
                     # tool crafter button
@@ -6087,29 +5873,6 @@ async def main(debug, cprof=False):
                         if pw.show_hitboxes:
                             (win.renderer, GREEN, g.player.food_pie["rect"], 1)
 
-                # skin menu filling
-                if g.skin_menu:
-                    # background (filling)
-                    win.renderer.blit(g.skin_menu_surf, (win.width / 2, win.height / 2))
-                    win.renderer.blit(g.w.player_model, (win.width / 2, win.height / 2))
-                    # skins (showcase)
-                    for bt in g.skins:
-                        if g.skin_data(bt)["sprs"]:
-                            try:
-                                g.skin_anims[bt] += g.skin_anim_speed
-                                skin_img = g.skin_data(bt)["sprs"][int(g.skin_anims[bt])]
-                                skin_pos = g.skin_data(bt)["offset"]
-                                win.renderer.blit(skin_img, (g.player_model_pos[0] + skin_pos[0] * g.skin_fppp, g.player_model_pos[1] + skin_pos[1] * g.skin_fppp))
-                            except IndexError:
-                                g.skin_anims[bt] = 0
-                                g.skin_anims[bt] += g.skin_anim_speed
-                                skin_img = g.skin_data(bt)["sprs"][int(g.skin_anims[bt])]
-                                skin_pos = g.skin_data(bt)["offset"]
-                                win.renderer.blit(skin_img, (g.player_model_pos[0] + skin_pos[0] * g.skin_fppp, g.player_model_pos[1] + skin_pos[1] * g.skin_fppp))
-
-                    # buttons (arrows)
-                    for button in pw.change_skin_buttons:
-                        win.renderer.blit(button["surf"], button["rect"].center)
                 if g.saving_structure:
                     write(win.renderer, "midtop", "structure", orbit_fonts[9], DARK_GREEN, win.width - 30, 50, tex=True)
 
@@ -6226,5 +5989,4 @@ async def main(debug, cprof=False):
 if __name__ == "__main__":
     # main(debug=g.debug)
     asyncio.run(main(debug=g.debug))
-    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="cumtime")
-    # import cProfile; cProfile.run("main(debug=True, cprof=True)", sort="cumtime")
+    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="tottime")

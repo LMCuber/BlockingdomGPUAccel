@@ -40,6 +40,73 @@ def get_crystal(type_, color=None):
     return bcc
 
 
+def get_cube(base_color):
+    poly = Crystal(win.renderer, "cube.obj", [], [], [], (940, 300), 140, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=True, normals=True)
+    return poly
+
+
+def get_sphere(base_color):
+    num_lon = 10
+    num_lat = 10
+    mult = 60
+    name = f"{num_lon}x{num_lat}.obj"
+    if os.path.isfile(path("src", "shapes", "spheres", name)):
+        sphere = Crystal(win.renderer, path("src", "shapes", "spheres", name), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False)
+    else:
+        # calculations
+        vertices = []
+        r = 1
+        point_r = 1
+        for j in range(num_lat + 1):  # the + 1 does the bottom tip
+            lat = j / num_lat * pi
+            for i in range(num_lon):  # the + 1 is omitted with the laahnjituudessè because well performance reasons less vertices -> less calculations per frame
+                lon = i / num_lon * (2 * pi)
+                z = r * sin(lat) * cos(lon)
+                x = r * sin(lat) * sin(lon)
+                y = -r * cos(lat)
+                vertex = (x, y, z)
+                if vertex not in vertices:
+                    vertices.append(vertex)
+        # fills
+        fills = []
+        # tip (triangles)
+        fills.extend([
+            [[[rand(0, 255)] * 4, (0, 0, 0, 0)], 0, n, (n + 1) if n < num_lon else 1]
+            for n in range(1, num_lon + 1)
+        ])
+        # body (quads)
+        for y in range(num_lat - 2):
+            fills.extend([
+                [[[rand(0, 255)] * 4, (0, 0, 0, 0)], y * num_lon + n, *((y * num_lon + n + 1, y * num_lon + n + num_lon + 1) if n < num_lon else (y * num_lon + 1, y * num_lon + num_lon + 1)), y * num_lon + n + num_lon]
+                for n in range(1, num_lon + 1)
+            ])
+        # bottom tip (triangles)
+        fills.extend([
+            [[[rand(0, 255)] * 4, (0, 0, 0, 0)], (num_lat - 2) * num_lon + n, ((num_lat - 2) * num_lon + n + 1) if n < num_lon else ((num_lat - 2) * num_lon + 1), (num_lat - 1) * num_lon + 1]
+            for n in range(1, num_lon + 1)
+        ])
+        # object creation
+        sphere = Crystal(
+            win.renderer,
+            vertices, [
+
+            ], [
+                # lines
+            ],
+            fills,
+            (300, 300), mult, point_r, 0, 0, 0, 0.0035, 0.0035, 0.0035,
+            fill_as_connections=False,
+        )
+    sphere.save_to_file(path("src", "shapes", "spheres", name))
+    return sphere
+
+
+# def get_sphere(base_color):
+#     mult = 140
+#     sphere = Crystal(win.renderer, path("obj", "obj", "Hexagon.obj"), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=True)
+#     return sphere
+
+
 def get_sword(base_color):
     mult = 140
     w, l, h = 0.12, 0.8, 0.03
@@ -148,16 +215,16 @@ def get_sword(base_color):
 
 def get_katana(base_color):
     mult = 140
-    gw, gl, gh = 0.07, 0.6, 0.04
+    gw, gl, gh = 0.07, 0.5, 0.04
     num_p = 5
     pw = 0.1
     pl = 0.05
     ps = (gl - pl * num_p) / (num_p + 1)
-    bw, bl, bh = gw, gl * 3, gh
+    bw, bl, bh = gw, gl * 2, gh
     # pattern
     pattern = []
     for yo in range(num_p):
-        tip = (yo + 1) * ps + yo * pl
+        tip = (yo + 1) * ps + yo * pl + bl
         pattern.extend([
             (0, tip, gh),
             (pw / 2, tip + 0.5 * pl, bh),
@@ -173,23 +240,23 @@ def get_katana(base_color):
     katana = Crystal(
         win.renderer, [
             # base
-            [-gw, 0, gh],
-            [gw, 0, gh],
-            [gw, gl, gh],
-            [-gw, gl, gh],
-            [-gw, 0, -gh],
-            [gw, 0, -gh],
-            [gw, gl, -gh],
-            [-gw, gl, -gh],
+            [-gw, bl, gh],
+            [gw, bl, gh],
+            [gw, bl + gl, gh],
+            [-gw, bl + gl, gh],
+            [-gw, bl, -gh],
+            [gw, bl, -gh],
+            [gw, bl + gl, -gh],
+            [-gw, bl + gl, -gh],
             *pattern,
             [-bw, -bl, bh],
             [bw, -bl, bh],
-            [bw, 0, bh],
-            [-bw, 0, bh],
+            [bw, bl, bh],
+            [-bw, bl, bh],
             [-bw, -bl, -bh],
             [bw, -bl, -bh],
-            [bw, 0, -bh],
-            [-bw, 0, -bh],
+            [bw, bl, -bh],
+            [-bw, bl, -bh],
         ], [
             # point colors
         ], [

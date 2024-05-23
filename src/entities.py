@@ -8,8 +8,13 @@ from .settings import *
 APURPLE = PURPLE[:3] + (30,)
 
 # B A S E  E N T I T Y --------------------------------------------------------------------------------- #
+def Rect(*args, **kwargs):
+    return pygame.Rect(*args, **kwargs)
+
+
 class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVector
                                 # thank you past Leo for this, now I'm stuck on the fucking chicken bug manipulating spacetime
+                                # shut the fuck up now I have performance issues with the chicken existing
     _img_metadata = {
             "chicken": {
                 "walk": {"frames": 2},
@@ -115,9 +120,9 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 
         # extra traits
         if "mob" in self.traits:
-            self.health_bar_border = pygame.Rect(0, 0, 80, 12)
-            self.health_bar_prev = pygame.Rect(0, 0, 0, 0)
-            self.health_bar = pygame.Rect(0, 0, 0, 0)
+            self.health_bar_border = Rect(0, 0, 80, 12)
+            self.health_bar_prev = Rect(0, 0, 0, 0)
+            self.health_bar = Rect(0, 0, 0, 0)
         if "demon" in self.traits:
             self.bar_rgb = lerp(RED, PURPLE, 50) + lerp(PURPLE, RED, 51) + (255,)
             self.demon = True
@@ -233,16 +238,16 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
         self.rect.topleft = (self._rect.x - g.scroll[0], self._rect.y - g.scroll[1])
 
     def check_chunk_borders(self):
-        chunk_x = floor(self.x / (CW * BS))
-        chunk_y = floor(self.y / (CH * BS))
+        chunk_x = floor(self.centerx / (CW * BS))
+        chunk_y = floor(self.centery / (CH * BS))
         if (chunk_x, chunk_y) != self.chunk_index:
             self.relocate_to = (chunk_x, chunk_y)
 
     def jump_over_obstacles(self, yvel=-3):
         m = 1 if self.xvel >= 0 else -1
         h = 2 * BS
-        _ahead = pygame.Rect(self._rect.x + m * 10, self._rect.y - self._rect.height, self._rect.width, h)
-        ahead = pygame.Rect(_ahead.x - g.scroll[0], _ahead.y - g.scroll[1], *_ahead.size)
+        _ahead = Rect(self._rect.x + m * 10, self._rect.y - self._rect.height, self._rect.width, h)
+        ahead = Rect(_ahead.x - g.scroll[0], _ahead.y - g.scroll[1], *_ahead.size)
         if self.show_hitboxes:
             draw_rect(win.renderer, PURPLE, ahead)
         if self.grounded:
@@ -258,19 +263,19 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
 
     def get_cols(self, hor=True, return_type="default", rep_rect=None):  # replacement rect
         _self_rect = rep_rect if rep_rect is not None else self._rect
-        self_rect = pygame.Rect(_self_rect.x - g.scroll[0], _self_rect.y - g.scroll[1], *_self_rect.size)
-        block_x = floor(self.x / BS)
-        block_y = floor(self.y / BS)
+        self_rect = Rect(_self_rect.x - g.scroll[0], _self_rect.y - g.scroll[1], *_self_rect.size)
+        block_x = floor(self.centerx / BS)
+        block_y = floor(self.centery / BS)
         block_pos = (block_x, block_y)
-        xrange = (-4, 5)
-        yrange = (-1, 4)
+        # when using ranges, remember: THE 2ND ARGUMENT DOESN'T INCLUDE!
+        x_range = (-1, 2)
+        y_range = (-1, 2)
         ret = []
-        good = lambda: block_pos == (16, 5) and self.chunk_index == (0, 0) and not hor
         # pritn(self.x / BS, self.y / BS)
         if self.show_hitboxes and rep_rect is None:
             draw_rect(win.renderer, GREEN, self_rect)
-        for yo in range(*yrange):
-            for xo in range(*xrange):
+        for yo in range(*y_range):
+            for xo in range(*x_range):
                 chunk = self.chunk_index
                 pos = (block_pos[0] + xo, block_pos[1] + yo)
                 chunk, pos = correct_tile(self.chunk_index, block_pos, xo, yo)
@@ -279,7 +284,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                         block = g.w.data[chunk][pos]
                         if is_hard(block.name):
                             _rect = block._rect
-                            rect = pygame.Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
+                            rect = Rect(_rect.x - g.scroll[0], _rect.y - g.scroll[1], BS, BS)
                             if self.show_hitboxes:
                                 draw_rect(win.renderer, ORANGE[:3] + (125,) if hor else PURPLE[:3] + (125,), rect)
                             if _self_rect.colliderect(_rect):
@@ -457,10 +462,13 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
                 self.die()
             else:
                 self.hp -= amount
+    
+    def set_final_rects(self):
+        self.final_rects = self.get_cols(return_type="_rect")
 
     def die(self):
         self.dead = True
-        self.final_rects = self.get_cols(return_type="_rect")
+        self.set_final_rects()
 
 
 # M O B S ------------------------------------------------------------------------------------------------ #
