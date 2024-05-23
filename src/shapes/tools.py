@@ -46,9 +46,9 @@ def get_cube(base_color):
 
 
 def get_sphere(base_color):
-    num_lon = 8
-    num_lat = 8
-    mult = 60
+    num_lon = 16
+    num_lat = 16
+    mult = 120
     name = f"{num_lon}x{num_lat}.obj"
     if os.path.isfile(path("src", "shapes", "spheres", name)) and False:
         sphere = Crystal(win.renderer, path("src", "shapes", "spheres", name), [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False)
@@ -742,6 +742,32 @@ def get_hammer(base_color):
     return hammer
 
 
+def get_hammer(base_color):
+    mult = 120
+    hwi, hli, hhi = 0.3, 0.15, 0.15
+    hwo = 0.15
+    base_color = (235, 235, 235, 255)
+    blade_color = (50, 50, 50, 255)
+    outline_color = (255, 255, 255, 255)
+    hammer = Crystal(
+        win.renderer, [
+            (-hwi, -hli, hwo),
+            (hwi, -hli, hwo),
+            (hwi, hli, hwo),
+            (-hwi, hli, hwo),
+        ], [
+
+        ], [
+
+        ], [
+            [[ORANGE, WHITE], 0, 1, 2, 3]
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+    )
+    return hammer
+
+
 def get_dart(base_color):
     get_color = choice((get_red, get_blue, get_green))
     get_acolor = lambda mu, sigma: list(get_color(mu, sigma)[:3]) + [150]
@@ -755,7 +781,7 @@ def get_dart(base_color):
     wdw, wdl = dw * 3, dl * 0.5
     #
     base_color = (235, 235, 235, 255)
-    outline_color = (255, 255, 255, 255)
+    outline_color = None
     dart = Crystal(
         win.renderer, [
             # down
