@@ -1672,10 +1672,11 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        _tool_crafter_kwargs = {"text_color": WHITE, "visible_when": lambda: g.midblit == "tool-crafter", "height": 36, "width": 118}
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), **_tool_crafter_kwargs)
+        _tool_crafter_kwargs = {"text_color": WHITE, "visible_when": lambda: g.midblit == "tool-crafter", "width": 118}
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), height=36, **_tool_crafter_kwargs)
         # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_rotate = ToggleButton(win.renderer, ("rotate", "still"), command=self.tool_crafter_rotate_command, font=orbit_fonts[15], **_tool_crafter_kwargs)
+        self.tool_crafter_rotate = ToggleButton(win.renderer, ("rotate", "still"), command=self.tool_crafter_rotate_command, font=orbit_fonts[15], height=36, **_tool_crafter_kwargs)
+        # self.tool_crafter_rotate = Slider(win.renderer, "Rotation", list(range(0, 11)), 1, font=orbit_fonts[15], height=70, **_tool_crafter_kwargs)
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:

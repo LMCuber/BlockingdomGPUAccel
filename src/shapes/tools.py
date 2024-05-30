@@ -743,24 +743,85 @@ def get_hammer(base_color):
 
 
 def get_hammer(base_color):
-    mult = 120
-    hwi, hli, hhi = 0.3, 0.15, 0.15
-    hwo = 0.15
+    # hammer head
+    mult = 140
+    hwi, hli, hhi = 0.4, 0.20, 0.20
+    o = 0.07
+    hwo, hlo, hho = hwi + o, hli + o, hhi + o
+    # hammer base
+    # rest (also importante)
     base_color = (235, 235, 235, 255)
     blade_color = (50, 50, 50, 255)
     outline_color = (255, 255, 255, 255)
     hammer = Crystal(
         win.renderer, [
-            (-hwi, -hli, hwo),
-            (hwi, -hli, hwo),
-            (hwi, hli, hwo),
-            (-hwi, hli, hwo),
+            # front
+            (-hwi, -hli, hho),
+            (hwi, -hli, hho),
+            (hwi, hli, hho),
+            (-hwi, hli, hho),
+            # back
+            (-hwi, -hli, -hho),
+            (hwi, -hli, -hho),
+            (hwi, hli, -hho),
+            (-hwi, hli, -hho),
+            # top
+            (-hwi, -hlo, -hhi),
+            (hwi, -hlo, -hhi),
+            (hwi, -hlo, hhi),
+            (-hwi, -hlo, hhi),
+            # bottom
+            (-hwi, hlo, hhi),
+            (hwi, hlo, hhi),
+            (hwi, hlo, -hhi),
+            (-hwi, hlo, -hhi),
+            # left
+            (-hwo, -hli, -hli),
+            (-hwo, -hli, hli),
+            (-hwo, hli, hli),
+            (-hwo, hli, -hli),
+            # right
+            (hwo, -hli, hli),
+            (hwo, -hli, -hli),
+            (hwo, hli, -hli),
+            (hwo, hli, hli),
         ], [
 
         ], [
 
         ], [
-            [[ORANGE, WHITE], 0, 1, 2, 3]
+            # faces
+            [[grays[190], None], 0, 1, 2, 3],
+            [[grays[190], None], 5, 4, 7, 6],
+            [[grays[190], None], 8, 9, 10, 11],
+            [[grays[190], None], 12, 13, 14, 15],
+            [[grays[190], None], 16, 17, 18, 19],
+            [[grays[190], None], 20, 21, 22, 23],
+            # top edges
+            [[grays[160], None], 11, 10, 1, 0],
+            [[grays[160], None], 8, 11, 17, 16],
+            [[grays[160], None], 9, 8, 4, 5],
+            [[grays[160], None], 10, 9, 21, 20],
+            # middle edges
+            [[grays[160], None], 1, 20, 23, 2],
+            [[grays[160], None], 21, 5, 6, 22],
+            [[grays[160], None], 4, 16, 19, 7],
+            [[grays[160], None], 17, 0, 3, 18],
+            # bottom edges
+            [[grays[160], None], 3, 2, 13, 12],
+            [[grays[160], None], 23, 22, 14, 13],
+            [[grays[160], None], 6, 7, 15, 14],
+            [[grays[160], None], 19, 18, 12, 15],
+            # top corners
+            [[grays[210], None], 1, 10, 20],
+            [[grays[210], None], 21, 9, 5],
+            [[grays[210], None], 4, 8, 16],
+            [[grays[210], None], 17, 11, 0],
+            # bottom corners
+            [[grays[210], None], 13, 2, 23],
+            [[grays[210], None], 14, 22, 6],
+            [[grays[210], None], 15, 7, 19],
+            [[grays[210], None], 12, 18, 3],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
