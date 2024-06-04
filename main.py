@@ -792,10 +792,6 @@ def init_world(type_):
         elif g.w.mode == "freestyle":
             g.player.inventory = ["anvil", "bush", "dynamite", "command-block", "workbench"]
             g.player.inventory_amounts = [float("inf")] * 5
-        g.player.tools = ["iron_axe", "molybdenum_shovel"]
-        g.player.tool_healths = [100, 100]
-        g.player.tool_ammos = [None, None]
-        g.player.indexes = {"tool": 0, "block": 0}
     elif type_ == "existing":
         g.player.stats["lives"]["regen_time"] = def_regen_time
         g.player.stats["lives"]["last_regen"] = ticks()
@@ -1892,56 +1888,31 @@ class Animations:
         self.data = {
             "_Default": {
                 "run": {"frames": 8},
+                "staff_run": {"frames": 8},
                 "idle": {"frames": 4},
                 "jump": {"frames": 1, "offset": (1, 0)},
                 "punch": {"frames": 4, "speed": 0.12, "offset": (9, 2)},
             },
 
-            "_DefaultDeprecated": {
-                "run": {"frames": 4},
-                "jump": {"frames": 4},
-            },
-
-            "Katana": {
-                "jump": {"frames": 1},
+            "Staff": {
                 "run": {"frames": 8},
             },
-
-            "Monk": {
-                "idle": {"frames": 4, "speed": 0.04},
-                "run": {"frames": 4},
-                "_run": {"frames": 4},
-                "jump": {"frames": 1},
-                "stab": {"frames": 3},
-            },
-
-            "Necromancer": {
-                "run": {"frames": 4}
-            },
-
-            "Roninette": {
-                "idle": {"frames": 2, "speed": 1},
-                "run": {"frames": 4, "speed": 4},
-                "jump": {"frames": 4, "speed": 6}
-            },
-
-            "Samurai": {
-                "idle": {"frames": 1, "speed": 1},
-                "run": {"frames": 8, "speed": 4},
-                "jump": {"frames": 1, "speed": 1}
-            }
         }
         # anim imgs
         base = path("assets", "Images", "Player_Animations")
         for weapon in os.listdir(base):
-            if weapon == ".DS_Store" or weapon == "Staff":
+            if weapon not in ("_Default", "Staff"):
                 continue
             try:
                 self.imgs[weapon] = {}
                 self.rects[weapon] = {}
                 for anim_file in os.listdir(path(base, weapon)):
+                    if weapon == "Staff" and anim_file != "run":
+                        continue
+
                     anim_type, ext = os.path.splitext(anim_file)
-                    surfs = imgload3(base, weapon, anim_file, frames=self.data[weapon][anim_type]["frames"])
+                    num_frames = self.data[weapon][anim_type]["frames"]
+                    surfs = imgload3(base, weapon, anim_file, frames=num_frames)
                     if isinstance(surfs, pygame.Surface):
                         surfs = [surfs]
                     self.imgs[weapon][anim_type] = {}
@@ -1962,6 +1933,11 @@ class Player:
         self.direc = "left"
         self.anim = 0
         self.up = True
+        self.tools = ["staff", None]
+        self.tools = ["staff", "sword"]
+        self.tool_healths = [100, 100]
+        self.tool_ammos = [None, None]
+        self.indexes = {"tool": 0, "block": 0}
         self.animate()
         # rest
         self.x = 0
@@ -2003,12 +1979,11 @@ class Player:
 
         self.rand_username()
 
-        self.tools = []
         self.tool_healths = []
         self.tool_ammos = []
         self.inventory = []
         self.inventory_amounts = []
-        self.indexes = {}
+        {}
         self.pouch = 15
         self.broken_blocks = dd(int)
         self.main = "block"
@@ -2603,10 +2578,11 @@ class Player:
         # debug
         try:
             # try whether animation exists
-            fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
+            anim_type = f"{self.tool}_{self.anim_type}"
+            fdi = anim.imgs[self.anim_skin][anim_type][self.anim_direc]
         except KeyError:
             # the default animation is "run"
-            fdi = anim.imgs[self.anim_skin]["run"][self.anim_direc]
+            fdi = anim.imgs[self.anim_skin]["staff_run"][self.anim_direc]
         self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
         try:
             # try animating the index given the [fdi]
@@ -2871,7 +2847,7 @@ class Visual:
                 # g.player.new_anim("uslash")
                 pass
             elif dy > 0:
-                g.player.new_anim("punch")
+                g.player.new_anim("stab")
         g.mouse_rel_log.clear()
 
     def swing_sword(self):
@@ -5367,10 +5343,10 @@ async def main(debug, cprof=False):
                 y = tool_holders_rect.y + 3
                 for index, tool in enumerate(g.player.tools):
                     if tool is not None:
-                        tool_img = g.w.tools[tool]
-                        tw, th = tool_img.width, tool_img.height
-                        xo, yo = (0, 0)
-                        win.renderer.blit(tool_img, pygame.Rect(x + xo, y + yo, tw, th))
+                        # tool_img = g.w.tools[tool]
+                        # tw, th = tool_img.width, tool_img.height
+                        # xo, yo = (0, 0)
+                        # win.renderer.blit(tool_img, pygame.Rect(x + xo, y + yo, tw, th))
                         pass
                     # border if selected
                     if g.player.main == "tool":

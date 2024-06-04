@@ -748,80 +748,94 @@ def get_hammer(base_color):
     hwi, hli, hhi = 0.4, 0.20, 0.20
     o = 0.07
     hwo, hlo, hho = hwi + o, hli + o, hhi + o
+    bw, bl, bh = 0.08, 0.8, 0.08
     # hammer base
     # rest (also importante)
-    base_color = (235, 235, 235, 255)
-    blade_color = (50, 50, 50, 255)
-    outline_color = (255, 255, 255, 255)
     hammer = Crystal(
         win.renderer, [
-            # front
-            (-hwi, -hli, hho),
-            (hwi, -hli, hho),
-            (hwi, hli, hho),
-            (-hwi, hli, hho),
-            # back
-            (-hwi, -hli, -hho),
-            (hwi, -hli, -hho),
-            (hwi, hli, -hho),
-            (-hwi, hli, -hho),
-            # top
-            (-hwi, -hlo, -hhi),
-            (hwi, -hlo, -hhi),
-            (hwi, -hlo, hhi),
-            (-hwi, -hlo, hhi),
-            # bottom
-            (-hwi, hlo, hhi),
-            (hwi, hlo, hhi),
-            (hwi, hlo, -hhi),
-            (-hwi, hlo, -hhi),
-            # left
-            (-hwo, -hli, -hli),
-            (-hwo, -hli, hli),
-            (-hwo, hli, hli),
-            (-hwo, hli, -hli),
-            # right
-            (hwo, -hli, hli),
-            (hwo, -hli, -hli),
-            (hwo, hli, -hli),
-            (hwo, hli, hli),
+            # front head
+            (-hwi, -hli - bl, hho),
+            (hwi, -hli - bl, hho),
+            (hwi, hli - bl, hho),
+            (-hwi, hli - bl, hho),
+            # back head
+            (-hwi, -hli - bl, -hho),
+            (hwi, -hli - bl, -hho),
+            (hwi, hli - bl, -hho),
+            (-hwi, hli - bl, -hho),
+            # top head
+            (-hwi, -hlo - bl, -hhi),
+            (hwi, -hlo - bl, -hhi),
+            (hwi, -hlo - bl, hhi),
+            (-hwi, -hlo - bl, hhi),
+            # bottom head
+            (-hwi, hlo - bl, hhi),
+            (hwi, hlo - bl, hhi),
+            (hwi, hlo - bl, -hhi),
+            (-hwi, hlo - bl, -hhi),
+            # left head
+            (-hwo, -hli - bl, -hli),
+            (-hwo, -hli - bl, hli),
+            (-hwo, hli - bl, hli),
+            (-hwo, hli - bl, -hli),
+            # right head
+            (hwo, -hli - bl, hli),
+            (hwo, -hli - bl, -hli),
+            (hwo, hli - bl, -hli),
+            (hwo, hli - bl, hli),
+            # base
+            (-bw, -bl, bh),
+            (bw, -bl, bh),
+            (bw, bl, bh),
+            (-bw, bl, bh),
+            (-bw, -bl, -bh),
+            (bw, -bl, -bh),
+            (bw, bl, -bh),
+            (-bw, bl, -bh),
         ], [
 
         ], [
 
         ], [
             # faces
-            [[grays[190], None], 0, 1, 2, 3],
-            [[grays[190], None], 5, 4, 7, 6],
-            [[grays[190], None], 8, 9, 10, 11],
-            [[grays[190], None], 12, 13, 14, 15],
-            [[grays[190], None], 16, 17, 18, 19],
-            [[grays[190], None], 20, 21, 22, 23],
+            [[grays[180], None], 0, 1, 2, 3],
+            [[grays[180], None], 5, 4, 7, 6],
+            [[grays[180], None], 8, 9, 10, 11],
+            [[grays[180], None], 12, 13, 14, 15],
+            [[grays[180], None], 16, 17, 18, 19],
+            [[grays[180], None], 20, 21, 22, 23],
             # top edges
-            [[grays[160], None], 11, 10, 1, 0],
-            [[grays[160], None], 8, 11, 17, 16],
-            [[grays[160], None], 9, 8, 4, 5],
-            [[grays[160], None], 10, 9, 21, 20],
+            [[grays[110], None], 11, 10, 1, 0],
+            [[grays[110], None], 8, 11, 17, 16],
+            [[grays[110], None], 9, 8, 4, 5],
+            [[grays[110], None], 10, 9, 21, 20],
             # middle edges
-            [[grays[160], None], 1, 20, 23, 2],
-            [[grays[160], None], 21, 5, 6, 22],
-            [[grays[160], None], 4, 16, 19, 7],
-            [[grays[160], None], 17, 0, 3, 18],
+            [[grays[110], None], 1, 20, 23, 2],
+            [[grays[110], None], 21, 5, 6, 22],
+            [[grays[110], None], 4, 16, 19, 7],
+            [[grays[110], None], 17, 0, 3, 18],
             # bottom edges
-            [[grays[160], None], 3, 2, 13, 12],
-            [[grays[160], None], 23, 22, 14, 13],
-            [[grays[160], None], 6, 7, 15, 14],
-            [[grays[160], None], 19, 18, 12, 15],
+            [[grays[110], None], 3, 2, 13, 12],
+            [[grays[110], None], 23, 22, 14, 13],
+            [[grays[110], None], 6, 7, 15, 14],
+            [[grays[110], None], 19, 18, 12, 15],
             # top corners
-            [[grays[210], None], 1, 10, 20],
-            [[grays[210], None], 21, 9, 5],
-            [[grays[210], None], 4, 8, 16],
-            [[grays[210], None], 17, 11, 0],
+            [[grays[230], None], 1, 10, 20],
+            [[grays[230], None], 21, 9, 5],
+            [[grays[230], None], 4, 8, 16],
+            [[grays[230], None], 17, 11, 0],
             # bottom corners
-            [[grays[210], None], 13, 2, 23],
-            [[grays[210], None], 14, 22, 6],
-            [[grays[210], None], 15, 7, 19],
-            [[grays[210], None], 12, 18, 3],
+            [[grays[230], None], 13, 2, 23],
+            [[grays[230], None], 12, 18, 3],
+            [[grays[230], None], 14, 22, 6],
+            [[grays[230], None], 15, 7, 19],
+            # bases
+            [[browns[100], None], 24 + 0, 24 + 1, 24 + 2, 24 + 3],
+            [[browns[110], None], 24 + 4, 24 + 5, 24 + 1, 24 + 0],
+            [[browns[90], None], 24 + 5, 24 + 4, 24 + 7, 24 + 6],
+            [[browns[80], None], 24 + 3, 24 + 2, 24 + 6, 24 + 7],
+            [[browns[120], None], 24 + 4, 24 + 0, 24 + 3, 24 + 7],
+            [[browns[130], None], 24 + 1, 24 + 5, 24 + 6, 24 + 2],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
