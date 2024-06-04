@@ -341,7 +341,7 @@ def mousebuttonup_event(button):
 
 def change_keybind(widget, name, value, controller=False):
     keybinds = getattr(g.p, name)
-    keybinds[int(not controller)] = value
+    keybinds[int(controller)] = value
     height = pw.keybind_height
     set_widget_icon(widget, keybinds, height)
 
@@ -1539,10 +1539,10 @@ class Play:
         self.gpu_accel = True
         self.keybinds = {
             "Character Attacks": {
-                "primary_main": ["R2", "#lmouse"],
-                "primary_side": ["R1", "E"],
-                "secondary_main": ["L2", "#rmouse"],
-                "secondary_side": ["L1", "shift"],
+                "primary_main": ["#lmouse", "R2"],
+                "primary_side": ["E", "R1"],
+                "secondary_main": ["#rmouse", "L2"],
+                "secondary_side": ["shift", "L1"],
             },
         }
         self.default_keybinds = {keybind_type: {name: [item for item in value] for name, value in data.items()} for keybind_type, data in self.keybinds.items()}
@@ -1659,7 +1659,7 @@ class PlayWidgets:
         self.keybind_button_kwargs = {"width": 400, "height": h, "bg_color": (40, 40, 40, 210), "text_color": WHITE, "text_orien": "left", "friends": [self.keybinds], "disabled": True}
         for kb_type in g.p.keybinds:
             for yo, kb in enumerate(g.p.keybinds[kb_type]):
-                b = Button(win.renderer, kb.replace("_", " ").title(), self.set_selected_widget_command, pass_self=True, right_command=self.set_selected_widget_right_command, pass_self_right=True, pos=(win.centerx, yo * h + 200), **self.keybind_button_kwargs)
+                b = Button(win.renderer, kb.replace("_", " ").title(), self.set_selected_widget_command, pass_self=True, right_command=self.set_selected_widget_right_command, pass_self_right=True, middle_command=self.set_selected_widget_middle_command, pass_self_middle=True, pos=(win.centerx, yo * h + 200), **self.keybind_button_kwargs)
                 b._iden = kb
                 set_widget_icon(b, g.p.keybinds[kb_type][kb], h)
                 self.keybind_buttons.append(b)
@@ -1757,7 +1757,6 @@ class PlayWidgets:
         self.disable_home_widgets()
         for button in self.keybind_buttons:
             button.enable()
-        # g.selected_widget = self.keybind_buttons[0]
         self.keybinds_active = True
 
     def disable_keybinds(self):
@@ -1778,8 +1777,11 @@ class PlayWidgets:
     def set_selected_widget_right_command(widget):
         if g.selected_widget == widget:
             change_keybind(widget, widget._iden, "#rmouse")
-        else:
-            g.selected_widget = widget
+    
+    @staticmethod
+    def set_selected_widget_middle_command(widget):
+        if g.selected_widget == widget:
+            change_keybind(widget, widget._iden, "#mmouse")
 
     def restore_default_keybinds_confirm(self):
         MessageboxOkCancel(win.renderer, "Restore default keybinds? This will overwrite your current configuration.", self.restore_default_keybinds_command, **pw.widget_kwargs)
@@ -1788,6 +1790,8 @@ class PlayWidgets:
         for button in self.keybind_buttons:
             if hasattr(button, "_iden"):
                 change_keybind(button, button._iden, getattr(g.p, f"default_{button._iden}")[1])
+        self.menu = False
+        self.keybinds_active = False
 
     @staticmethod
     def save_and_quit_command():
@@ -4426,14 +4430,14 @@ async def main(debug, cprof=False):
                 pw.next_piece_command()
 
             # event loop
+            create_command_entry = False
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                     # sys.exit()
 
                 # mechanical events
-                if not g.events_locked:
-                    process_widget_events(event, g.mouse)
+                if not g.events_locked:                            
                     for fgs in all_foreground_sprites:
                         if hasattr(fgs, "process_event") and callable(fgs.process_event):
                             fgs.process_event(event)
@@ -4699,15 +4703,17 @@ async def main(debug, cprof=False):
 
                                 elif event.key == K_p:
                                     g.player.cust_username()
-
+                                
                                 elif event.key == K_c:
-                                    Entry(win.renderer, "Enter your command:", player_command, **pw.entry_kwargs)
+                                    create_command_entry = True
 
                                 elif event.key == K_ESCAPE:
                                     if g.midblit:
                                         stop_midblit()
                                     elif pw.keybinds_active:
                                         pw.disable_keybinds()
+                                    elif g.menu:
+                                        disable_needed_widgets()
                                     else:
                                         settings()
 
@@ -4843,6 +4849,13 @@ async def main(debug, cprof=False):
                             if hasattr(spr, "process_event") and callable(spr.process_event):
                                 spr.process_event(event)
                                 g.process_messageboxworld = False
+                    
+                    # widget process events
+                    process_widget_events(event, mouse)
+
+                    # after processes
+                    if create_command_entry:
+                        Entry(win.renderer, "Enter your command:", player_command, **pw.entry_kwargs)
 
             # pending
             for entry in g.pending_entries[:]:

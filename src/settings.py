@@ -118,7 +118,7 @@ fog_w, fog_h = fog_light.get_size()
 test_sprs = timgload3("assets", "Images", "Spritesheets", "test.png", frames=7)
 gas_sprs = timgload3("assets", "Images", "Spritesheets", "gases.png", frames=5)
 #pygame.display.set_icon(timgload3("assets", "Images", "Visuals", f"{Platform.os.lower()}_icon.png"))
-keybind_icons = {"rmouse": imgload3("assets", "Images", "Visuals", "mouse.png")}
+keybind_icons = {"rmouse": imgload3("assets", "Images", "Visuals", "mouse.png"), "mmouse": imgload3("assets", "Images", "Visuals", "mmouse.png")}
 keybind_icons["lmouse"] = flip(keybind_icons["rmouse"], True, False)
 
 # surfaces
