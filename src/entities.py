@@ -124,7 +124,7 @@ class BaseEntity(SmartVector):  # removed Scrollable inheritance, added SmartVec
             self.health_bar_prev = Rect(0, 0, 0, 0)
             self.health_bar = Rect(0, 0, 0, 0)
         if "demon" in self.traits:
-            self.bar_rgb = lerp(RED, PURPLE, 50) + lerp(PURPLE, RED, 51) + (255,)
+            self.bar_rgb = list(lerp(RED, PURPLE, 50)) + list(lerp(PURPLE, RED, 51)) + [255]
             self.demon = True
         else:
             self.bar_rgb = bar_rgb
@@ -493,6 +493,28 @@ class FluffCamel(BaseEntity):
         # self.movex(1)
         # self.jump_over_obstacles()
         pass
+
+
+class Chicken(BaseEntity):
+    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, flip_flip=True, **kwargs)
+        self.drops = {"chicken": 2}
+        self.def_xvel = self.xvel = 0.3
+        self.max_hp = self.hp = 70
+
+    def spec_update(self):
+        self.jump_over_obstacles()
+    
+
+class Penguin(BaseEntity):
+    def __init__(self, img_data, traits, chunk_index, rel_pos, anchor="bottomleft", smart_vector=True, **kwargs):
+        super().__init__(img_data, traits, chunk_index, rel_pos, anchor, smart_vector, flip_flip=True, **kwargs)
+        self.drops = {"chicken": 2}
+        self.def_xvel = self.xvel = 0.3
+        self.max_hp = self.hp = 70
+
+    def spec_update(self):
+        self.jump_over_obstacles()
 
 
 # D E M O N S -------------------------------------------------------------------------------------------- #
