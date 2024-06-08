@@ -1892,7 +1892,7 @@ class Animations:
         self.data = {
             "_Default": {
                 "run": {"frames": 8},
-                "staff_run": {"frames": 8},
+                "staff_run": {"frames": 4},
                 "idle": {"frames": 4},
                 "jump": {"frames": 1, "offset": (1, 0)},
                 "punch": {"frames": 4, "speed": 0.12, "offset": (9, 2)},
