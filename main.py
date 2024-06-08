@@ -2582,27 +2582,30 @@ class Player:
         # debug
         try:
             # try whether animation exists
-            anim_type = f"{self.tool}_{self.anim_type}"
+            if self.anim_type == "run":
+                anim_type = f"{self.tool}_{self.anim_type}"
+            else:
+                anim_type = self.anim_type
             fdi = anim.imgs[self.anim_skin][anim_type][self.anim_direc]
         except KeyError:
             # the default animation is "run"
-            fdi = anim.imgs[self.anim_skin]["staff_run"][self.anim_direc]
-        self.anim += anim.data[self.anim_skin][self.anim_type].get("speed", g.p.anim_fps * 2)
+            fdi = anim.imgs[self.anim_skin]["idle"][self.anim_direc]
+        self.anim += anim.data[self.anim_skin][anim_type].get("speed", g.p.anim_fps * 2)
         try:
-            # try animating the index given the [fdi]
+            # try animating the index given the fdi
             fdi[int(self.anim)]
         except IndexError:
             # animation index exceeded the amount of frames
-            if self.anim_type == "jump":
+            if anim_type == "jump":
                 self.anim = 0
             else:
                 if self.anim_queue:
                     self.set_anim()
-                elif self.anim_type == "run":
+                elif anim_type == "run":
                     self.anim = 0
                 else:
                     self.set_anim("idle")
-            fdi = anim.imgs[self.anim_skin][self.anim_type][self.anim_direc]
+            fdi = anim.imgs[self.anim_skin][anim_type][self.anim_direc]
         finally:
             self.image = fdi[int(self.anim)]
 
