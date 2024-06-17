@@ -547,6 +547,7 @@ def set_midblit(block):
         img = tool_crafter_img
         g.mb.sword_color = (0, 0, 0, 255)
         g.mb.sword = get_sword(g.mb.sword_color)
+        g.mb.radar_chart = RadarChart(win.renderer, [["Da", 7], ["Du", 7], ["A", 7], ["Ma", 7], ["Mo", 7], ["B", 7]], 0, 0, 50, (200, 200, 200, 255), orbit_fonts[14])
         pw.tool_crafter_selector.enable()
     else:
         img = midblits[nbg]
@@ -4312,20 +4313,6 @@ async def main(debug, cprof=False):
         pritn(f"Loaded in: {loading_time}s")
         pritn(f"Average loading time: {round(g.p.loading_times.mean, 2)}s")
         pritn()
-        # preinit dumb stuff I like to experiment with
-        win.window.title = (
-            "\u4E43 "   # because
-            "\u0234 "   # because
-            "\u1F6E "   # because
-            "\u263E "   # because
-            "\u049C "   # because
-            "\u0390 "   # because
-            "\u2135 "   # because
-            "\u0193 "   # because
-            "\u15EB "   # because
-            "\u03A6 "   # because
-            "\u722A "   # because
-        )               # because
         # PyMunk
         balls = []
         strings = []
@@ -4435,7 +4422,7 @@ async def main(debug, cprof=False):
                             # g.w.boss_scene = not g.w.boss_scene
                             # for p in all_other_particles:
                             #     p.switch()
-                            pass
+                            g.mb.radar_chart.revaluate(["Da", rand(0, 7)], ["Du", rand(0, 7)], ["A", rand(0, 7)], ["Ma", rand(0, 7)], ["Mo", rand(0, 7)], ["B", rand(0, 7)])
                         
                         if event.key == pygame.K_1:
                             # win.target_zoom = (3, 3)
@@ -4459,7 +4446,8 @@ async def main(debug, cprof=False):
                             # e = g.w.entities[(-1, 0)][0]
                             # e.take_damage(40)
                             ...
-                            g.player.anim_skin = {"Monk": "_Default", "_Default": "Samurai", "Samurai": "Monk"}[g.player.anim_skin]
+                            # g.player.anim_skin = {"Monk": "_Default", "_Default": "Samurai", "Samurai": "Monk"}[g.player.anim_skin]
+                            setattr(win, f"window{rand(0, 10000000000)}", Window(title=f"Blockingdom", size=(500, 400)))
 
                         # actual gameplay events
                         if g.stage == "play":
@@ -5801,6 +5789,9 @@ async def main(debug, cprof=False):
                     g.mb.sword.ox += 160
                     g.mb.sword.oy += 200
                     g.mb.sword.update()
+                    # radar chart
+                    g.mb.radar_chart.x, g.mb.radar_chart.y = (mbr.centerx + 50, mbr.centery)
+                    g.mb.radar_chart.update()
                     # tool crafter button
                     pw.tool_crafter_selector.rect.topleft = (mbr.x + 3, mbr.y + 3)
                     pw.tool_crafter_rotate.rect.topleft = (mbr.x + 3, mbr.y + 3 + pw.tool_crafter_selector.rect.height)
