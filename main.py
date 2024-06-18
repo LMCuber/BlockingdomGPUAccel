@@ -1987,7 +1987,6 @@ class Player:
         self.tool_ammos = []
         self.inventory = []
         self.inventory_amounts = []
-        {}
         self.pouch = 15
         self.broken_blocks = dd(int)
         self.main = "block"
