@@ -1669,11 +1669,9 @@ class PlayWidgets:
         self.keybind_buttons.append(d)
         befriend_iterable(self.keybind_buttons)
         # other widgets
-        _tool_crafter_kwargs = {"text_color": WHITE, "visible_when": lambda: g.midblit == "tool-crafter", "width": 118}
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), height=36, **_tool_crafter_kwargs)
-        # self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["sphere", "katana", "sword", "maru", "kobuse", "honsanmai", "shihozume", "makuri"], unavailable_tool_names, command=self.tool_crafter_selector_command, text_color=WHITE, bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), visible_when=lambda: g.midblit == "tool-crafter", font=orbit_fonts[15])
-        self.tool_crafter_rotate = ToggleButton(win.renderer, ("rotate", "still"), command=self.tool_crafter_rotate_command, font=orbit_fonts[15], height=36, **_tool_crafter_kwargs)
-        # self.tool_crafter_rotate = Slider(win.renderer, "Rotation", list(range(0, 11)), 1, font=orbit_fonts[15], height=70, **_tool_crafter_kwargs)
+        self.tool_crafter_kwargs = {"text_color": WHITE, "visible_when": lambda: g.midblit == "tool-crafter", "width": tool_crafter_sword_width - 6, "height": 36}
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere",] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), **self.tool_crafter_kwargs)
+        self.tool_crafter_rotate = ToggleButton(win.renderer, ("rotate", "still"), command=self.tool_crafter_rotate_command, font=orbit_fonts[15], **self.tool_crafter_kwargs)
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
@@ -5784,9 +5782,10 @@ async def main(debug, cprof=False):
                     centerx = mbr.x + tool_crafter_sword_width + tool_crafter_metals_width / 2
                     win.renderer.blit(tool_crafter_img, mbr)
                     # render the sword
-                    g.mb.sword.ox, g.mb.sword.oy = mbr.topleft
-                    g.mb.sword.ox += 160
-                    g.mb.sword.oy += 200
+                    g.mb.sword.ox, g.mb.sword.oy = (
+                        mbr.x + tool_crafter_sword_width / 2,
+                        mbr.y + (tool_crafter_rect.height + pw.tool_crafter_kwargs["height"]) / 2
+                    )
                     g.mb.sword.update()
                     # radar chart
                     g.mb.radar_chart.x, g.mb.radar_chart.y = (mbr.centerx + 50, mbr.centery)

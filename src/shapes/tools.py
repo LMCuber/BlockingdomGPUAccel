@@ -996,12 +996,12 @@ def get_staff(base_color):
         ], [
             # fills
             # base
-            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 0, 1, 2, 3],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 4, 5, 1, 0],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 5, 4, 7, 6],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 3, 2, 6, 7],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 4, 0, 3, 7],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], outline_color], 1, 5, 6, 2],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 0, 1, 2, 3],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 4, 5, 1, 0],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 5, 4, 7, 6],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 3, 2, 6, 7],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 4, 0, 3, 7],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 1, 5, 6, 2],
             # orb BL
             [[get_blue(175, 20), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
             [[get_blue(175, 20), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],

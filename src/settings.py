@@ -139,21 +139,20 @@ for surface in os.listdir(path("assets", "Images", "Midblits")):
 
 
 # tool crafter
-"""
-w, h = 550, 380
+w, h = 510, 440
+tool_crafter_sword_width = 150
 tool_crafter_img = pygame.Surface((w, h), pygame.SRCALPHA)
 pygame.draw.rect(tool_crafter_img, LAPIS_BLUE, (0, 0, w, h))
 pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, w, h), 3)
-pygame.draw.rect(tool_crafter_img, LAPIS_BLUE, (0, 0, 124, h))
-pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, 124, h), 3)
+pygame.draw.rect(tool_crafter_img, LAPIS_BLUE, (0, 0, tool_crafter_sword_width, h))
+pygame.draw.rect(tool_crafter_img, BLACK, (0, 0, tool_crafter_sword_width, h), 3)
 pygame.image.save(tool_crafter_img, path("assets", "Images", "Midblits", "tool-crafter.png"))
-pg_to_pil(tool_crafter_img).show()
+# pg_to_pil(tool_crafter_img).show()
+
 tool_crafter_img = Texture.from_surface(win.renderer, tool_crafter_img)
 tool_crafter_rect = tool_crafter_img.get_rect()
-"""
 tool_crafter_img = timgload("assets", "Images", "Midblits", "tool-crafter.png")
 tool_crafter_rect = tool_crafter_img.get_rect()
-tool_crafter_sword_width = 124
 tool_crafter_metals_width = tool_crafter_rect.width - tool_crafter_sword_width
 
 # crafting and midblit constants
