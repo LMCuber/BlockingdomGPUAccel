@@ -153,7 +153,7 @@ tool_crafter_img = Texture.from_surface(win.renderer, tool_crafter_img)
 tool_crafter_rect = tool_crafter_img.get_rect()
 tool_crafter_img = timgload("assets", "Images", "Midblits", "tool-crafter.png")
 tool_crafter_rect = tool_crafter_img.get_rect()
-tool_crafter_metals_width = tool_crafter_rect.width - tool_crafter_sword_width
+tool_crafter_info_width = tool_crafter_rect.width - tool_crafter_sword_width
 
 # crafting and midblit constants
 workbench_rect = workbench_img.get_rect(center=win.center)

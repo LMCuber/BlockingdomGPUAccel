@@ -18,12 +18,13 @@ get_blue = lambda mu, sigma: blues[int(nordis(mu, sigma))]
 get_yellow = lambda mu, sigma: yellows[int(nordis(mu, sigma))]
 
 # constantized colors
-hagane = pygame.Color("#F1F2EF")
-kawagane = pygame.Color("#E0B63A")
-shigane = pygame.Color("#CD361E")
+hagane = pygame.Color("#F1F2EF")  # (tama)hagane hard
+kawagane = pygame.Color("#E0B63A")  # medium
+shigane = pygame.Color("#CD361E")  # soft
 
 # constants
 katana_mult = 300
+compos_mult = 150
 
 # functions
 def get_crystal(type_, color=None):
@@ -679,70 +680,6 @@ def get_bow(base_color):
 
 
 def get_hammer(base_color):
-    mult = 140
-    w, l, h = 0.05, 0.8, 0.05
-    hw, hl, hh = 0.3, 0.15, 0.15
-    base_color = (235, 235, 235, 255)
-    blade_color = (50, 50, 50, 255)
-    outline_color = (255, 255, 255, 255)
-    hammer = Crystal(
-        win.renderer, [
-            # base
-            [-w, -l, h],
-            [w, -l, h],
-            [w, l, h],
-            [-w, l, h],
-            [-w, -l, -h],
-            [w, -l, -h],
-            [w, l, -h],
-            [-w, l, -h],
-
-            # head
-            [-hw, -hl - l, hh],
-            [hw, -hl - l, hh],
-            [hw, hl - l, hh],
-            [-hw, hl - l, hh],
-            [-hw, -hl - l, -hh],
-            [hw, -hl - l, -hh],
-            [hw, hl - l, -hh],
-            [-hw, hl - l, -hh],
-        ], [
-            # point colors
-        ], [
-            # connections
-        ], [
-            # fills
-            # base
-
-            [[base_color, outline_color], 0, 1, 2, 3],
-            [[base_color, outline_color], 4, 5, 1, 0],
-            [[base_color, outline_color], 5, 4, 7, 6],
-            [[base_color, outline_color], 3, 2, 6, 7],
-            [[base_color, outline_color], 4, 0, 3, 7],
-            [[base_color, outline_color], 1, 5, 6, 2],
-
-
-            [[get_brown(160, 20), outline_color], 0, 1, 2, 3],
-            [[get_brown(160, 20), outline_color], 4, 5, 1, 0],
-            [[get_brown(160, 20), outline_color], 5, 4, 7, 6],
-            [[get_brown(160, 20), outline_color], 3, 2, 6, 7],
-            [[get_brown(160, 20), outline_color], 4, 0, 3, 7],
-            [[get_brown(160, 20), outline_color], 1, 5, 6, 2],
-
-            [[get_gray(180, 20), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
-            [[get_gray(180, 20), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
-            [[get_gray(180, 20), outline_color], 5 + 8, 4 + 8, 7 + 8, 6 + 8],
-            [[get_gray(180, 20), outline_color], 3 + 8, 2 + 8, 6 + 8, 7 + 8],
-            [[get_gray(180, 20), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
-            [[get_gray(180, 20), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
-        ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
-        fill_as_connections=False,
-    )
-    return hammer
-
-
-def get_hammer(base_color):
     # hammer head
     mult = 140
     hwi, hli, hhi = 0.4, 0.20, 0.20
@@ -784,12 +721,12 @@ def get_hammer(base_color):
             (hwo, hli - bl, -hli),
             (hwo, hli - bl, hli),
             # base
-            (-bw, -bl, bh),
-            (bw, -bl, bh),
+            (-bw, hlo - bl, bh),
+            (bw, hlo - bl, bh),
             (bw, bl, bh),
             (-bw, bl, bh),
-            (-bw, -bl, -bh),
-            (bw, -bl, -bh),
+            (-bw, hlo - bl, -bh),
+            (bw, hlo - bl, -bh),
             (bw, bl, -bh),
             (-bw, bl, -bh),
         ], [
@@ -1050,8 +987,8 @@ def get_tool_crafter():
     pygame.image.save(tool_crafter_img, path("Images", "Surfaces", "tool-crafter.png"))
 
 
-def get_maru(base_color):
-    mult = katana_mult
+def get_maru():
+    mult = compos_mult
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1086,8 +1023,8 @@ def get_maru(base_color):
     return maru
 
 
-def get_kobuse(base_color):
-    mult = katana_mult
+def get_kobuse():
+    mult = compos_mult
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1138,8 +1075,8 @@ def get_kobuse(base_color):
     return kobuse
 
 
-def get_honsanmai(base_color):
-    mult = katana_mult
+def get_honsanmai():
+    mult = compos_mult
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1192,8 +1129,8 @@ def get_honsanmai(base_color):
     return honsanmai
 
 
-def get_shihozume(base_color):
-    mult = katana_mult
+def get_shihozume():
+    mult = compos_mult
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1246,8 +1183,8 @@ def get_shihozume(base_color):
     return shihozume
 
 
-def get_makuri(base_color):
-    mult = katana_mult
+def get_makuri():
+    mult = compos_mult
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
