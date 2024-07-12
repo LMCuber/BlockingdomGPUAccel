@@ -15,16 +15,24 @@ get_brown = lambda mu, sigma: browns[int(nordis(mu, sigma))]
 get_red = lambda mu, sigma: reds[int(nordis(mu, sigma))]
 get_green = lambda mu, sigma: greens[int(nordis(mu, sigma))]
 get_blue = lambda mu, sigma: blues[int(nordis(mu, sigma))]
+get_aquamarine = lambda n: pygame.Color(f"aquamarine{n}")
 get_yellow = lambda mu, sigma: yellows[int(nordis(mu, sigma))]
 
 # constantized colors
-hagane = pygame.Color("#F1F2EF")  # (tama)hagane hard
-kawagane = pygame.Color("#E0B63A")  # medium
-shigane = pygame.Color("#CD361E")  # soft
+shigane = pygame.Color("#93CEC3")  # soft
+kawagane = pygame.Color("#009A76")  # medium
+hagane = pygame.Color("#255035")  # hard (aka tamahagane)
+
+# other constants
+current_module = sys.modules[__name__]
 
 # constants
 katana_mult = 300
-compos_mult = 150
+compos_mult = 106
+# compos_yvel = 0.015
+compos_yvel = 0
+compos_speed = 0.05
+
 
 # functions
 def get_crystal(type_, color=None):
@@ -940,19 +948,19 @@ def get_staff(base_color):
             [[g.w.surf_assets["blocks"]["wooden-planks"], None], 4, 0, 3, 7],
             [[g.w.surf_assets["blocks"]["wooden-planks"], None], 1, 5, 6, 2],
             # orb BL
-            [[get_blue(175, 20), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
-            [[get_blue(175, 20), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
-            [[get_blue(175, 20), outline_color], 5 + 8, 4 + 8, 7 + 8, 6 + 8],
-            [[get_blue(175, 20), outline_color], 3 + 8, 2 + 8, 6 + 8, 7 + 8],
-            [[get_blue(175, 20), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
-            [[get_blue(175, 20), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 5 + 8, 4 + 8, 7 + 8, 6 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 3 + 8, 2 + 8, 6 + 8, 7 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
             # orb BR
-            [[get_green(175, 20), outline_color], 0 + 8 * 2, 1 + 8 * 2, 2 + 8 * 2, 3 + 8 * 2],
-            [[get_green(175, 20), outline_color], 4 + 8 * 2, 5 + 8 * 2, 1 + 8 * 2, 0 + 8 * 2],
-            [[get_green(175, 20), outline_color], 5 + 8 * 2, 4 + 8 * 2, 7 + 8 * 2, 6 + 8 * 2],
-            [[get_green(175, 20), outline_color], 3 + 8 * 2, 2 + 8 * 2, 6 + 8 * 2, 7 + 8 * 2],
-            [[get_green(175, 20), outline_color], 4 + 8 * 2, 0 + 8 * 2, 3 + 8 * 2, 7 + 8 * 2],
-            [[get_green(175, 20), outline_color], 1 + 8 * 2, 5 + 8 * 2, 6 + 8 * 2, 2 + 8 * 2],
+            [[get_green(150, 20), outline_color], 0 + 8 * 2, 1 + 8 * 2, 2 + 8 * 2, 3 + 8 * 2],
+            [[get_green(150, 20), outline_color], 4 + 8 * 2, 5 + 8 * 2, 1 + 8 * 2, 0 + 8 * 2],
+            [[get_green(150, 20), outline_color], 5 + 8 * 2, 4 + 8 * 2, 7 + 8 * 2, 6 + 8 * 2],
+            [[get_green(150, 20), outline_color], 3 + 8 * 2, 2 + 8 * 2, 6 + 8 * 2, 7 + 8 * 2],
+            [[get_green(150, 20), outline_color], 4 + 8 * 2, 0 + 8 * 2, 3 + 8 * 2, 7 + 8 * 2],
+            [[get_green(150, 20), outline_color], 1 + 8 * 2, 5 + 8 * 2, 6 + 8 * 2, 2 + 8 * 2],
             # orb TR
             [[get_gray(140, 20), outline_color], 0 + 8 * 3, 1 + 8 * 3, 2 + 8 * 3, 3 + 8 * 3],
             [[get_gray(140, 20), outline_color], 4 + 8 * 3, 5 + 8 * 3, 1 + 8 * 3, 0 + 8 * 3],
@@ -987,8 +995,15 @@ def get_tool_crafter():
     pygame.image.save(tool_crafter_img, path("Images", "Surfaces", "tool-crafter.png"))
 
 
-def get_maru():
-    mult = compos_mult
+def get_compos(name, mult=compos_mult, unlocked=True):
+    hard = hagane if unlocked else (20, 20, 20, 255)
+    medium = kawagane if unlocked else (40, 40, 40, 255)
+    soft = shigane if unlocked else (60, 60, 60, 255)
+    compos = getattr(current_module, f"get_{name}")(mult, hard, medium, soft)
+    return compos
+
+
+def get_maru(mult, hard, medium, soft):
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1014,17 +1029,19 @@ def get_maru():
             [outline_color, 5, 0],
         ], [
             # fills
-            [[hagane, hagane], 0, 1, 2, 3],
-            [[hagane, hagane], 3, 4, 5, 0],
+            [[hard, hard], 0, 1, 2, 3],
+            [[hard, hard], 3, 4, 5, 0],
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
+        target_oox=0,
+        target_m=compos_mult,
+        speed=compos_speed,
     )
     return maru
 
 
-def get_kobuse():
-    mult = compos_mult
+def get_kobuse(mult, hard, medium, soft):
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1062,21 +1079,23 @@ def get_kobuse():
         ], [
             # fills
             # base
-            [[hagane, hagane], 6, 1, 2, 7],
-            [[hagane, hagane], 7, 2, 3, 8],
-            [[hagane, hagane], 8, 3, 4, 9],
-            [[hagane, hagane], 5, 10, 9, 4],
-            [[shigane, shigane], 0, 6, 7, 8],
-            [[shigane, shigane], 0, 8, 9, 10],
+            [[hard, hard], 6, 1, 2, 7],
+            [[hard, hard], 7, 2, 3, 8],
+            [[hard, hard], 8, 3, 4, 9],
+            [[hard, hard], 5, 10, 9, 4],
+            [[soft, soft], 0, 6, 7, 8],
+            [[soft, soft], 0, 8, 9, 10],
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
+        target_oox=0,
+        target_m=compos_mult,
+        speed=compos_speed,
     )
     return kobuse
 
 
-def get_honsanmai():
-    mult = compos_mult
+def get_honsanmai(mult, hard, medium, soft):
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1115,22 +1134,24 @@ def get_honsanmai():
         ], [
             # fills
             # base
-            [[kawagane, kawagane], 6, 1, 2, 8],
-            [[hagane, hagane], 10, 7, 8, 9],
-            [[hagane, hagane], 9, 8, 3],
-            [[kawagane, kawagane], 5, 11, 9, 4],
-            [[shigane, shigane], 11, 6, 7, 10],
-            [[shigane, shigane], 0, 6, 11],
+            [[medium, medium], 6, 1, 2, 8],
+            [[hard, hard], 10, 7, 8, 9],
+            [[hard, hard], 9, 8, 3],
+            [[medium, medium], 5, 11, 9, 4],
+            [[soft, soft], 11, 6, 7, 10],
+            [[soft, soft], 0, 6, 11],
 
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
+        target_oox=0,
+        target_m=compos_mult,
+        speed=compos_speed,
     )
     return honsanmai
 
 
-def get_shihozume():
-    mult = compos_mult
+def get_shihozume(mult, hard, medium, soft):
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1169,22 +1190,24 @@ def get_shihozume():
         ], [
             # fills
             # base
-            [[kawagane, kawagane], 6, 1, 2, 8],
-            [[shigane, shigane], 10, 7, 8, 9],
-            [[hagane, hagane], 9, 8, 3],
-            [[kawagane, kawagane], 5, 11, 9, 4],
-            [[kawagane, kawagane], 11, 6, 7, 10],
-            [[kawagane, kawagane], 0, 6, 11],
+            [[medium, medium], 6, 1, 2, 8],
+            [[soft, soft], 10, 7, 8, 9],
+            [[hard, hard], 9, 8, 3],
+            [[medium, medium], 5, 11, 9, 4],
+            [[medium, medium], 11, 6, 7, 10],
+            [[medium, medium], 0, 6, 11],
 
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
+        target_oox=0,
+        target_m=compos_mult,
+        speed=compos_speed,
     )
     return shihozume
 
 
-def get_makuri():
-    mult = compos_mult
+def get_makuri(mult, hard, medium, soft):
     w = 0.1
     lu = w * 2
     ld = lu * 1.3
@@ -1223,16 +1246,19 @@ def get_makuri():
         ], [
             # fills
             # base
-            [[hagane, hagane], 6, 1, 2, 7],
-            [[hagane, hagane], 7, 2, 3, 8],
-            [[hagane, hagane], 4, 9, 8, 3],
-            [[hagane, hagane], 5, 10, 9, 4],
-            [[hagane, hagane], 0, 1, 6, 11],
-            [[hagane, hagane], 5, 0, 11, 10],
-            [[shigane, shigane], 11, 6, 7, 8],
-            [[shigane, shigane], 10, 11, 8, 9],
+            [[hard, hard], 6, 1, 2, 7],
+            [[hard, hard], 7, 2, 3, 8],
+            [[hard, hard], 4, 9, 8, 3],
+            [[hard, hard], 5, 10, 9, 4],
+            [[hard, hard], 0, 1, 6, 11],
+            [[hard, hard], 5, 0, 11, 10],
+            [[soft, soft], 11, 6, 7, 8],
+            [[soft, soft], 10, 11, 8, 9],
         ],
-        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
+        target_oox=0,
+        target_m=compos_mult,
+        speed=compos_speed,
     )
     return makuri
