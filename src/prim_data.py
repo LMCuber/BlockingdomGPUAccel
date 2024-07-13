@@ -1026,7 +1026,6 @@ block_breaking_effects = {
     "glass": {"damage": (0, 4)}
 }
 ramp_blocks = []
-empty_blocks = {None, "air", ""}
 
 # food info
 finfo = {
@@ -1148,6 +1147,7 @@ dirts = {block for block in a.blocks if bpure(block) == "dirt"}
 
 tinfo["shovel"]["blocks"] |= {soil: 0.1 for soil in soils} | {dirt: 0.1 for dirt in dirts}
 underground_blocks = {f"{dirt}_bg" for dirt in dirts} | {"stone_bg"}
+empty_blocks = underground_blocks | {None, "air", ""}
 
 # - initializations after asset loading -
 # tool crafts

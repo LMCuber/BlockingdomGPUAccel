@@ -860,7 +860,7 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     entities = []
     # lighting.fill({2: DARK_GRAY}.get(y, SKY_BLUE))
     chunk_pos = (x * CW, y * CH)
-    g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": [], "dirt_levels": {}})
+    g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": [], "underground": DictWithoutException()})
     biome = biome if biome is not None else choice(list(bio.blocks.keys()))
     y_offsets = g.w.linoise.linear(0, CW)
     if not terrain_only:
@@ -896,7 +896,6 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                 if y == 0:
                     if rel_y == 8 + y_offset:
                         name = prim
-                        g.w.metadata[chunk_index]["dirt_levels"][target_x] = target_y
                     elif rel_y > 8 + y_offset:
                         name = sec
                     else:
@@ -923,6 +922,12 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                         name = "stone"
                 if name:
                     chunk_data[target_pos] = Block(name, target_pos, ore_chance)
+                if y >= 0 and name != "air":
+                    if bpure(name) == "soil":
+                        u_name = name.replace("soil", "dirt")
+                    else:
+                        u_name = name
+                    g.w.metadata[chunk_index]["underground"][target_pos] = f"{u_name}_bg"
         # world mods
         entities, late_chunk_data = world_modifications(chunk_data, g.w.metadata[chunk_index], biome, chunk_pos, g.w.rng)
         # entities, late_chunk_data = [], {}
@@ -4920,15 +4925,8 @@ async def main(debug, cprof=False):
                                                 if name in empty_blocks:
                                                     setto = g.player.block
                                         elif g.first_affection == "break":
-                                            if name not in empty_blocks and name not in unbreakable_blocks and name not in underground_blocks:
-                                                emptiness = "air"
-                                                if target_chunk[1] >= 2:
-                                                    emptiness = "stone_bg"
-                                                elif target_chunk[1] >= 1:
-                                                    emptiness = name + "_bg"
-                                                elif target_chunk[1] >= 0:
-                                                    if abs_pos[1] >= g.w.metadata[target_chunk]["dirt_levels"][abs_pos[0]]:
-                                                        emptiness = "dirt_f_bg"
+                                            if name not in empty_blocks and name not in unbreakable_blocks and name not in empty_blocks:
+                                                emptiness = g.w.metadata[target_chunk]["underground"].get(abs_pos, "air")
                                                 g.w.modify(emptiness, target_chunk, abs_pos, overwrites_all=True)
                                         if setto is not None:
                                             # g.w.data[target_chunk][abs_pos] = Block(setto)
