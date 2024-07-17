@@ -247,6 +247,8 @@ def bpure(str_):
         ret = ret.removesuffix("_a")
     if "_vr" in str_:
         ret = "_".join(ret.split("_")[:-1])
+    if "_f" in str_:
+        ret = ret.removesuffix("_f")
     ret = ret.replace("_", " ")
     return ret
 
@@ -1011,7 +1013,7 @@ walk_through_blocks = {"air", "fire", "lava", "water", "spike-plant", "grass1", 
                        *wheats, *cables, *plants}
 feature_blocks = {"solar-panel"}
 item_blocks = {"dynamite"}
-unbreakable_blocks = {"air", "fire", "water", "wallstone"}
+unbreakable_blocks = {"air", "fire", "water", "wallstone", "stone_bg"}
 functionable_blocks = {"dynamite", "command-block"}
 climbable_blocks = ["vine"]
 dif_drop_blocks = {"coconut": {"coconut-piece": 2},
@@ -1024,7 +1026,6 @@ block_breaking_effects = {
     "glass": {"damage": (0, 4)}
 }
 ramp_blocks = []
-empty_blocks = {None, "air", ""}
 
 # food info
 finfo = {
@@ -1143,9 +1144,10 @@ load_icons()
 chest_blocks = [block for block in a.blocks if block is not None and block not in ("air",)]
 soils = {block for block in a.blocks if bpure(block) == "soil"}
 dirts = {block for block in a.blocks if bpure(block) == "dirt"}
-tinfo["shovel"]["blocks"] |= {soil: 0.1 for soil in soils} | {dirt: 0.1 for dirt in dirts}
 
-print(bpure("wood_p_vrLR_bg"))
+tinfo["shovel"]["blocks"] |= {soil: 0.1 for soil in soils} | {dirt: 0.1 for dirt in dirts}
+underground_blocks = {f"{dirt}_bg" for dirt in dirts} | {"stone_bg"}
+empty_blocks = underground_blocks | {None, "air", ""}
 
 # - initializations after asset loading -
 # tool crafts
