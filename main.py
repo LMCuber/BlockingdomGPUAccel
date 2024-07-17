@@ -4362,7 +4362,7 @@ async def main(debug, cprof=False):
 
             # fps calculating
             fpss.insert(0, g.clock.get_fps())
-            if ticks() - last_fps_update >= 1_000:
+            if ticks() - last_fps_update >= 1000:
                 shown_fps = str(sum(fpss) // len(fpss))
                 last_fps_update = ticks()
                 fpss.sort()
