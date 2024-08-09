@@ -209,9 +209,9 @@ def get_katana(base_color):
         tip = (yo + 1) * ps + yo * pl + bl
         pattern.extend([
             (0, tip, gh),
-            (pw / 2, tip + 0.5 * pl, bh),
+            (pw / 2, tip + 0.5 * pl, gh + 0.01),
             (0, tip + pl, bh),
-            (-pw / 2, tip + 0.5 * pl, bh),
+            (-pw / 2, tip + 0.5 * pl, gh + 0.01),
         ])
     pattern_fills = [
         [[WHITE, WHITE], 0 + 8 + n * 4, 1 + 8 + n * 4, 2 + 8 + n * 4, 3 + 8 + n * 4] for n in range(num_p)
@@ -231,6 +231,7 @@ def get_katana(base_color):
             [gw, bl + gl, -gh],
             [-gw, bl + gl, -gh],
             *pattern,
+            # blade
             [-bw, -bl, bh],
             [bw, -bl, bh],
             [bw, bl, bh],
@@ -245,16 +246,16 @@ def get_katana(base_color):
             # lines
         ], [
             # fills
-            # [[grays[30], WHITE], 0, 1, 2, 3],
-            [[grays[30]], 4, 5, 1, 0],
-            [[grays[30]], 4, 5, 6, 7],
-            [[grays[30]], 7, 6, 2, 3],
+            [[grays[30]], 0, 1, 2, 3],
+            [[grays[30]], 5, 4, 7, 6],
+            [[grays[30]], 3, 2, 6, 7],
             [[grays[30]], 4, 0, 3, 7],
             [[grays[30]], 1, 5, 6, 2],
             *pattern_fills,
+            [[grays[240]], 0 + 8 + len(pattern), 1 + 8 + len(pattern), 2 + 8 + len(pattern), 3 + 8 + len(pattern)],
             [[grays[240]], 4 + 8 + len(pattern), 5 + 8 + len(pattern), 1 + 8 + len(pattern), 0 + 8 + len(pattern)],
-            [[grays[240]], 4 + 8 + len(pattern), 5 + 8 + len(pattern), 6 + 8 + len(pattern), 7 + 8 + len(pattern)],
-            [[grays[240]], 7 + 8 + len(pattern), 6 + 8 + len(pattern), 2 + 8 + len(pattern), 3 + 8 + len(pattern)],
+            [[grays[240]], 5 + 8 + len(pattern), 4 + 8 + len(pattern), 7 + 8 + len(pattern), 6 + 8 + len(pattern)],
+            [[grays[240]], 3 + 8 + len(pattern), 2 + 8 + len(pattern), 6 + 8 + len(pattern), 7 + 8 + len(pattern)],
             [[grays[240]], 4 + 8 + len(pattern), 0 + 8 + len(pattern), 3 + 8 + len(pattern), 7 + 8 + len(pattern)],
             [[grays[240]], 1 + 8 + len(pattern), 5 + 8 + len(pattern), 6 + 8 + len(pattern), 2 + 8 + len(pattern)],
         ],
