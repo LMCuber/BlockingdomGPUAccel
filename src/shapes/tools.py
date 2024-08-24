@@ -1,5 +1,9 @@
 from ..settings import *
+import opensimplex as osimplex
 
+
+# initializations
+# osimplex.seed(7)
 
 # color definitions
 grays = [(x, x, x, 255) for x in range(1, 256)]
@@ -55,8 +59,8 @@ def get_cube(base_color):
 
 
 def get_sphere(base_color):
-    num_lon = 16
-    num_lat = 16
+    num_lon = 8
+    num_lat = 8
     mult = 120
     name = f"{num_lon}x{num_lat}.obj"
     if os.path.isfile(path("src", "shapes", "spheres", name)) and False:
@@ -74,6 +78,7 @@ def get_sphere(base_color):
                 x = r * sin(lat) * sin(lon)
                 y = -r * cos(lat)
                 vertex = (x, y, z)
+                vertex = [p + osimplex.noise3(x=x * 3, y=y * 3, z=z * 3) * 0.5 for p in vertex]
                 if vertex not in vertices:
                     vertices.append(vertex)
         # fills
@@ -103,17 +108,94 @@ def get_sphere(base_color):
                 # lines
             ],
             fills,
-            (300, 300), mult, point_r, 0, 0, 0, 0.0035, 0.0035, 0.0035,
+            (300, 300), mult, point_r, 0, 0, 0, 0.03, 0.03, 0.03,
             fill_as_connections=False,
         )
     sphere.save_to_file(path("src", "shapes", "spheres", name))
     return sphere
 
 
-# def get_sphere(base_color):
-#     mult = 15
-#     sphere = Crystal(win.renderer, r"C:\Users\leopc\Downloads\Flintlock Weapons Pack by @TheTeaGuns\OBJ\Musketoon.obj", [], [], [], (940, 300), mult, 1, 0.2, 0.2, 0.3, 0.01, 0.01, 0.01, normalize=False, normals=False)
-#     return sphere
+def get_icosahedron(base_color):
+    mult = 40
+    w, l = 1, phi
+    vertices = [
+        # vertical
+        Vector3(-w, -l, 0),
+        Vector3(w, -l, 0),
+        Vector3(w, l, 0),
+        Vector3(-w, l, 0),
+        # horizontal
+        Vector3(-l, 0, -w),
+        Vector3(l, 0, -w),
+        Vector3(l, 0, w),
+        Vector3(-l, 0, w),
+        # interplanar
+        Vector3(0, -w, -l),
+        Vector3(0, -w, l),
+        Vector3(0, w, l),
+        Vector3(0, w, -l),
+    ]
+    vertices = [[p + randf(-1.5, 1.5) for p in v] for v in vertices]
+    icosahedron = Crystal(
+        win.renderer,
+        vertices, [
+
+        ], [
+
+        ],
+        [
+            [[grays[rand(30, 100)], WHITE], [1, 0, 8]],
+            [[grays[rand(30, 100)], WHITE], [0, 1, 9]],
+            [[grays[rand(30, 100)], WHITE], [0, 9, 7]],
+            [[grays[rand(30, 100)], WHITE], [0, 7, 4]],
+            [[grays[rand(30, 100)], WHITE], [0, 4, 8]],
+            [[grays[rand(30, 100)], WHITE], [8, 4, 11]],
+            [[grays[rand(30, 100)], WHITE], [8, 11, 5]],
+            [[grays[rand(30, 100)], WHITE], [8, 5, 1]],
+            [[grays[rand(30, 100)], WHITE], [1, 5, 6]],
+            [[grays[rand(30, 100)], WHITE], [1, 6, 9]],
+            [[grays[rand(30, 100)], WHITE], [9, 10, 7]],
+            [[grays[rand(30, 100)], WHITE], [9, 6, 10]],
+            [[grays[rand(30, 100)], WHITE], [7, 10, 3]],
+            [[grays[rand(30, 100)], WHITE], [7, 3, 4]],
+            [[grays[rand(30, 100)], WHITE], [4, 3, 11]],
+            [[grays[rand(30, 100)], WHITE], [11, 3, 2]],
+            [[grays[rand(30, 100)], WHITE], [10, 2, 3]],
+            [[grays[rand(30, 100)], WHITE], [6, 2, 10]],
+            [[grays[rand(30, 100)], WHITE], [6, 5, 2]],
+            [[grays[rand(30, 100)], WHITE], [5, 11, 2]],
+        ],
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.000, 0,
+        fill_as_connections=False,
+    )
+    return icosahedron
+
+
+def get_rock(base_color):
+    mult = 160
+    vertices = []
+    for _ in range(6):
+        u1 = randf(0, 1)
+        u2 = randf(0, 1)
+        fi = acos(2 * u1 - 1) - pi / 2
+        lambduh = 2 * pi * u2
+        x = cos(fi) * cos(lambduh)
+        y = cos(fi) * sin(lambduh)
+        z = sin(fi)
+        vertices.append([x, y, z])
+    icosahedron = Crystal(
+        win.renderer,
+        vertices, [
+
+        ], [
+
+        ],
+        FillOptions.DELAUNAY,
+        (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
+        fill_as_connections=False,
+        backface_culling=False,
+    )
+    return icosahedron
 
 
 def get_sword(base_color):
@@ -166,28 +248,28 @@ def get_sword(base_color):
         ], [
             # fills
             # base
-            [[base_color, outline_color], 0, 1, 2, 3],
-            [[base_color, outline_color], 4, 5, 1, 0],
-            [[base_color, outline_color], 5, 4, 7, 6],
-            [[base_color, outline_color], 3, 2, 6, 7],
-            [[base_color, outline_color], 4, 0, 3, 7],
-            [[base_color, outline_color], 1, 5, 6, 2],
+            [[base_color, outline_color], [0, 1, 2, 3]],
+            [[base_color, outline_color], [4, 5, 1, 0]],
+            [[base_color, outline_color], [5, 4, 7, 6]],
+            [[base_color, outline_color], [3, 2, 6, 7]],
+            [[base_color, outline_color], [4, 0, 3, 7]],
+            [[base_color, outline_color], [1, 5, 6, 2]],
 
             # guard
-            [[browns[90], outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
-            [[browns[80], outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
-            [[browns[70], outline_color], 5 + 8, 4 + 8, 7 + 8, 6 + 8],
-            [[browns[110], outline_color], 3 + 8, 2 + 8, 6 + 8, 7 + 8],
-            [[browns[120], outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
-            [[browns[100], outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
+            [[browns[90], outline_color], [0 + 8, 1 + 8, 2 + 8, 3 + 8]],
+            [[browns[80], outline_color], [4 + 8, 5 + 8, 1 + 8, 0 + 8]],
+            [[browns[70], outline_color], [5 + 8, 4 + 8, 7 + 8, 6 + 8]],
+            [[browns[110], outline_color], [3 + 8, 2 + 8, 6 + 8, 7 + 8]],
+            [[browns[120], outline_color], [4 + 8, 0 + 8, 3 + 8, 7 + 8]],
+            [[browns[100], outline_color], [1 + 8, 5 + 8, 6 + 8, 2 + 8]],
 
             # grip
-            [[browns[150], outline_color], 0 + 16, 1 + 16, 2 + 16, 3 + 16],
-            [[browns[140], outline_color], 4 + 16, 5 + 16, 1 + 16, 0 + 16],
-            [[browns[160], outline_color], 5 + 16, 4 + 16, 7 + 16, 6 + 16],
-            [[browns[170], outline_color], 3 + 16, 2 + 16, 6 + 16, 7 + 16],
-            [[browns[130], outline_color], 4 + 16, 0 + 16, 3 + 16, 7 + 16],
-            [[browns[120], outline_color], 1 + 16, 5 + 16, 6 + 16, 2 + 16],
+            [[browns[150], outline_color], [0 + 16, 1 + 16, 2 + 16, 3 + 16]],
+            [[browns[140], outline_color], [4 + 16, 5 + 16, 1 + 16, 0 + 16]],
+            [[browns[160], outline_color], [5 + 16, 4 + 16, 7 + 16, 6 + 16]],
+            [[browns[170], outline_color], [3 + 16, 2 + 16, 6 + 16, 7 + 16]],
+            [[browns[130], outline_color], [4 + 16, 0 + 16, 3 + 16, 7 + 16]],
+            [[browns[120], outline_color], [1 + 16, 5 + 16, 6 + 16, 2 + 16]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -214,7 +296,7 @@ def get_katana(base_color):
             (-pw / 2, tip + 0.5 * pl, gh + 0.01),
         ])
     pattern_fills = [
-        [[WHITE, WHITE], 0 + 8 + n * 4, 1 + 8 + n * 4, 2 + 8 + n * 4, 3 + 8 + n * 4] for n in range(num_p)
+        [[WHITE, WHITE], [0 + 8 + n * 4, 1 + 8 + n * 4, 2 + 8 + n * 4, 3 + 8 + n * 4]] for n in range(num_p)
     ]
     # rest
     base_color = (235, 235, 235, 255)
@@ -246,18 +328,18 @@ def get_katana(base_color):
             # lines
         ], [
             # fills
-            [[grays[30]], 0, 1, 2, 3],
-            [[grays[30]], 5, 4, 7, 6],
-            [[grays[30]], 3, 2, 6, 7],
-            [[grays[30]], 4, 0, 3, 7],
-            [[grays[30]], 1, 5, 6, 2],
+            [[grays[30]], [0, 1, 2, 3]],
+            [[grays[30]], [5, 4, 7, 6]],
+            [[grays[30]], [3, 2, 6, 7]],
+            [[grays[30]], [4, 0, 3, 7]],
+            [[grays[30]], [1, 5, 6, 2]],
             *pattern_fills,
-            [[grays[240]], 0 + 8 + len(pattern), 1 + 8 + len(pattern), 2 + 8 + len(pattern), 3 + 8 + len(pattern)],
-            [[grays[240]], 4 + 8 + len(pattern), 5 + 8 + len(pattern), 1 + 8 + len(pattern), 0 + 8 + len(pattern)],
-            [[grays[240]], 5 + 8 + len(pattern), 4 + 8 + len(pattern), 7 + 8 + len(pattern), 6 + 8 + len(pattern)],
-            [[grays[240]], 3 + 8 + len(pattern), 2 + 8 + len(pattern), 6 + 8 + len(pattern), 7 + 8 + len(pattern)],
-            [[grays[240]], 4 + 8 + len(pattern), 0 + 8 + len(pattern), 3 + 8 + len(pattern), 7 + 8 + len(pattern)],
-            [[grays[240]], 1 + 8 + len(pattern), 5 + 8 + len(pattern), 6 + 8 + len(pattern), 2 + 8 + len(pattern)],
+            [[grays[240]], [0 + 8 + len(pattern), 1 + 8 + len(pattern), 2 + 8 + len(pattern), 3 + 8 + len(pattern)]],
+            [[grays[240]], [4 + 8 + len(pattern), 5 + 8 + len(pattern), 1 + 8 + len(pattern), 0 + 8 + len(pattern)]],
+            [[grays[240]], [5 + 8 + len(pattern), 4 + 8 + len(pattern), 7 + 8 + len(pattern), 6 + 8 + len(pattern)]],
+            [[grays[240]], [3 + 8 + len(pattern), 2 + 8 + len(pattern), 6 + 8 + len(pattern), 7 + 8 + len(pattern)]],
+            [[grays[240]], [4 + 8 + len(pattern), 0 + 8 + len(pattern), 3 + 8 + len(pattern), 7 + 8 + len(pattern)]],
+            [[grays[240]], [1 + 8 + len(pattern), 5 + 8 + len(pattern), 6 + 8 + len(pattern), 2 + 8 + len(pattern)]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -329,35 +411,35 @@ def get_axe(base_color):
         ], [
             # fills
             # base
-            [[get_brown(160, 20), outline_color], 0, 1, 2, 3],
-            [[get_brown(160, 20), outline_color], 4, 5, 1, 0],
-            [[get_brown(160, 20), outline_color], 4, 5, 6, 7],
-            [[get_brown(160, 20), outline_color], 7, 6, 2, 3],
-            [[get_brown(160, 20), outline_color], 4, 0, 3, 7],
-            [[get_brown(160, 20), outline_color], 1, 5, 6, 2],
+            [[get_brown(160, 20), outline_color], [0, 1, 2, 3]],
+            [[get_brown(160, 20), outline_color], [4, 5, 1, 0]],
+            [[get_brown(160, 20), outline_color], [4, 5, 6, 7]],
+            [[get_brown(160, 20), outline_color], [7, 6, 2, 3]],
+            [[get_brown(160, 20), outline_color], [4, 0, 3, 7]],
+            [[get_brown(160, 20), outline_color], [1, 5, 6, 2]],
 
             # back
-            [[blade_color, outline_color], 8, 9, 10],
-            [[blade_color, outline_color], 18, 19, 20],
-            [[blade_color, outline_color], 18, 19, 9, 8],
-            [[blade_color, outline_color], 10, 9, 19, 20],
+            [[blade_color, outline_color], [8, 9, 10]],
+            [[blade_color, outline_color], [18, 19, 20]],
+            [[blade_color, outline_color], [18, 19, 9, 8]],
+            [[blade_color, outline_color], [10, 9, 19, 20]],
 
             # head
             # stems
-            [[blade_color, outline_color], 23, 24, 17, 16],
-            [[blade_color, outline_color], 15, 16, 23],
-            [[blade_color, outline_color], 22, 21, 11, 12],
-            [[blade_color, outline_color], 13, 12, 22],
+            [[blade_color, outline_color], [23, 24, 17, 16]],
+            [[blade_color, outline_color], [15, 16, 23]],
+            [[blade_color, outline_color], [22, 21, 11, 12]],
+            [[blade_color, outline_color], [13, 12, 22]],
             # faces
             # section vermillion
-            [[blade_color, outline_color], 16, 17, 11, 12],
-            [[blade_color, outline_color], 23, 24, 21, 22],
+            [[blade_color, outline_color], [16, 17, 11, 12]],
+            [[blade_color, outline_color], [23, 24, 21, 22]],
             # section cyan
-            [[blade_color, outline_color], 14, 15, 16, 12],
-            [[blade_color, outline_color], 14, 15, 23, 22],
+            [[blade_color, outline_color], [14, 15, 16, 12]],
+            [[blade_color, outline_color], [14, 15, 23, 22]],
             # section olive
-            [[blade_color, outline_color], 14, 13, 12],
-            [[blade_color, outline_color], 14, 13, 22],
+            [[blade_color, outline_color], [14, 13, 12]],
+            [[blade_color, outline_color], [14, 13, 22]],
 
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015,0,
@@ -400,18 +482,18 @@ def get_shovel(base_color):
         ], [
             # fills
             # base
-            [[browns[100], outline_color], 0, 1, 2, 3],
-            [[browns[90], outline_color], 4, 5, 1, 0],
-            [[browns[70], outline_color], 4, 5, 6, 7],
-            [[browns[80], outline_color], 7, 6, 2, 3],
-            [[browns[110], outline_color], 4, 0, 3, 7],
-            [[browns[120], outline_color], 1, 5, 6, 2],
+            [[browns[100], outline_color], [0, 1, 2, 3]],
+            [[browns[90], outline_color], [4, 5, 1, 0]],
+            [[browns[70], outline_color], [4, 5, 6, 7]],
+            [[browns[80], outline_color], [7, 6, 2, 3]],
+            [[browns[110], outline_color], [4, 0, 3, 7]],
+            [[browns[120], outline_color], [1, 5, 6, 2]],
 
             # blade
-            [[grays[180], outline_color], 8, 9, 10, 11],
+            [[grays[180], outline_color], [8, 9, 10, 11]],
 
             # tip
-            [[grays[170], outline_color], 10, 11, 12],
+            [[grays[170], outline_color], [10, 11, 12]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015,0,
         fill_as_connections=False,
@@ -449,15 +531,15 @@ def get_pickaxe(base_color):
         ], [
             # fills
             # base
-            [[base_color, outline_color], 0, 1, 2, 3],
-            [[base_color, outline_color], 4, 5, 1, 0],
-            [[base_color, outline_color], 4, 5, 6, 7],
-            [[base_color, outline_color], 7, 6, 2, 3],
-            [[base_color, outline_color], 4, 0, 3, 7],
-            [[base_color, outline_color], 1, 5, 6, 2],
+            [[base_color, outline_color], [0, 1, 2, 3]],
+            [[base_color, outline_color], [4, 5, 1, 0]],
+            [[base_color, outline_color], [4, 5, 6, 7]],
+            [[base_color, outline_color], [7, 6, 2, 3]],
+            [[base_color, outline_color], [4, 0, 3, 7]],
+            [[base_color, outline_color], [1, 5, 6, 2]],
 
             # head
-            [[base_color, outline_color], 8, 9, 10],
+            [[base_color, outline_color], [8, 9, 10]],
 
             # connecting the head
 
@@ -500,21 +582,21 @@ def get_kunai(base_color):
             # connections
         ], [
             # body and tip
-            [[grays[50], outline_color], 0, 4, 1],
-            [[grays[40], outline_color], 1, 4, 2],
-            [[grays[70], outline_color], 2, 4, 3],
-            [[grays[60], outline_color], 3, 4, 0],
+            [[grays[50], outline_color], [0, 4, 1]],
+            [[grays[40], outline_color], [1, 4, 2]],
+            [[grays[70], outline_color], [2, 4, 3]],
+            [[grays[60], outline_color], [3, 4, 0]],
             # middle
-            [[grays[70], outline_color], 5, 0, 1, 6],
-            [[grays[60], outline_color], 6, 1, 2, 7],
-            [[grays[50], outline_color], 7, 2, 3, 8],
-            [[grays[40], outline_color], 8, 3, 0, 5],
+            [[grays[70], outline_color], [5, 0, 1, 6]],
+            [[grays[60], outline_color], [6, 1, 2, 7]],
+            [[grays[50], outline_color], [7, 2, 3, 8]],
+            [[grays[40], outline_color], [8, 3, 0, 5]],
             # grip
-            [[browns[50], outline_color], 9, 5, 6, 10],
-            [[browns[40], outline_color], 10, 6, 7, 11],
-            [[browns[70], outline_color], 11, 7, 8, 12],
-            [[browns[60], outline_color], 12, 8, 5, 9],
-            [[browns[60], outline_color], 9, 10, 11, 12],
+            [[browns[50], outline_color], [9, 5, 6, 10]],
+            [[browns[40], outline_color], [10, 6, 7, 11]],
+            [[browns[70], outline_color], [11, 7, 8, 12]],
+            [[browns[60], outline_color], [12, 8, 5, 9]],
+            [[browns[60], outline_color], [9, 10, 11, 12]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -554,21 +636,21 @@ def get_spear(base_color):
             # connections
         ], [
             # body and tip
-            [[grays[50], outline_color], 0, 4, 1],
-            [[grays[40], outline_color], 1, 4, 2],
-            [[grays[70], outline_color], 2, 4, 3],
-            [[grays[60], outline_color], 3, 4, 0],
+            [[grays[50], outline_color], [0, 4, 1]],
+            [[grays[40], outline_color], [1, 4, 2]],
+            [[grays[70], outline_color], [2, 4, 3]],
+            [[grays[60], outline_color], [3, 4, 0]],
             # middle
-            [[grays[70], outline_color], 5, 0, 1, 6],
-            [[grays[60], outline_color], 6, 1, 2, 7],
-            [[grays[50], outline_color], 7, 2, 3, 8],
-            [[grays[40], outline_color], 8, 3, 0, 5],
+            [[grays[70], outline_color], [5, 0, 1, 6]],
+            [[grays[60], outline_color], [6, 1, 2, 7]],
+            [[grays[50], outline_color], [7, 2, 3, 8]],
+            [[grays[40], outline_color], [8, 3, 0, 5]],
             # grip
-            [[browns[50], outline_color], 9, 5, 6, 10],
-            [[browns[40], outline_color], 10, 6, 7, 11],
-            [[browns[70], outline_color], 11, 7, 8, 12],
-            [[browns[60], outline_color], 12, 8, 5, 9],
-            [[browns[60], outline_color], 9, 10, 11, 12],
+            [[browns[50], outline_color], [9, 5, 6, 10]],
+            [[browns[40], outline_color], [10, 6, 7, 11]],
+            [[browns[70], outline_color], [11, 7, 8, 12]],
+            [[browns[60], outline_color], [12, 8, 5, 9]],
+            [[browns[60], outline_color], [9, 10, 11, 12]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -608,20 +690,20 @@ def get_spear(base_color):
             # connections
         ], [
             # body and tip
-            [[grays[50], outline_color], 0, 4, 1],
-            [[grays[40], outline_color], 1, 4, 2],
-            [[grays[70], outline_color], 2, 4, 3],
-            [[grays[60], outline_color], 3, 4, 0],
+            [[grays[50], outline_color], [0, 4, 1]],
+            [[grays[40], outline_color], [1, 4, 2]],
+            [[grays[70], outline_color], [2, 4, 3]],
+            [[grays[60], outline_color], [3, 4, 0]],
             # middle
-            [[grays[70], outline_color], 5, 0, 1, 6],
-            [[grays[60], outline_color], 6, 1, 2, 7],
-            [[grays[50], outline_color], 7, 2, 3, 8],
-            [[grays[40], outline_color], 8, 3, 0, 5],
+            [[grays[70], outline_color], [5, 0, 1, 6]],
+            [[grays[60], outline_color], [6, 1, 2, 7]],
+            [[grays[50], outline_color], [7, 2, 3, 8]],
+            [[grays[40], outline_color], [8, 3, 0, 5]],
             # grip
-            [[browns[50], outline_color], 9, 5, 6, 10],
-            [[browns[40], outline_color], 10, 6, 7, 11],
-            [[browns[70], outline_color], 11, 7, 8, 12],
-            [[browns[60], outline_color], 12, 8, 5, 9],
+            [[browns[50], outline_color], [9, 5, 6, 10]],
+            [[browns[40], outline_color], [10, 6, 7, 11]],
+            [[browns[70], outline_color], [11, 7, 8, 12]],
+            [[browns[60], outline_color], [12, 8, 5, 9]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -666,21 +748,21 @@ def get_bow(base_color):
             # connections
         ], [
             # body
-            [[get_brown(120, 20), outline_color], 0, 1, 2, 3],
-            [[get_brown(120, 20), outline_color], 4, 5, 1, 0],
-            [[get_brown(120, 20), outline_color], 4, 5, 6, 7],
-            [[get_brown(120, 20), outline_color], 7, 6, 2, 3],
-            [[get_brown(120, 20), outline_color], 4, 0, 3, 7],
-            [[get_brown(120, 20), outline_color], 1, 5, 6, 2],
+            [[get_brown(120, 20), outline_color], [0, 1, 2, 3]],
+            [[get_brown(120, 20), outline_color], [4, 5, 1, 0]],
+            [[get_brown(120, 20), outline_color], [4, 5, 6, 7]],
+            [[get_brown(120, 20), outline_color], [7, 6, 2, 3]],
+            [[get_brown(120, 20), outline_color], [4, 0, 3, 7]],
+            [[get_brown(120, 20), outline_color], [1, 5, 6, 2]],
             # string
-            [[get_brown(160, 20), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
-            [[get_brown(160, 20), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
-            [[get_brown(160, 20), outline_color], 4 + 8, 5 + 8, 6 + 8, 7 + 8],
-            [[get_brown(160, 20), outline_color], 7 + 8, 6 + 8, 2 + 8, 3 + 8],
-            [[get_brown(160, 20), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
-            [[get_brown(160, 20), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
+            [[get_brown(160, 20), outline_color], [0 + 8, 1 + 8, 2 + 8, 3 + 8]],
+            [[get_brown(160, 20), outline_color], [4 + 8, 5 + 8, 1 + 8, 0 + 8]],
+            [[get_brown(160, 20), outline_color], [4 + 8, 5 + 8, 6 + 8, 7 + 8]],
+            [[get_brown(160, 20), outline_color], [7 + 8, 6 + 8, 2 + 8, 3 + 8]],
+            [[get_brown(160, 20), outline_color], [4 + 8, 0 + 8, 3 + 8, 7 + 8]],
+            [[get_brown(160, 20), outline_color], [1 + 8, 5 + 8, 6 + 8, 2 + 8]],
             # connect-top
-            [[get_brown(160, 20), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
+            [[get_brown(160, 20), outline_color], [1 + 8, 5 + 8, 6 + 8, 2 + 8]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -744,44 +826,44 @@ def get_hammer(base_color):
 
         ], [
             # faces
-            [[grays[180], None], 0, 1, 2, 3],
-            [[grays[180], None], 5, 4, 7, 6],
-            [[grays[180], None], 8, 9, 10, 11],
-            [[grays[180], None], 12, 13, 14, 15],
-            [[grays[180], None], 16, 17, 18, 19],
-            [[grays[180], None], 20, 21, 22, 23],
+            [[grays[180], None], [0, 1, 2, 3]],
+            [[grays[180], None], [5, 4, 7, 6]],
+            [[grays[180], None], [8, 9, 10, 11]],
+            [[grays[180], None], [12, 13, 14, 15]],
+            [[grays[180], None], [16, 17, 18, 19]],
+            [[grays[180], None], [20, 21, 22, 23]],
             # top edges
-            [[grays[110], None], 11, 10, 1, 0],
-            [[grays[110], None], 8, 11, 17, 16],
-            [[grays[110], None], 9, 8, 4, 5],
-            [[grays[110], None], 10, 9, 21, 20],
+            [[grays[110], None], [11, 10, 1, 0]],
+            [[grays[110], None], [8, 11, 17, 16]],
+            [[grays[110], None], [9, 8, 4, 5]],
+            [[grays[110], None], [10, 9, 21, 20]],
             # middle edges
-            [[grays[110], None], 1, 20, 23, 2],
-            [[grays[110], None], 21, 5, 6, 22],
-            [[grays[110], None], 4, 16, 19, 7],
-            [[grays[110], None], 17, 0, 3, 18],
+            [[grays[110], None], [1, 20, 23, 2]],
+            [[grays[110], None], [21, 5, 6, 22]],
+            [[grays[110], None], [4, 16, 19, 7]],
+            [[grays[110], None], [17, 0, 3, 18]],
             # bottom edges
-            [[grays[110], None], 3, 2, 13, 12],
-            [[grays[110], None], 23, 22, 14, 13],
-            [[grays[110], None], 6, 7, 15, 14],
-            [[grays[110], None], 19, 18, 12, 15],
+            [[grays[110], None], [3, 2, 13, 12]],
+            [[grays[110], None], [23, 22, 14, 13]],
+            [[grays[110], None], [6, 7, 15, 14]],
+            [[grays[110], None], [19, 18, 12, 15]],
             # top corners
-            [[grays[230], None], 1, 10, 20],
-            [[grays[230], None], 21, 9, 5],
-            [[grays[230], None], 4, 8, 16],
-            [[grays[230], None], 17, 11, 0],
+            [[grays[230], None], [1, 10, 20]],
+            [[grays[230], None], [21, 9, 5]],
+            [[grays[230], None], [4, 8, 16]],
+            [[grays[230], None], [17, 11, 0]],
             # bottom corners
-            [[grays[230], None], 13, 2, 23],
-            [[grays[230], None], 12, 18, 3],
-            [[grays[230], None], 14, 22, 6],
-            [[grays[230], None], 15, 7, 19],
+            [[grays[230], None], [13, 2, 23]],
+            [[grays[230], None], [12, 18, 3]],
+            [[grays[230], None], [14, 22, 6]],
+            [[grays[230], None], [15, 7, 19]],
             # bases
-            [[browns[100], None], 24 + 0, 24 + 1, 24 + 2, 24 + 3],
-            [[browns[110], None], 24 + 4, 24 + 5, 24 + 1, 24 + 0],
-            [[browns[90], None], 24 + 5, 24 + 4, 24 + 7, 24 + 6],
-            [[browns[80], None], 24 + 3, 24 + 2, 24 + 6, 24 + 7],
-            [[browns[120], None], 24 + 4, 24 + 0, 24 + 3, 24 + 7],
-            [[browns[130], None], 24 + 1, 24 + 5, 24 + 6, 24 + 2],
+            [[browns[100], None], [24 + 0, 24 + 1, 24 + 2, 24 + 3]],
+            [[browns[110], None], [24 + 4, 24 + 5, 24 + 1, 24 + 0]],
+            [[browns[90], None], [24 + 5, 24 + 4, 24 + 7, 24 + 6]],
+            [[browns[80], None], [24 + 3, 24 + 2, 24 + 6, 24 + 7]],
+            [[browns[120], None], [24 + 4, 24 + 0, 24 + 3, 24 + 7]],
+            [[browns[130], None], [24 + 1, 24 + 5, 24 + 6, 24 + 2]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -844,34 +926,34 @@ def get_dart(base_color):
         ], [
             # fills
             # down
-            [[get_color(140, 20), outline_color], 0, 1, 2],
-            [[get_color(140, 20), outline_color], 0, 2, 3],
-            [[get_color(140, 20), outline_color], 0, 3, 4],
-            [[get_color(140, 20), outline_color], 0, 4, 1],
+            [[get_color(140, 20), outline_color], [0, 1, 2]],
+            [[get_color(140, 20), outline_color], [0, 2, 3]],
+            [[get_color(140, 20), outline_color], [0, 3, 4]],
+            [[get_color(140, 20), outline_color], [0, 4, 1]],
             # base
-            [[get_yellow(140, 20), outline_color], 5, 6, 2, 1],
-            [[get_yellow(140, 20), outline_color], 6, 7, 3, 2],
-            [[get_yellow(140, 20), outline_color], 7, 8, 4, 3],
-            [[get_yellow(140, 20), outline_color], 8, 5, 1, 4],
+            [[get_yellow(140, 20), outline_color], [5, 6, 2, 1]],
+            [[get_yellow(140, 20), outline_color], [6, 7, 3, 2]],
+            [[get_yellow(140, 20), outline_color], [7, 8, 4, 3]],
+            [[get_yellow(140, 20), outline_color], [8, 5, 1, 4]],
             # up
-            [[get_yellow(140, 20), outline_color], 9, 10, 6, 5],
-            [[get_yellow(140, 20), outline_color], 10, 11, 7, 6],
-            [[get_yellow(140, 20), outline_color], 11, 12, 8, 7],
-            [[get_yellow(140, 20), outline_color], 12, 9, 5, 8],
+            [[get_yellow(140, 20), outline_color], [9, 10, 6, 5]],
+            [[get_yellow(140, 20), outline_color], [10, 11, 7, 6]],
+            [[get_yellow(140, 20), outline_color], [11, 12, 8, 7]],
+            [[get_yellow(140, 20), outline_color], [12, 9, 5, 8]],
             # tip
-            [[get_gray(90, 20), outline_color], 13, 9, 10],
-            [[get_gray(90, 20), outline_color], 13, 10, 11],
-            [[get_gray(90, 20), outline_color], 13, 11, 12],
-            [[get_gray(90, 20), outline_color], 13, 12, 9],
+            [[get_gray(90, 20), outline_color], [13, 9, 10]],
+            [[get_gray(90, 20), outline_color], [13, 10, 11]],
+            [[get_gray(90, 20), outline_color], [13, 11, 12]],
+            [[get_gray(90, 20), outline_color], [13, 12, 9]],
             # wings
             # left
-            [[get_acolor(230, 20), outline_color], 0, 14, 15, 16],
+            [[get_acolor(230, 20), outline_color], [0, 14, 15, 16]],
             # right
-            [[get_acolor(230, 20), outline_color], 0, 16, 17, 18],
+            [[get_acolor(230, 20), outline_color], [0, 16, 17, 18]],
             # front
-            [[get_acolor(230, 20), outline_color], 19, 20, 16, 0],
+            [[get_acolor(230, 20), outline_color], [19, 20, 16, 0]],
             # back
-            [[get_acolor(230, 20), outline_color], 21, 22, 16, 0],
+            [[get_acolor(230, 20), outline_color], [21, 22, 16, 0]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -942,40 +1024,40 @@ def get_staff(base_color):
         ], [
             # fills
             # base
-            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 0, 1, 2, 3],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 4, 5, 1, 0],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 5, 4, 7, 6],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 3, 2, 6, 7],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 4, 0, 3, 7],
-            [[g.w.surf_assets["blocks"]["wooden-planks"], None], 1, 5, 6, 2],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], [0, 1, 2, 3]],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], [4, 5, 1, 0]],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], [5, 4, 7, 6]],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], [3, 2, 6, 7]],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], [4, 0, 3, 7]],
+            [[g.w.surf_assets["blocks"]["wooden-planks"], None], [1, 5, 6, 2]],
             # orb BL
-            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 0 + 8, 1 + 8, 2 + 8, 3 + 8],
-            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 4 + 8, 5 + 8, 1 + 8, 0 + 8],
-            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 5 + 8, 4 + 8, 7 + 8, 6 + 8],
-            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 3 + 8, 2 + 8, 6 + 8, 7 + 8],
-            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 4 + 8, 0 + 8, 3 + 8, 7 + 8],
-            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], 1 + 8, 5 + 8, 6 + 8, 2 + 8],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], [0 + 8, 1 + 8, 2 + 8, 3 + 8]],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], [4 + 8, 5 + 8, 1 + 8, 0 + 8]],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], [5 + 8, 4 + 8, 7 + 8, 6 + 8]],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], [3 + 8, 2 + 8, 6 + 8, 7 + 8]],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], [4 + 8, 0 + 8, 3 + 8, 7 + 8]],
+            [[get_aquamarine(choice(list(range(1, 4)) + [""])), outline_color], [1 + 8, 5 + 8, 6 + 8, 2 + 8]],
             # orb BR
-            [[get_green(150, 20), outline_color], 0 + 8 * 2, 1 + 8 * 2, 2 + 8 * 2, 3 + 8 * 2],
-            [[get_green(150, 20), outline_color], 4 + 8 * 2, 5 + 8 * 2, 1 + 8 * 2, 0 + 8 * 2],
-            [[get_green(150, 20), outline_color], 5 + 8 * 2, 4 + 8 * 2, 7 + 8 * 2, 6 + 8 * 2],
-            [[get_green(150, 20), outline_color], 3 + 8 * 2, 2 + 8 * 2, 6 + 8 * 2, 7 + 8 * 2],
-            [[get_green(150, 20), outline_color], 4 + 8 * 2, 0 + 8 * 2, 3 + 8 * 2, 7 + 8 * 2],
-            [[get_green(150, 20), outline_color], 1 + 8 * 2, 5 + 8 * 2, 6 + 8 * 2, 2 + 8 * 2],
+            [[get_green(150, 20), outline_color], [0 + 8 * 2, 1 + 8 * 2, 2 + 8 * 2, 3 + 8 * 2]],
+            [[get_green(150, 20), outline_color], [4 + 8 * 2, 5 + 8 * 2, 1 + 8 * 2, 0 + 8 * 2]],
+            [[get_green(150, 20), outline_color], [5 + 8 * 2, 4 + 8 * 2, 7 + 8 * 2, 6 + 8 * 2]],
+            [[get_green(150, 20), outline_color], [3 + 8 * 2, 2 + 8 * 2, 6 + 8 * 2, 7 + 8 * 2]],
+            [[get_green(150, 20), outline_color], [4 + 8 * 2, 0 + 8 * 2, 3 + 8 * 2, 7 + 8 * 2]],
+            [[get_green(150, 20), outline_color], [1 + 8 * 2, 5 + 8 * 2, 6 + 8 * 2, 2 + 8 * 2]],
             # orb TR
-            [[get_gray(140, 20), outline_color], 0 + 8 * 3, 1 + 8 * 3, 2 + 8 * 3, 3 + 8 * 3],
-            [[get_gray(140, 20), outline_color], 4 + 8 * 3, 5 + 8 * 3, 1 + 8 * 3, 0 + 8 * 3],
-            [[get_gray(140, 20), outline_color], 5 + 8 * 3, 4 + 8 * 3, 7 + 8 * 3, 6 + 8 * 3],
-            [[get_gray(140, 20), outline_color], 3 + 8 * 3, 2 + 8 * 3, 6 + 8 * 3, 7 + 8 * 3],
-            [[get_gray(140, 20), outline_color], 4 + 8 * 3, 0 + 8 * 3, 3 + 8 * 3, 7 + 8 * 3],
-            [[get_gray(140, 20), outline_color], 1 + 8 * 3, 5 + 8 * 3, 6 + 8 * 3, 2 + 8 * 3],
+            [[get_gray(140, 20), outline_color], [0 + 8 * 3, 1 + 8 * 3, 2 + 8 * 3, 3 + 8 * 3]],
+            [[get_gray(140, 20), outline_color], [4 + 8 * 3, 5 + 8 * 3, 1 + 8 * 3, 0 + 8 * 3]],
+            [[get_gray(140, 20), outline_color], [5 + 8 * 3, 4 + 8 * 3, 7 + 8 * 3, 6 + 8 * 3]],
+            [[get_gray(140, 20), outline_color], [3 + 8 * 3, 2 + 8 * 3, 6 + 8 * 3, 7 + 8 * 3]],
+            [[get_gray(140, 20), outline_color], [4 + 8 * 3, 0 + 8 * 3, 3 + 8 * 3, 7 + 8 * 3]],
+            [[get_gray(140, 20), outline_color], [1 + 8 * 3, 5 + 8 * 3, 6 + 8 * 3, 2 + 8 * 3]],
             # orb TL
-            [[get_red(140, 20), outline_color], 0 + 8 * 4, 1 + 8 * 4, 2 + 8 * 4, 3 + 8 * 4],
-            [[get_red(140, 20), outline_color], 4 + 8 * 4, 5 + 8 * 4, 1 + 8 * 4, 0 + 8 * 4],
-            [[get_red(140, 20), outline_color], 5 + 8 * 4, 4 + 8 * 4, 7 + 8 * 4, 6 + 8 * 4],
-            [[get_red(140, 20), outline_color], 3 + 8 * 4, 2 + 8 * 4, 6 + 8 * 4, 7 + 8 * 4],
-            [[get_red(140, 20), outline_color], 4 + 8 * 4, 0 + 8 * 4, 3 + 8 * 4, 7 + 8 * 4],
-            [[get_red(140, 20), outline_color], 1 + 8 * 4, 5 + 8 * 4, 6 + 8 * 4, 2 + 8 * 4],
+            [[get_red(140, 20), outline_color], [0 + 8 * 4, 1 + 8 * 4, 2 + 8 * 4, 3 + 8 * 4]],
+            [[get_red(140, 20), outline_color], [4 + 8 * 4, 5 + 8 * 4, 1 + 8 * 4, 0 + 8 * 4]],
+            [[get_red(140, 20), outline_color], [5 + 8 * 4, 4 + 8 * 4, 7 + 8 * 4, 6 + 8 * 4]],
+            [[get_red(140, 20), outline_color], [3 + 8 * 4, 2 + 8 * 4, 6 + 8 * 4, 7 + 8 * 4]],
+            [[get_red(140, 20), outline_color], [4 + 8 * 4, 0 + 8 * 4, 3 + 8 * 4, 7 + 8 * 4]],
+            [[get_red(140, 20), outline_color], [1 + 8 * 4, 5 + 8 * 4, 6 + 8 * 4, 2 + 8 * 4]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, 0.015, 0,
         fill_as_connections=False,
@@ -1030,8 +1112,8 @@ def get_maru(mult, hard, medium, soft):
             [outline_color, 5, 0],
         ], [
             # fills
-            [[hard, hard], 0, 1, 2, 3],
-            [[hard, hard], 3, 4, 5, 0],
+            [[hard, hard], [0, 1, 2, 3]],
+            [[hard, hard], [3, 4, 5, 0]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
@@ -1080,12 +1162,12 @@ def get_kobuse(mult, hard, medium, soft):
         ], [
             # fills
             # base
-            [[hard, hard], 6, 1, 2, 7],
-            [[hard, hard], 7, 2, 3, 8],
-            [[hard, hard], 8, 3, 4, 9],
-            [[hard, hard], 5, 10, 9, 4],
-            [[soft, soft], 0, 6, 7, 8],
-            [[soft, soft], 0, 8, 9, 10],
+            [[hard, hard], [6, 1, 2, 7]],
+            [[hard, hard], [7, 2, 3, 8]],
+            [[hard, hard], [8, 3, 4, 9]],
+            [[hard, hard], [5, 10, 9, 4]],
+            [[soft, soft], [0, 6, 7, 8]],
+            [[soft, soft], [0, 8, 9, 10]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,
@@ -1135,12 +1217,12 @@ def get_honsanmai(mult, hard, medium, soft):
         ], [
             # fills
             # base
-            [[medium, medium], 6, 1, 2, 8],
-            [[hard, hard], 10, 7, 8, 9],
-            [[hard, hard], 9, 8, 3],
-            [[medium, medium], 5, 11, 9, 4],
-            [[soft, soft], 11, 6, 7, 10],
-            [[soft, soft], 0, 6, 11],
+            [[medium, medium], [6, 1, 2, 8]],
+            [[hard, hard], [10, 7, 8, 9]],
+            [[hard, hard], [9, 8, 3]],
+            [[medium, medium], [5, 11, 9, 4]],
+            [[soft, soft], [11, 6, 7, 10]],
+            [[soft, soft], [0, 6, 11]],
 
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
@@ -1191,12 +1273,12 @@ def get_shihozume(mult, hard, medium, soft):
         ], [
             # fills
             # base
-            [[medium, medium], 6, 1, 2, 8],
-            [[soft, soft], 10, 7, 8, 9],
-            [[hard, hard], 9, 8, 3],
-            [[medium, medium], 5, 11, 9, 4],
-            [[medium, medium], 11, 6, 7, 10],
-            [[medium, medium], 0, 6, 11],
+            [[medium, medium], [6, 1, 2, 8]],
+            [[soft, soft], [10, 7, 8, 9]],
+            [[hard, hard], [9, 8, 3]],
+            [[medium, medium], [5, 11, 9, 4]],
+            [[medium, medium], [11, 6, 7, 10]],
+            [[medium, medium], [0, 6, 11]],
 
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
@@ -1247,14 +1329,14 @@ def get_makuri(mult, hard, medium, soft):
         ], [
             # fills
             # base
-            [[hard, hard], 6, 1, 2, 7],
-            [[hard, hard], 7, 2, 3, 8],
-            [[hard, hard], 4, 9, 8, 3],
-            [[hard, hard], 5, 10, 9, 4],
-            [[hard, hard], 0, 1, 6, 11],
-            [[hard, hard], 5, 0, 11, 10],
-            [[soft, soft], 11, 6, 7, 8],
-            [[soft, soft], 10, 11, 8, 9],
+            [[hard, hard], [6, 1, 2, 7]],
+            [[hard, hard], [7, 2, 3, 8]],
+            [[hard, hard], [4, 9, 8, 3]],
+            [[hard, hard], [5, 10, 9, 4]],
+            [[hard, hard], [0, 1, 6, 11]],
+            [[hard, hard], [5, 0, 11, 10]],
+            [[soft, soft], [11, 6, 7, 8]],
+            [[soft, soft], [10, 11, 8, 9]],
         ],
         (300, 300), mult, 2, 0, 0, 0, 0, compos_yvel, 0,
         fill_as_connections=False,

@@ -83,7 +83,7 @@ class Biome:
         self.flatnesses = {"forest": 7, "industry": 10, "beach": 10}
         self.biomes = list(self.blocks.keys())
 
-    def get_layers(self, biome):
+    def get_transition(self, biome):
         o1 = nordis(2, 2)
         o2 = nordis(2, 2)
         return {
@@ -123,7 +123,7 @@ def get_leaf_type(blockname):
 
 
 # chunk-based v2
-# real (finfallataloaeer332l version, I assert)
+# real (finfallataloaeer332l version, I assert) (are you having a stroke lil retigga wtf is this)
 def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
     # funcs
     def _rand(x, y):
@@ -218,12 +218,6 @@ def world_modifications(chunk_data, metadata, biome, chunk_pos, r):
                             wood_suffix = "N" if not wood_suffix else wood_suffix
                             wood_name = f"wood_f_vr{wood_suffix}_bg"
                             set(wood_name, wood_x, wood_y)
-
-                    elif _chance(1 / 10):
-                        tree_height = _rand(3, 6)
-                        for yo in range(tree_height):
-                            set("wood_f_vrN_bg", x, y - yo - 1)
-                        struct("treetop", x, y - yo - 1)
 
             # desert
             if biome == "desert":

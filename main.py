@@ -7,9 +7,6 @@ import time
 import pickle
 import json
 import threading
-# import noise
-# from perlin_noise import PerlinNoise
-import opensimplex as osimplex
 import asyncio
 from copy import deepcopy
 from colorsys import rgb_to_hls, hls_to_rgb
@@ -27,27 +24,6 @@ from src.entities import *
 from src.perlin import *
 
 
-
-def lowercase_rename(folder):
-    # renames all subforders of folder, not including folder itself
-    def rename_all(root, items):
-        for name in items:
-            try:
-                os.rename(os.path.join(root, name), os.path.join(root, name.lower()))
-            except OSError:
-                pass  # can't rename it, so what
-
-    # starts from the bottom so paths further up remain valid after renaming
-    for root, dirs, files in os.walk(folder, topdown=False):
-        rename_all(root, dirs)
-        rename_all(root, files)
-
-lowercase_rename("assets")
-raise
-
-
-
-
 class SmartTextRender:
     def __init__(self, func, font_size, pos, anchor, freq=500):
         self.func = func
@@ -57,7 +33,7 @@ class SmartTextRender:
         self.freq = freq
         self.update()
         self.last_update = ticks()
-    
+
     def update(self):
         self.text = self.func()
         self.tex = T(orbit_fonts[self.font_size].render(self.text, True, BLACK))
@@ -239,20 +215,7 @@ def mousebuttondown_event(button):
             """
 
             if g.player.main == "tool":
-                if "_sword" in g.player.tool:
-                    # if orb_names["purple"] in g.player.tool:
-                    #     visual.sword_swing = float("inf")
-                    #     visual.sword_log = [sl for sl in visual.sword_log for _ in range(2)]
-                    # else:
-                    #     visual.to_swing = 220
-                    # visual.angle = -90
-                    # visual.to_swing = 7
-                    # visual.swing_sword()
-                    visual.mouse_init = g.mouse
-                elif bpure(g.player.tool) == "bat":
-                    visual.anticipate = True
-                    visual.anim = 1
-                visual.ds_last = perf_counter()
+                g.player.attack()
 
             if g.midblit == "tool-crafter":
                 pass
@@ -346,7 +309,7 @@ def mousebuttonup_event(button):
                 # tools
                 if g.player.main == "tool":
                     # shoot arrow
-                    if "bow" in g.player.tool:
+                    if "bow" in g.player.tools:
                         arrow_index = first(g.player.inventory, lambda x: x is not None and "arrow" in x)
                         if arrow_index is not None:
                             if g.player.inventory_amounts[arrow_index] > 0:
@@ -876,17 +839,85 @@ def diffuse_light(og_block, chunk_data):
     diffuse(og_block)
 
 
+# chunk shit
+class ChunkHeights(Enum):
+    AIR = -1
+    GROUND = 0
+    TRANSITION = 1
+    MINE = 2
+    GROUND_MINE = 3
+
+
+def generate_chunk(chunk_index, biome="forest", terrain_only=False):
+    fast_terrain = None
+    x = y = entities = chunk_pos = fast_terrain = chunk_data = 0
+
+    def part1():
+        nonlocal fast_terrain, x, y, entities, chunk_pos
+        fast_terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
+        x, y = chunk_index
+        entities = []
+        chunk_pos = (x * CW, y * CH)
+
+    def part2():
+        g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": [], "underground": DictWithoutException()})
+
+    def part3():
+        nonlocal chunk_data
+        if not terrain_only:
+            chunk_data = {}
+            for rel_x in range(CW):
+                for rel_y in range(CH):
+                    width, height = x * CW + rel_x, y * CH + rel_y
+                    rel_pos = rel_x, rel_y
+                    target_x = x * CW + rel_x
+                    target_y = y * CH + rel_y
+                    target_pos = (target_x, target_y)
+                    blit_x, blit_y = (rel_x * BS, rel_y * BS)
+                    name = "air"
+                    if y < 0:
+                        name = "air"
+                    elif y == 0:
+                        name = "soil_f"
+                    else:
+                        name = "stone"
+                    if name:
+                        chunk_data[target_pos] = Block(name, target_pos, 1)
+                        fast_terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
+                        # g.w.modify(name, custom_target=chunk_data, abs_pos=target_pos, custom_terrain=fast_terrain, overwrites_all=True)
+
+    def part4():
+        nonlocal chunk_data, fast_terrain
+        g.w.data[chunk_index] = chunk_data
+        # terrain, _ = generate_lighting(chunk_data, chunk_index, new_lighting=True, blit_image=True)
+        # fast_terrain.blit(terrain, (0, 0))
+        fast_terrain = T(fast_terrain)
+        g.w.terrains[chunk_index] = fast_terrain
+        g.w.entities[chunk_index] = entities
+        return fast_terrain
+
+    part1()
+    part2()
+    part3()
+    part4()
+
+    return fast_terrain
+
+
 def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     # fast as fuck boi
     fast_terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
     # init NOW
     x, y = chunk_index
     entities = []
-    # lighting.fill({2: DARK_GRAY}.get(y, SKY_BLUE))
     chunk_pos = (x * CW, y * CH)
+    # metadata
     g.w.metadata[chunk_index] = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": [], "underground": DictWithoutException()})
+    if chunk_index[0] not in g.w.metadata:
+        g.w.metadata[chunk_index[0]] = {"overflowing_mine": chance(1 / 10)}
+    overflowing_mine = g.w.metadata[chunk_index[0]]["overflowing_mine"]
+    # init varsiables
     biome = biome if biome is not None else choice(list(bio.blocks.keys()))
-    y_offsets = g.w.linoise.linear(0, CW)
     if not terrain_only:
         chunk_data = {}
         # per chunk
@@ -906,10 +937,9 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
         depth = ore_chance = 0
         for rel_x in range(CW):
             noise_input = x * CW + rel_x
-            y_offset = y_offsets[rel_x]
-            y_offset = int(perlin.valueAt(noise_input * 0.1 + 1000) * 10)
+            y_offset = int(osimplex.noise2(x=(x * CW + rel_x) * 0.08, y=0) * 8)
             if y == 1:
-                layers = bio.get_layers(biome)
+                layers = bio.get_transition(biome)
             for rel_y in range(CH):
                 width, height = x * CW + rel_x, y * CH + rel_y
                 rel_pos = rel_x, rel_y
@@ -917,42 +947,55 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                 target_y = y * CH + rel_y
                 target_pos = (target_x, target_y)
                 name = "air"
-                if y == 0:
+                # check which chunk levels we got
+                if overflowing_mine:
+                    # mine is overflowing, so (ground) mine up to surface level
+                    if y < 0:  # air
+                        chunk_height = ChunkHeights.AIR
+                    elif y == 0:
+                        chunk_height = ChunkHeights.GROUND_MINE
+                    elif y > 0:
+                        chunk_height = ChunkHeights.MINE
+                else:
+                    if y >= 0:
+                        # the height is below air (not super~air or air)
+                        chunk_height = {
+                            0: ChunkHeights.GROUND,
+                            1: ChunkHeights.TRANSITION,
+                            2: ChunkHeights.MINE
+                        }.get(y, ChunkHeights.MINE)
+                    else:
+                        chunk_height = ChunkHeights.AIR
+                # init vars
+                if chunk_height in (ChunkHeights.MINE, ChunkHeights.GROUND_MINE):
+                    mine_name = "stone_bg" if osimplex.noise2(x=width * 0.12, y=height * 0.1) < 0 else "stone"
+                # rest
+                if chunk_height == ChunkHeights.AIR:
+                    name = "air"
+                elif chunk_height == ChunkHeights.GROUND:
                     if rel_y == 8 + y_offset:
                         name = prim
                     elif rel_y > 8 + y_offset:
                         name = sec
                     else:
                         name = "air"
-                elif y == 1:
+                elif chunk_height == ChunkHeights.GROUND_MINE:
+                    if rel_y >= 8 + y_offset:
+                        name = mine_name
+                    else:
+                        name = "air"
+                elif chunk_height == ChunkHeights.TRANSITION:
                     name = "air"
                     for interval, layer_block in layers.items():
                         if interval[0] <= rel_y <= interval[1]:
                             name = layer_block
-                elif y >= 2:
-                    mult = 0.1
-                    depth = 0
-                    ore_chance = 0
-                    if depth >= 0:
-                        name = tert
-                        if chance(1 / 100):
-                            name = choice(list(oinfo))
-                    else:
-                        name = "wallstone"
-                    h = osimplex.noise2(x=width * 0.12, y=height * 0.1)
-                    if h < 0:
-                        name = "stone_bg"
-                    else:
-                        name = "stone"
-                # set when height <= 1, because stone is set differently
+                elif chunk_height == ChunkHeights.MINE:
+                    name = mine_name
                 if name:
-                    if y <= 0:
-                        chunk_data[target_pos] = Block(name, target_pos, ore_chance)
-                    else:
-                        g.w.modify(name, custom_target=chunk_data, abs_pos=target_pos, custom_terrain=fast_terrain, overwrites_all=True)
+                    g.w.modify(name, custom_target=chunk_data, abs_pos=target_pos, custom_terrain=fast_terrain, overwrites_all=True)
                 # set underground background blocks so it's not just air
                 if y >= 0 and name != "air":
-                    # sset default block when it gets mined
+                    # set default block when it gets mined
                     if bpure(name) == "soil":
                         u_name = name.replace("soil", "dirt")
                     elif non_bg(name) == "stone":
@@ -976,6 +1019,7 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     fast_terrain = T(fast_terrain)
     g.w.terrains[chunk_index] = fast_terrain
     g.w.entities[chunk_index] = entities
+    test("generated")
     return fast_terrain
 
 
@@ -1000,26 +1044,13 @@ def generate_lighting(chunk_data, chunk_index, new_lighting=False, blit_image=Fa
         for rel_x in range(CW):
             abs_pos = (chunk_pos[0] + rel_x, chunk_pos[1] + rel_y)
             if abs_pos in chunk_data:
+                # blit actual block image onto global chunk surface
                 block = chunk_data[abs_pos]
                 name = block.name
                 blit_x, blit_y = (rel_x * BS, rel_y * BS)
-                if name in linfo:
-                    # pygame.gfxdraw.filled_circle(lighting, blit_x + BS // 2, blit_y + BS // 2, linfo[name]["radius"], linfo[name]["color"])
-                    if blit_x - 90 < 0:
-                        enum["left"].append([name, blit_x + BS // 2, blit_y + BS // 2])
-                    if blit_x + 90 > (CW * BS):
-                        enum["right"].append([name, blit_x + BS // 2, blit_y + BS // 2])
-                    if blit_y - 90 < 0:
-                        enum["up"].append([name, blit_x + BS // 2, blit_y + BS // 2])
-                    if blit_y + 90 > (CH * BS):
-                        enum["down"].append([name, blit_x + BS // 2, blit_y + BS // 2])
-                # blit actual block image onto global chunk surface
                 if blit_image:
                     if name != "air":
                         terrain.blit(g.w.bimg(name, tex=False), (blit_x, blit_y))
-                # lighting
-                # if name == "air":
-                #     fill_light(chunk_index, abs_pos, 280)
     color = (255, 0, 0, 200)
     # lighting = pygame.transform.box_blur(lighting, linfo["torch"]["radius"])
     #
@@ -1371,14 +1402,12 @@ class World:
 
     def bimg(self, name, tex=True):
         if tex:
-            img = self.blocks[non_bg(name)]
+            img = self.blocks[name]
         else:
-            img = self.surf_assets["blocks"][non_bg(name)]
+            img = self.surf_assets["blocks"][name]
         if name == "water":
             img = pygame.Surface((BS, BS), pygame.SRCALPHA)
             img.fill(list(WATER_BLUE[:2]) + [127])
-        if is_bg(name):
-            img = darken(img, 0.4 if name in underground_blocks else 0.8)
         return img
 
     def modify(self, setto, target_chunk=None, abs_pos=None, custom_target=None, custom_terrain=None, update=True, righted=False, overwrites=None, overwrites_empty=True, overwrites_all=False, remove_from_updating=False, update_image=True, **kwargs):
@@ -1686,14 +1715,14 @@ class PlayWidgets:
         befriend_iterable(self.keybind_buttons)
         # other widgets
         self.tool_crafter_kwargs = {"text_color": WHITE, "visible_when": lambda: g.midblit == "tool-crafter", "width": tool_crafter_sword_width - 6, "height": 36}
-        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana"] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), **self.tool_crafter_kwargs)
+        self.tool_crafter_selector = ComboBox(win.renderer, "sword", ["cube", "sphere", "katana", "icosahedron"] + tool_names, unavailable_tool_names, command=self.tool_crafter_selector_command, font=orbit_fonts[15], bg_color=pygame.Color("aquamarine4"), extension_offset=(-1, 0), **self.tool_crafter_kwargs)
         self.tool_crafter_rotate = ToggleButton(win.renderer, ("rotate", "still"), command=self.tool_crafter_rotate_command, font=orbit_fonts[15], **self.tool_crafter_kwargs)
 
     def disable_home_widgets(self):
         for wt in self.menu_widgets:
             for widget in self.menu_widgets[wt]:
                 widget.disable()
-    
+
     @property
     def show_any_hitboxes(self):
         return self.show_hitboxes or self.show_player_hitboxes
@@ -1702,7 +1731,7 @@ class PlayWidgets:
     @staticmethod
     def show_stats_command():
         pass
-    
+
     def get_fps(self):
         fps = int(g.clock.get_fps())
         ret = f"FPS: {fps} | Entities: {g.num_entities} | Particles: {len(all_other_particles)}"
@@ -1788,7 +1817,7 @@ class PlayWidgets:
     def set_selected_widget_right_command(widget):
         if g.selected_widget == widget:
             change_keybind(widget, widget._iden, "#rmouse")
-    
+
     @staticmethod
     def set_selected_widget_middle_command(widget):
         if g.selected_widget == widget:
@@ -1796,7 +1825,7 @@ class PlayWidgets:
 
     def restore_default_keybinds_confirm(self):
         MessageboxOkCancel(win.renderer, "Restore default keybinds? This will overwrite your current configuration.", self.restore_default_keybinds_command, **pw.widget_kwargs)
-    
+
     def restore_default_keybinds_command(self):
         for button in self.keybind_buttons:
             if hasattr(button, "_iden"):
@@ -1877,15 +1906,16 @@ class PlayWidgets:
 
     @staticmethod
     def tool_crafter_selector_command(tool):
-        try:
-            g.mb.sword = getattr(tools, f"get_{tool}")(g.mb.sword_color)
-        except AttributeError:
+        func = f"get_{tool}"
+        if hasattr(tools, func):
+            g.mb.sword = getattr(tools, func)(g.mb.sword_color)
+        else:
             MessageboxError(win.renderer, "Selected tool currently has no model view", as_child=True, **pw.widget_kwargs)
-    
+
     @staticmethod
     def tool_crafter_rotate_command(option):
         g.mb.sword.rotate = option == "rotate"
-    
+
     @property
     def tool_crafter_selector_range_rect(self):
         mbr = g.midblit_rect()
@@ -1904,32 +1934,37 @@ class Animations:
         self.imgs = {}
         self.rects = {}
         self.data = {
-            "_Default": {
-                # default is 0.05 at 6 with 120
-                "run": {"frames": 8},
+            "_default": {
+                # default is 0.05 at slider 6 with 120
+                "_default_run": {"frames": 8},
+                "_default_idle": {"frames": 4, "speed": 0.025},
+                "_default_jump": {"frames": 1, "offset": (1, 0)},
+                "_default_punch": {"frames": 4, "speed": 0.1, "offset": (9, 2)},
+                # staff
+                "staff_idle": {"frames": 2, "speed": 0.012},
                 "staff_run": {"frames": 4},
-                "idle": {"frames": 2, "speed": 0.025},
-                "jump": {"frames": 1, "offset": (1, 0)},
-                "punch": {"frames": 4, "speed": 0.12, "offset": (9, 2)},
+                "staff_jump": {"frames": 1},
+                # katana
+                "katana_run": {"frames": 8},
             },
 
-            "Staff": {
+            "staff": {
                 "run": {"frames": 8},
+                "jump": {"frames": 8},
             },
         }
         # anim imgs
         base = path("assets", "Images", "Player_Animations")
         for weapon in os.listdir(base):
-            if weapon not in ("_Default", "Staff"):
+            if weapon == ".DS_Store" or weapon not in ("_default", "staff"):
                 continue
             try:
                 self.imgs[weapon] = {}
                 self.rects[weapon] = {}
                 for anim_file in os.listdir(path(base, weapon)):
-                    if weapon == "Staff" and anim_file != "run":
-                        continue
-
                     anim_type, ext = os.path.splitext(anim_file)
+                    if weapon != "_default" and anim_type != "run":
+                        continue
                     num_frames = self.data[weapon][anim_type]["frames"]
                     surfs = imgload3(base, weapon, anim_file, frames=num_frames)
                     if isinstance(surfs, pygame.Surface):
@@ -1945,19 +1980,16 @@ class Animations:
 class Player:
     def __init__(self):
         # animation data
-        self.anim_skin = "_Default"
         self.anim_type = "idle"
         self.anim_queue = []
         # image initialization
         self.direc = "left"
         self.anim = 0
         self.up = True
-        self.tools = ["staff", None]
-        self.tools = ["staff", "sword"]
+        self.tools = [None, None]
         self.tool_healths = [100, 100]
         self.tool_ammos = [None, None]
         self.indexes = {"tool": 0, "block": 0}
-        self.animate()
         # rest
         self.x = 0
         self.y = 0
@@ -1968,8 +2000,11 @@ class Player:
         self.xvel = 0
         self.extra_xvel = 0
         self.yvel = 0
-        self.xacc = 0.1
+        self.xacc = 1  # player xacc
         self.yacc = 0.1
+        self.max_xvel = 2
+        #
+        self.animate()
         self.def_gravity = self.gravity = 0.08
         self.def_jump_yvel = -3.5
         self.jump_yvel = self.def_jump_yvel
@@ -2037,28 +2072,28 @@ class Player:
             circle_rect = pygame.Rect(0, 0, self.circle.width, self.circle.height)
             circle_rect.center = self.rect_draw.center
             win.renderer.blit(self.circle, circle_rect)
-            
+
 
     @property  # player _rect; player urect
     def _rect(self):
         ret = pygame.Rect(0, 0, *self.size)
         ret.center = (self.x, self.y)
         return ret
-    
+
     @property
     def rect(self):  # player rect play
         ret = pygame.Rect(self._rect.x - g.scroll[0], self._rect.y - g.scroll[1], *self.size)
         return ret
-    
+
     @property
     def _rect_draw(self):
         ret = pygame.Rect(0, 0, *self.ci_size)
-        xo, yo = anim.data[self.anim_skin][self.anim_type].get("offset", (0, 0))
+        xo, yo = anim.data["_default"][self.sanim_type].get("offset", (0, 0))
         xo *= S * self.sign
         yo *= S
         ret.center = (self.x + xo, self.y + yo)
         return ret
-    
+
     @property
     def rect_draw(self):
         ret = pygame.Rect(self._rect_draw.x - g.scroll[0], self._rect_draw.y - g.scroll[1], *self.ci_size)
@@ -2075,11 +2110,11 @@ class Player:
     @property
     def ci_size(self):
         return (self.image.width, self.image.height)
-    
+
     @property
     def width(self):
         return self.size[0]
-    
+
     @property
     def height(self):
         return self.size[1]
@@ -2151,6 +2186,14 @@ class Player:
     @tool.setter
     def tool(self, value):
         self.tools[self.indexes["tool"]] = value
+
+    @property
+    def stool(self):
+        return self.tool if self.tool is not None else "_default"
+
+    @property
+    def sanim_type(self):
+        return f"{self.stool}_{self.anim_type}"
 
     @property
     def tool_type(self):
@@ -2271,6 +2314,9 @@ class Player:
         self.stats["oxygen"]["amount"] = value
         if self.oxygen > 100:
             self.oxygen = 100
+
+    def attack(self):
+        self.new_anim("punch", check=True)
 
     def dashx(self, amount, speed, wait=0):
         def _dashx():
@@ -2460,7 +2506,7 @@ class Player:
         if keys[pygame.K_s]:
             down = True
 
-        # return
+        # controller movement
         if controller.joystick is not None:
             b = controller.map[controller.name]["buttons"]
             a = controller.map[controller.name]["axes"]
@@ -2495,24 +2541,24 @@ class Player:
             self.y += self.to_dashy[0]
 
         # x-movement
-        self.xacc = 0.2
         if left:
-            self.max_xvel = -2
             self.direc = "left"
         elif right:
-            self.max_xvel = 2
             self.direc = "right"
-        else:
-            self.max_xvel = 0
         # animation setting
-        if self.xvel:
+        if left or right:
             if self.anim_type == "idle":
-                self.anim_type = "run"
+                self.set_anim("run")
         else:
             if self.anim_type == "run":
-                self.anim_type = "idle"
-        # x-col (euler's method)
-        self.xvel += (self.max_xvel - self.xvel) * self.xacc
+                self.set_anim("idle")
+        # x-col (euler's method) (Leo you're a Nerd "eluer's 'todd" suck my balls and shut the fuck up and code the gameplay already)
+        if left:
+            self.xvel += (-self.max_xvel - self.xvel) * self.xacc
+        elif right:
+            self.xvel += (self.max_xvel - self.xvel) * self.xacc
+        else:
+            self.xvel += -self.xvel * self.xacc
         if self.max_xvel == 0 and abs(self.xvel) <= 10 ** -1:
             self.xvel = 0
         self.x += self.xvel
@@ -2526,7 +2572,7 @@ class Player:
         # animation setting
         if self.yvel > 3:
             if self.anim_type in ("idle", "run"):
-                self.anim_type = "jump"
+                self.set_anim("jump")
         self.y += self.yvel
         for col in self.get_cols(rects_only=True):
             if self.yvel > 0:
@@ -2535,15 +2581,15 @@ class Player:
                     draw_rect(win.renderer, GREEN, pygame.Rect(col.x - g.scroll[0], col.y - g.scroll[1], 30, 30))
                 self.yvel = 0
                 if self.anim_type == "jump":
-                    self.anim_type = "idle"
+                    self.set_anim("idle")
             elif self.yvel < 0:
                 self.y = col.bottom + int(self.height / 2)
                 self.yvel = 0
-    
+
     def jump(self):
         if self.anim_type != "jump":
             g.player.yvel = g.player.def_jump_yvel
-            self.anim_type = "jump"
+            self.set_anim("jump")
 
     def camel_move(self, camel):
         self.rect.centerx = camel.centerx - 10
@@ -2583,11 +2629,6 @@ class Player:
     def set_anim(self, anim_type=None):
         self.anim = 0
         self.anim_type = self.anim_queue.pop(0) if anim_type is None else anim_type
-        offset = anim.imgs[self.anim_skin][self.anim_type].get("offset", (0, 0))
-        if any(offset):
-            self.x += offset[0]
-            self.y += offset[1]
-            self.yvel = 0
 
     @property
     def anim_direc(self):
@@ -2600,31 +2641,23 @@ class Player:
     def animate(self):
         # debug
         try:
-            # try whether animation exists
-            if self.anim_type == "run":
-                anim_type = f"{self.tool}_{self.anim_type}"
-            else:
-                anim_type = self.anim_type
-            fdi = anim.imgs[self.anim_skin][anim_type][self.anim_direc]
+            fdi = anim.imgs["_default"][self.sanim_type][self.anim_direc]
         except KeyError:
-            # the default animation is "run"
-            fdi = anim.imgs[self.anim_skin]["idle"][self.anim_direc]
-        self.anim += anim.data[self.anim_skin][anim_type].get("speed", g.p.anim_fps * 2)
+            fdi = anim.imgs["_default"]["_default_idle"][self.anim_direc]
+        self.anim += anim.data["_default"][self.sanim_type].get("speed", g.p.anim_fps * 2)
         try:
             # try animating the index given the fdi
             fdi[int(self.anim)]
         except IndexError:
             # animation index exceeded the amount of frames
-            if anim_type == "jump":
+            if self.anim_type in ("jump", "run"):
                 self.anim = 0
             else:
                 if self.anim_queue:
                     self.set_anim()
-                elif anim_type == "run":
-                    self.anim = 0
                 else:
                     self.set_anim("idle")
-            fdi = anim.imgs[self.anim_skin][anim_type][self.anim_direc]
+            fdi = anim.imgs["_default"][self.sanim_type][self.anim_direc]
         finally:
             self.image = fdi[int(self.anim)]
 
@@ -3141,7 +3174,7 @@ class FracDistParticle:
         self.rect = self.image.get_rect()
         self.step = 0
         self.xvel = 0
-        self.xacc = 0.06
+        self.xacc = 0.2
         self.aacc = 10
         self.direc = 1
         self.gas = gas_blocks[level]
@@ -4108,7 +4141,7 @@ async def main(debug, cprof=False):
                     # sys.exit()
 
                 # mechanical events
-                if not g.events_locked:                            
+                if not g.events_locked:
                     for fgs in all_foreground_sprites:
                         if hasattr(fgs, "process_event") and callable(fgs.process_event):
                             fgs.process_event(event)
@@ -4133,26 +4166,12 @@ async def main(debug, cprof=False):
                         if event.key == pygame.K_1:
                             # win.target_zoom = (3, 3)
                             pass
-                        
+
                         if event.key == pygame.K_w:
                             g.player.jump()
 
                         if event.key == K_q:  # debug so far until it gets a feature on its own
-                            # group(InfoBox(["Hey, another fellow traveler!", "ok you can go now"]), all_foreground_sprites)
-                            # new_world()
-                            # disable_needed_widgets()
-                            # pg_to_pil(win.renderer.to_surface()).show()
-                            # o = OrbParticle((-30, -50), GREEN)
-                            # o = OrbMatrix(lambda: g.player.rect.center)
-                            # group(o, all_other_particles)
-                            # o = OrbParticle((200, 200), WATER_BLUE, 118)
-                            # group(o, all_other_particles)
-                            # o = OrbParticle((150, 150), PURPLE, 118*2)
-                            # group(o, all_other_particles)
-                            # e = g.w.entities[(-1, 0)][0]
-                            # e.take_damage(40)
                             ...
-                            # g.player.anim_skin = {"Monk": "_Default", "_Default": "Samurai", "Samurai": "Monk"}[g.player.anim_skin]
                             # setattr(win, f"window{rand(0, 10000000000)}", Window(title=f"Blockingdom", size=(500, 400)))
                             # pprint({k: v.name for k, v in g.w.data[(0, 0)].items()})
                             print(g.w.data[(0, 0)][(0, 0)].name)
@@ -4361,11 +4380,11 @@ async def main(debug, cprof=False):
                                                 g.mb.crystals[g.player.block] = Lattice(ore["crystal"], ore["color"])
                                             else:
                                                 g.mb.crystals[g.player.block].stoic += 1
-                                
+
                                     elif event.key in (pygame.K_LEFT, pygame.K_RIGHT):
                                         if ticks() - g.mb.last_left >= 0:
                                             left = event.key == pygame.K_LEFT
-                                            g.mb.compoi.sort(key=lambda x: x.ox, reverse=not left)
+                                            g.mb.compoi.sort(key=lambda x: x.oox, reverse=not left)
                                             new_target_ooxi = []
                                             for index, compos in enumerate(g.mb.compoi):
                                                 index -= 1
@@ -4394,7 +4413,7 @@ async def main(debug, cprof=False):
 
                                 elif event.key == K_p:
                                     g.player.cust_username()
-                                
+
                                 elif event.key == K_c:
                                     create_command_entry = True
 
@@ -4540,7 +4559,7 @@ async def main(debug, cprof=False):
                             if hasattr(spr, "process_event") and callable(spr.process_event):
                                 spr.process_event(event)
                                 g.process_messageboxworld = False
-                    
+
                     # widget process events
                     process_widget_events(event, mouse)
 
@@ -4621,8 +4640,6 @@ async def main(debug, cprof=False):
                         biome = "forest"
                         if target_chunk not in g.w.data:
                             surf_terrain = generate_chunk(target_chunk, biome=biome)
-                        # elif target_chunk not in g.w.terrains:
-                        #     surf_terrain = generate_chunk(target_chunk, biome=biome, terrain_only=True)
                         g.w.last_chunks.insert(0, surf_terrain)
                         g.w.last_chunks = g.w.last_chunks[:1]
                         # init chunk render
@@ -4630,8 +4647,8 @@ async def main(debug, cprof=False):
                         chunk_topleft = (_cpos[0] * BS - g.scroll[0], _cpos[1] * BS - g.scroll[1])
                         terrain_tex = g.w.terrains[target_chunk]
                         # terrain_tex.color = (rrr, ggg, bbb, 255)
-                        lighting_tex = g.w.lightings[target_chunk]
-                        lighting_tex.alpha = 0
+                        # lighting_tex = g.w.lightings[target_chunk]
+                        # lighting_tex.alpha = 0
                         # lighting_tex.alpha = 240 * (sin(ticks() * 0.00008) + 1) / 2
                         chunk_rect = pygame.Rect(chunk_topleft, (terrain_tex.width, terrain_tex.height))
                         # render chunk
@@ -4639,7 +4656,7 @@ async def main(debug, cprof=False):
                         _chunk_rect = chunk_rect
                         if "lighting_offset" in g.w.metadata[target_chunk]:
                             _chunk_rect = chunk_rect.move(g.w.metadata[target_chunk]["lighting_offset"], 0)
-                        win.renderer.blit(g.w.lightings[target_chunk], _chunk_rect)
+                        # win.renderer.blit(g.w.lightings[target_chunk], _chunk_rect)
                         # rest
                         g.w.block_data[target_chunk] = {}
                         g.w.block_rects[target_chunk] = {}
@@ -4839,19 +4856,6 @@ async def main(debug, cprof=False):
                                         for flown in flowns:
                                             g.w.modify("lava", *flown)
                                             block.last_flow = ticks()
-                            # slime perlin noise
-                            if nbg == "slime":
-                                for slime_y in range(BS):
-                                    for slime_x in range(BS):
-                                        slime_mult = 1
-                                        slime_speed = 0.0005
-                                        slime_n = noise.pnoise3(slime_x / BS * slime_mult + bx * slime_mult, slime_y / BS * slime_mult + by * slime_mult, ticks() * slime_speed)
-                                        slime_range = 70
-                                        slime_gray = (slime_n + 0.5) * slime_range + (255 - slime_range)
-                                        slime_color = [0, slime_gray, 0]
-                                        # slime_color = [slime_gray] * 3
-                                        slime_color = [min(max(c, 0), 255) for c in slime_color]
-                                        (win.renderer, slime_color, (rect.x + slime_x, rect.y + slime_y, 1, 1))
 
                             # update block identity (§processing moved to main)
                             if nbg == "frac-dist":
@@ -4864,7 +4868,7 @@ async def main(debug, cprof=False):
                             # update block cache for collisions of the entities
                             if abs_pos in g.w.data[target_chunk]:
                                 g.w.block_data[target_chunk][block.pos] = block
-       
+
                 # update the entities
                 if pw.entities:
                     for chunk in updated_chunks:
@@ -4947,9 +4951,8 @@ async def main(debug, cprof=False):
                             )
                             color = ORANGE
                             draw_rect(win.renderer, color, rect)
+                            write(win.renderer, "center", name, orbit_fonts[12], WHITE, *rect.center, tex=True)
                             hovering_rect = [r * S for r in rect]
-                            if mouses:
-                                pass
                             # left mouse
                             if g.mouses[0]:
                                 if not g.disabled_widgets:
@@ -4971,7 +4974,6 @@ async def main(debug, cprof=False):
                                         elif g.first_affection == "break":
                                             if name not in empty_blocks and name not in unbreakable_blocks:
                                                 emptiness = g.w.metadata[target_chunk]["underground"].get(abs_pos, "air")
-                                                test(emptiness)
                                                 g.w.modify(emptiness, target_chunk, abs_pos, overwrites_all=True)
                                         if setto is not None:
                                             if mod == 1:  # left shift I think
@@ -5510,20 +5512,21 @@ async def main(debug, cprof=False):
                     centerx = mbr.x + tool_crafter_sword_width + tool_crafter_info_width / 2
                     win.renderer.blit(tool_crafter_img, mbr)
                     # update positions of the ones you know which ones i forgot name brain fog
-                    g.mb.sword.ox, g.mb.sword.oy = (
+                    g.mb.sword.oox, g.mb.sword.ooy = (
                         mbr.x + tool_crafter_sword_width / 2,
                         mbr.y + (tool_crafter_rect.height + pw.tool_crafter_kwargs["height"]) / 2
                     )
-                    # composes and sword
-                    for index, compos in enumerate(g.mb.compoi):
-                        compos.ox, compos.oy = (
-                            mbr.x + tool_crafter_sword_width + tool_crafter_info_width / 2 + compos.oox,
-                            mbr.y + 60
-                        )
-                        compos.update()
+                    # composes update and sword
+                    # for index, compos in enumerate(g.mb.compoi):
+                    #     compos.oox, compos.oy = (
+                    #         mbr.x + tool_crafter_sword_width + tool_crafter_info_width / 2 + compos.oox,
+                    #         mbr.y + 60
+                    #     )
+                    #     compos.update()
                     g.mb.sword.update()
+
                     # radar charts
-                    fill_rect(win.renderer, RED, (g.mb.sword.ox - 3, g.mb.sword.oy - 3, 6, 6))
+                    fill_rect(win.renderer, RED, (g.mb.sword.oox - 3, g.mb.sword.ooy - 3, 6, 6))
                     # radar chart
                     g.mb.radar_chart.x, g.mb.radar_chart.y = (mbr.centerx + 50, mbr.centery)
                     # g.mb.radar_chart.update()
@@ -5534,13 +5537,13 @@ async def main(debug, cprof=False):
                     num_atoms = sum(v.stoic for v in g.mb.crystals.values())
                     molar_ratia = {}
                     for xo, (name, lattice) in enumerate(g.mb.crystals.items()):
-                        # draw_line(win.renderer, (g.mb.sword.ox, g.mb.sword.oy), (crystal.ox, crystal.oy), BLACK)
+                        # draw_line(win.renderer, (g.mb.sword.oox, g.mb.sword.ooy), (crystal.oox, crystal.ooy), BLACK)
                         # render the lattice structures
                         crystal = lattice.crystal
-                        crystal.ox, crystal.oy = mbr.topleft
-                        crystal.ox += 182 + xo * 100
-                        crystal.oy += 80
-                        x, y = crystal.ox, crystal.oy
+                        crystal.oox, crystal.ooy = mbr.topleft
+                        crystal.oox += 182 + xo * 100
+                        crystal.ooy += 80
+                        x, y = crystal.oox, crystal.ooy
                         write(win.renderer, "midtop", name, orbit_fonts[15], WHITE, x, y + 50, tex=True)
                         crystal.update()
                         # remaining text
@@ -5716,5 +5719,5 @@ async def main(debug, cprof=False):
 
 if __name__ == "__main__":
     # main(debug=g.debug)
-    asyncio.run(main(debug=g.debug))
-    # import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="tottime")
+    # asyncio.run(main(debug=g.debug))
+    import cProfile; cProfile.run("asyncio.run(main(debug=g.debug, cprof=True))", sort="cumtime")

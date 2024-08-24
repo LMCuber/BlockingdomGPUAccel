@@ -195,13 +195,13 @@ class Simp(pygame.sprite.Sprite):
 
 
 # F U N C T I O N S ------------------------------------------------------------------------------------ #
-def darken(pg_img, factor):
-    alpha = 255 - (factor * 255)
-    black_square = pygame.Surface(pg_img.get_size(), pygame.SRCALPHA)
-    black_square.fill((0, 0, 0, alpha))
-    ret = pygame.Surface((pg_img.get_size()), pygame.SRCALPHA)
-    ret.blit(black_square, (0, 0))
-    return ret
+# def darken(pg_img, factor):
+#     alpha = 255 - (factor * 255)
+#     black_square = pygame.Surface(pg_img.get_size(), pygame.SRCALPHA)
+#     black_square.fill((0, 0, 0, alpha))
+#     ret = pygame.Surface((pg_img.get_size()), pygame.SRCALPHA)
+#     ret.blit(black_square, (0, 0))
+#     return ret
 
 
 def is_in(elm, seq):
@@ -558,8 +558,6 @@ def load_blocks():
         # write(surf, "center", block, orbit_fonts[10], BLACK, *[s / 2 for s in surf.get_size()])
         a.blocks[block] = surf
     # special one-line blocks
-    a.blocks["wallstone"] = darken(a.blocks["stone"], 0.4)
-    # a.blocks["soil_f"] = a.blocks["soil"].copy()
     a.blocks["soil_sw"] = cfilter(a.blocks["soil"].copy(), 150, (30, 4))
     a.blocks["soil_sv"] = cfilter(a.blocks["soil"].copy(), 150, (30, 4), (68, 95, 35))
     a.blocks["wood_sv"] = img_mult(a.blocks["wood"].copy(), 1.2)
@@ -585,7 +583,6 @@ def load_blocks():
     # a.blocks["pampas-top"] = palettize_image(a.blocks["pampas-top"], imgload("assets", "Images", "Palettes", "sunset.png"))
     # pg_to_pil(a.blocks["pampas-top"]).show();raise
     # soil
-    a.blocks["asd"] = a.blocks["soil_f"].copy()
     pygame.draw.rect(a.blocks["soil_f"], (0, 0, 0, 0), (0, 0, 3, 3))
     # portal generator
     a.blocks["portal-generator"] = pygame.Surface((30, 30), pygame.SRCALPHA)
@@ -647,11 +644,14 @@ def load_blocks():
         # a.surf_assets[ingot_keys[0]][ingot_keys[1]] = pil_to_pg(pil_pixelate(pg_to_pil(ndget(a.surf_assets, ingot_keys)), (10, 10)))
         unplaceable_blocks.append(ingot_keys[-1])
     a.blocks["bedrock"] = b
+    # final loop for edits and news and stuf u knoe (iijijiiij ~lab~ generated butanoic acid *yumm*)
     for name, img in a.blocks.copy().items():
-        if name.endswith("-planks"):
-            # stairs
-            pass
-    # deleting unneceserry blocks that have been modified anyway
+        # cache the darkened image
+        if name + "_bg" in underground_blocks:
+            a.blocks[name + "_bg"] = darken(img, 0.4)
+        else:
+            a.blocks[name + "_bg"] = darken(img, 0.8)
+    # deleting unnecessarry buffer blocks (chemistry reference??!!? JOJO SIWA?!???!)
     del a.blocks["soil"]
 
 
@@ -1134,6 +1134,10 @@ tool_info = {
 }
 
 unplaceable_blocks.extend([*gun_blocks, "bucket", "broken-penguin-beak", "jetpack"])
+chest_blocks = [block for block in a.blocks if block is not None and block not in ("air",)]
+soils = {"soil_f"}
+dirts = {soil.replace("soil", "dirt") for soil in soils}
+underground_blocks = {"stone_bg"} | {f"{dirt}_bg" for dirt in dirts} | {f"{soil}_bg" for soil in soils}
 
 # loading assets
 load_blocks()
@@ -1141,12 +1145,7 @@ load_tools()
 load_guns()
 load_icons()
 
-chest_blocks = [block for block in a.blocks if block is not None and block not in ("air",)]
-soils = {block for block in a.blocks if bpure(block) == "soil"}
-dirts = {block for block in a.blocks if bpure(block) == "dirt"}
-
 tinfo["shovel"]["blocks"] |= {soil: 0.1 for soil in soils} | {dirt: 0.1 for dirt in dirts}
-underground_blocks = {f"{dirt}_bg" for dirt in dirts} | {"stone_bg"}
 empty_blocks = underground_blocks | {None, "air", ""}
 
 # - initializations after asset loading -
@@ -1277,7 +1276,7 @@ a.blocks |= {f"{k}_ck": pil_to_pg(pil_contrast(pg_to_pil(v))) for k, v in a.bloc
 # ore_colors = {ore: data["color"] for ore, data in oinfo.items()}
 
 # generating textures from surfaces
-a.tex_assets = {k: {name: CImage(T(img)) for name, img in v.items()} if k != "sprss" else {sprs: [CImage(T(frame)) for frame in images] for sprs, images in v.items()} for k, v in a.surf_assets.items()}
+a.tex_assets = {k: {name: T(img) for name, img in v.items()} if k != "sprss" else {sprs: [T(frame) for frame in images] for sprs, images in v.items()} for k, v in a.surf_assets.items()}
 
-# wichtig: load all blocks and modifications before loading sizes
+# sehr wichtig: load all blocks and modifications before loading sizes
 load_sizes()
