@@ -42,11 +42,6 @@ def lowercase_rename(folder):
         rename_all(root, dirs)
         rename_all(root, files)
 
-lowercase_rename("assets")
-raise
-
-
-
 
 class SmartTextRender:
     def __init__(self, func, font_size, pos, anchor, freq=500):
