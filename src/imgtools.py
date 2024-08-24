@@ -62,7 +62,7 @@ MHL = HL * BS / S
 MVL = VL * BS / S
 wb_icon_size = 300, 70
 # win = WindowHandler((1280, 720), scale=(3, 3))
-win = WindowHandler((1280, 720), scale=(3 // S, 3 // S))
+win = WindowHandler((1280, 720), scale=(1, 1))
 # win = WindowHandler((pygame.display.Info().current_w, pygame.display.Info().current_h))
 H_CHUNKS = floor(win.width / (CW * BS)) + 2 * (win.width / (CW * BS) != 0) + 1
 V_CHUNKS = floor(win.height / (CH * BS)) + 2 * (win.height / (CW * BS) != 0) + 1
