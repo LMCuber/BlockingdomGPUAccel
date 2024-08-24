@@ -9,7 +9,7 @@ import json
 import threading
 # import noise
 # from perlin_noise import PerlinNoise
-import opensimplex as osim
+import opensimplex as osimplex
 import asyncio
 from copy import deepcopy
 from colorsys import rgb_to_hls, hls_to_rgb
@@ -25,6 +25,27 @@ from src.shapes import tools
 from src.controller import *
 from src.entities import *
 from src.perlin import *
+
+
+
+def lowercase_rename(folder):
+    # renames all subforders of folder, not including folder itself
+    def rename_all(root, items):
+        for name in items:
+            try:
+                os.rename(os.path.join(root, name), os.path.join(root, name.lower()))
+            except OSError:
+                pass  # can't rename it, so what
+
+    # starts from the bottom so paths further up remain valid after renaming
+    for root, dirs, files in os.walk(folder, topdown=False):
+        rename_all(root, dirs)
+        rename_all(root, files)
+
+lowercase_rename("assets")
+raise
+
+
 
 
 class SmartTextRender:
@@ -538,6 +559,7 @@ def set_midblit(block):
         else:
             rect.x -= rect.width / 2
             rect.y -= rect.height / 2
+        rect = img.get_rect(center=win.center)
         return rect
 
     g.mb = block
@@ -855,6 +877,8 @@ def diffuse_light(og_block, chunk_data):
 
 
 def generate_chunk(chunk_index, biome="forest", terrain_only=False):
+    # fast as fuck boi
+    fast_terrain = SmartSurface((CW * BS, CH * BS), pygame.SRCALPHA)
     # init NOW
     x, y = chunk_index
     entities = []
@@ -915,17 +939,26 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
                             name = choice(list(oinfo))
                     else:
                         name = "wallstone"
-                    h = osim.noise2(x=width * 0.12, y=height * 0.1)
+                    h = osimplex.noise2(x=width * 0.12, y=height * 0.1)
                     if h < 0:
                         name = "stone_bg"
                     else:
                         name = "stone"
+                # set when height <= 1, because stone is set differently
                 if name:
-                    chunk_data[target_pos] = Block(name, target_pos, ore_chance)
+                    if y <= 0:
+                        chunk_data[target_pos] = Block(name, target_pos, ore_chance)
+                    else:
+                        g.w.modify(name, custom_target=chunk_data, abs_pos=target_pos, custom_terrain=fast_terrain, overwrites_all=True)
+                # set underground background blocks so it's not just air
                 if y >= 0 and name != "air":
+                    # sset default block when it gets mined
                     if bpure(name) == "soil":
                         u_name = name.replace("soil", "dirt")
+                    elif non_bg(name) == "stone":
+                        u_name = "stone"
                     else:
+                        # stone and stuff
                         u_name = name
                     g.w.metadata[chunk_index]["underground"][target_pos] = f"{u_name}_bg"
         # world mods
@@ -936,15 +969,17 @@ def generate_chunk(chunk_index, biome="forest", terrain_only=False):
     else:
         chunk_data = g.w.data[chunk_index]
     #
-    # suck the air out, if doesn't exist => it's air which makes it faster vroem
-    # chunk_data = {k: v for k, v in chunk_data.items() if v.name != "air"}
+    # terrain
     g.w.data[chunk_index] = chunk_data
-    terrain, lighting = generate_lighting(chunk_data, chunk_index, new=True, blit_image=True)
+    terrain, lighting = generate_lighting(chunk_data, chunk_index, new_lighting=True, blit_image=True)
+    fast_terrain.blit(terrain, (0, 0))
+    fast_terrain = T(fast_terrain)
+    g.w.terrains[chunk_index] = fast_terrain
     g.w.entities[chunk_index] = entities
-    return terrain
+    return fast_terrain
 
 
-def generate_lighting(chunk_data, chunk_index, new=False, blit_image=False):
+def generate_lighting(chunk_data, chunk_index, new_lighting=False, blit_image=False):
     chunk_pos = (chunk_index[0] * CW, chunk_index[1] * CH)
     metadata = DictWithoutException({"index": chunk_index, "pos": chunk_pos, "entities": []})
     if blit_image:
@@ -952,7 +987,7 @@ def generate_lighting(chunk_data, chunk_index, new=False, blit_image=False):
         if chunk_index[1] >= 1:
             pass
             # terrain.blit(pygame.transform.scale(g.w.surf_assets["blocks"]["wallstone"], (CW * BS, CH * BS)), (0, 0))
-    if new:
+    if new_lighting:
         lighting = SmartSurface((CW, CH), pygame.SRCALPHA)
     else:
         lighting = g.w.lighting_surfs[chunk_index]
@@ -991,9 +1026,9 @@ def generate_lighting(chunk_data, chunk_index, new=False, blit_image=False):
     g.w.metadata[chunk_index] |= metadata
     #
     if blit_image:
-        tex_terrain = T(terrain)
-        g.w.terrains[chunk_index] = tex_terrain
-        return tex_terrain, tex_lighting
+        # tex_terrain = T(terrain)
+        # g.w.terrains[chunk_index] = terrain
+        return terrain, tex_lighting
     return tex_lighting
 
 
@@ -1346,29 +1381,31 @@ class World:
             img = darken(img, 0.4 if name in underground_blocks else 0.8)
         return img
 
-    def modify(self, setto, target_chunk, abs_pos, update=True, righted=False, overwrites=None, overwrites_empty=True, overwrites_all=False, remove_from_updating=False, **kwargs):
+    def modify(self, setto, target_chunk=None, abs_pos=None, custom_target=None, custom_terrain=None, update=True, righted=False, overwrites=None, overwrites_empty=True, overwrites_all=False, remove_from_updating=False, update_image=True, **kwargs):
         # setupping texture coordinate variables
+        if custom_target is None:
+            custom_target = self.data[target_chunk]
+            custom_terrain = self.terrains[target_chunk]
         nbg = non_bg(setto)
-        block = self.data[target_chunk].get(abs_pos, void_block)
+        block = custom_target.get(abs_pos, void_block)
         current = non_bg(block.name)
         blit_x, blit_y = abs_pos[0] % CW * BS, abs_pos[1] % CH * BS
         # remove from updating if setto doesn't need to be updated anymore
         if remove_from_updating:
-            if abs_pos in self.data[target_chunk]:
-                self.to_update[target_chunk].remove(self.data[target_chunk][abs_pos])
+            if abs_pos in custom_target:
+                self.to_update[target_chunk].remove(custom_target[abs_pos])
         # check what it can overwrite
         if overwrites is None:
             overwrites = empty_blocks
         if overwrites_empty:
             overwrites |= empty_blocks
         # bravo six going dark
+        # past leo what the fuck does this comment mean are yue retarded or sum
         if setto in empty_blocks or overwrites_all or current in overwrites:
             u_good = True
             if setto in empty_blocks:
-                if abs_pos in self.data[target_chunk]:
-                    # with suppress(KeyError):
-                    #     print(self.data[target_chunk][abs_pos].name)
-                    del self.data[target_chunk][abs_pos]
+                if abs_pos in custom_target:
+                    del custom_target[abs_pos]
                 if block.in_updating:
                     block.in_updating = False
                     g.w.to_update[target_chunk].remove(block)
@@ -1393,10 +1430,16 @@ class World:
                         else:
                             g.w.modify(f"{setto}-{ori_name}", right_chunk, right_pos)
             if u_good:
+                # update the dictionary
                 if setto not in empty_blocks:
-                    self.data[target_chunk][abs_pos] = Block(setto, abs_pos)
-                if setto not in invisible_blocks:
-                    self.terrains[target_chunk].update(self.bimg(setto, tex=False), (blit_x, blit_y, BS, BS))
+                    custom_target[abs_pos] = Block(setto, abs_pos)
+                # update the image
+                if update_image:
+                    if setto not in invisible_blocks:
+                        if isinstance(custom_terrain, SmartSurface):
+                            custom_terrain.blit(self.bimg(setto, tex=False), (blit_x, blit_y))
+                        else:
+                            custom_terrain.update(self.bimg(setto, tex=False), (blit_x, blit_y, BS, BS))
                 # set correct sine for cattail
                 if nbg in plants:
                     cur = g.w.data[target_chunk][abs_pos]
@@ -1404,7 +1447,7 @@ class World:
                     # ctt.sin = cur.sin
                     # ctt.plant_pos = (0, ctt.plant_pos[1] + BS)
                     # ctt.plant_offset = Vector2(0, ctt.plant_offset.y - BS)
-        # update
+        # update the world itself (basically cellular automata eugh eugh eugh I sound so smart rigt now)
         if update:
             # § PLACE §
             # bed (king size)
@@ -1438,15 +1481,15 @@ class World:
                                     g.w.modify(current, target_chunk, abs_pos)
                                     g.w.modify(new, new_chunk, new_pos)
             if nbg == "dynamite":
-                diffuse_light(self.data[target_chunk][abs_pos], g.w.data[target_chunk])
+                diffuse_light(custom_target[abs_pos], g.w.data[target_chunk])
         if setto in updating_blocks:
             if target_chunk not in g.w.to_update:
                 self.to_update[target_chunk] = []
-            self.data[target_chunk][abs_pos].in_updating = True
-            self.to_update[target_chunk].append(self.data[target_chunk][abs_pos])
+            custom_target[abs_pos].in_updating = True
+            self.to_update[target_chunk].append(custom_target[abs_pos])
         # block updatings
         if setto not in empty_blocks:
-            block = self.data[target_chunk][abs_pos]
+            block = custom_target[abs_pos]
             if setto in flinfo:
                 block.ypos = 0
                 block.yvel = 0
@@ -1465,10 +1508,10 @@ class World:
         # update the lighting if necessary
         if nbg in linfo or current in linfo or nbg == "dynamite":
             # lighting
-            self.lightings[target_chunk] = generate_lighting(self.data[target_chunk], target_chunk, new=False)
+            self.lightings[target_chunk] = generate_lighting(custom_target, target_chunk, new_lighting=False)
         # kwargs
         for k, v in kwargs.items():
-            setattr(self.data[target_chunk][abs_pos], k, v)
+            setattr(custom_target[abs_pos], k, v)
 
     def trigger(self, target_chunk, abs_pos, wait=0):
         block = g.w.data[target_chunk][abs_pos]
@@ -4024,7 +4067,7 @@ async def main(debug, cprof=False):
 
             # fps calculating
             fpss.insert(0, g.clock.get_fps())
-            if ticks() - last_fps_update >= 1_000:
+            if ticks() - last_fps_update >= 1000:
                 shown_fps = str(sum(fpss) // len(fpss))
                 last_fps_update = ticks()
                 fpss.sort()
@@ -4110,7 +4153,9 @@ async def main(debug, cprof=False):
                             # e.take_damage(40)
                             ...
                             # g.player.anim_skin = {"Monk": "_Default", "_Default": "Samurai", "Samurai": "Monk"}[g.player.anim_skin]
-                            setattr(win, f"window{rand(0, 10000000000)}", Window(title=f"Blockingdom", size=(500, 400)))
+                            # setattr(win, f"window{rand(0, 10000000000)}", Window(title=f"Blockingdom", size=(500, 400)))
+                            # pprint({k: v.name for k, v in g.w.data[(0, 0)].items()})
+                            print(g.w.data[(0, 0)][(0, 0)].name)
 
                         # actual gameplay events
                         if g.stage == "play":
@@ -4310,7 +4355,6 @@ async def main(debug, cprof=False):
 
                                 elif g.midblit == "tool-crafter":
                                     if event.key == K_SPACE:
-                                        # g.mb.sword.rotate = not g.mb.sword.rotate
                                         if g.player.block in oinfo:
                                             ore = oinfo[g.player.block]
                                             if g.player.block not in g.mb.crystals:
@@ -4925,11 +4969,12 @@ async def main(debug, cprof=False):
                                                 if name in empty_blocks:
                                                     setto = g.player.block
                                         elif g.first_affection == "break":
-                                            if name not in empty_blocks and name not in unbreakable_blocks and name not in empty_blocks:
+                                            if name not in empty_blocks and name not in unbreakable_blocks:
                                                 emptiness = g.w.metadata[target_chunk]["underground"].get(abs_pos, "air")
+                                                test(emptiness)
                                                 g.w.modify(emptiness, target_chunk, abs_pos, overwrites_all=True)
                                         if setto is not None:
-                                            if mod == 1:
+                                            if mod == 1:  # left shift I think
                                                 setto += "_bg"
                                             g.w.modify(setto, target_chunk, abs_pos)
                             else:
