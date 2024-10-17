@@ -24,6 +24,22 @@ from src.entities import *
 from src.perlin import *
 
 
+
+def lowercase_rename(folder):
+    # renames all subforders of folder, not including folder itself
+    def rename_all(root, items):
+        for name in items:
+            try:
+                os.rename(os.path.join(root, name), os.path.join(root, name.lower()))
+            except OSError:
+                pass  # can't rename it, so what
+
+    # starts from the bottom so paths further up remain valid after renaming
+    for root, dirs, files in os.walk(folder, topdown=False):
+        rename_all(root, dirs)
+        rename_all(root, files)
+
+
 class SmartTextRender:
     def __init__(self, func, font_size, pos, anchor, freq=500):
         self.func = func
