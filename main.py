@@ -1652,7 +1652,7 @@ class PlayWidgets:
                 Slider(win.renderer,   "Resolution",    [", ".join([str(x) for x in r]) for r in resolutions], 0, tooltip="Set the resolution of the game in pixels",                          **_menu_slider_kwargs),
                 Slider(win.renderer,   "FPS Cap",       (1, 10, 30, 60, 90, 120, 144, 165, 180, 200, 240, 360), g.def_fps_cap,  tooltip="The framerate cap",                                                 **_menu_slider_kwargs),
                 Slider(win.renderer,   "Animation",     range(21),  int(g.p.anim_fps * g.fps_cap),                     tooltip="Animation speed of graphics",                                       **_menu_slider_kwargs),
-                Slider(win.renderer,   "Camera Lag",    range(1, 51), 10,                                              tooltip="The lag of the camera that fixated on the player",                  **_menu_slider_kwargs),
+                Slider(win.renderer,   "Camera Lag",    range(1, 51), 1,                                               tooltip="The lag of the camera that fixated on the player",                  **_menu_slider_kwargs),
                 Slider(win.renderer,   "Volume",        range(101), int(g.p.volume * 100),                             tooltip="Master volume",                                                     **_menu_slider_kwargs),
                 Slider(win.renderer,   "Entities",      (0, 1, 10, 100), 100,                                          tooltip="Maximum number of entities updateable",                             **_menu_slider_kwargs),
                 Slider(win.renderer,   "Lighting",      range(0, 256), 0, on_move_command=self.lighting_command,       tooltip="Experimental lighting",                                             **_menu_slider_kwargs),
@@ -1943,15 +1943,9 @@ class Animations:
                 # staff
                 "staff_idle": {"frames": 2, "speed": 0.012},
                 "staff_run": {"frames": 4},
-<<<<<<< HEAD
                 "staff_jump": {"frames": 1},
                 # katana
                 "katana_run": {"frames": 8},
-=======
-                "idle": {"frames": 2, "speed": 0.025},
-                "jump": {"frames": 1, "offset": (0, 0)},
-                "punch": {"frames": 4, "speed": 0.12, "offset": (9, 2)},
->>>>>>> ae4f874f84d77c25e02ca3535bb8c660e116089c
             },
 
             "staff": {
